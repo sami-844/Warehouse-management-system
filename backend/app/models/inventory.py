@@ -1,15 +1,26 @@
 """
 Warehouse and Inventory models - Stock tracking across locations
 """
-from sqlalchemy import Column, Integer, String, Numeric, Boolean, DateTime, ForeignKey, Text, Date
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, DateTime, ForeignKey, Text, Enum as SQLEnum, Numeric
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from enum import Enum
+
+
+class TransactionType(str, Enum):
+    """Types of inventory transactions"""
+    RECEIPT = "RECEIPT"           # Goods coming in
+    ISSUE = "ISSUE"               # Goods going out
+    TRANSFER_IN = "TRANSFER_IN"   # Transfer into location
+    TRANSFER_OUT = "TRANSFER_OUT" # Transfer out of location
+    ADJUSTMENT = "ADJUSTMENT"     # Stock correction
 
 
 class Warehouse(Base):
     """Warehouse locations - main warehouse with zones/sections"""
     __tablename__ = "warehouses"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(50), unique=True, nullable=False, index=True)
@@ -50,7 +61,7 @@ class InventoryTransaction(Base):
     warehouse_id = Column(Integer, ForeignKey('warehouses.id'), nullable=False, index=True)
     
     # Movement details
-    transaction_type = Column(String(20), nullable=False, index=True)  
+    transaction_type = Column(SQLEnum(TransactionType), nullable=False)  
     # Types: RECEIPT, ISSUE, TRANSFER_IN, TRANSFER_OUT, ADJUSTMENT
     
     quantity = Column(Numeric(10, 3), nullable=False)  # Positive for IN, Negative for OUT

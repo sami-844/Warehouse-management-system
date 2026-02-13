@@ -1,0 +1,31 @@
+.stock-levels-container { padding: 24px; background: #f0f2f5; min-height: 100vh; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.header-content { display: flex; align-items: center; gap: 16px; }
+.header-icon.levels { font-size: 40px; background: linear-gradient(135deg, #1a7b5b, #2ea87b); width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.page-header h1 { font-size: 28px; font-weight: 800; margin: 0; color: #1a2332; }
+.page-header p { font-size: 14px; color: #888; margin: 2px 0 0; }
+.header-actions { display: flex; gap: 8px; }
+.action-btn { padding: 8px 16px; border: 2px solid #e5e7eb; border-radius: 8px; background: white; font-weight: 600; cursor: pointer; font-size: 13px; }
+.action-btn:hover { background: #f8f9fa; }
+.action-btn.refresh { border-color: #1a7b5b; color: #1a7b5b; }
+.summary-stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.stat-card { flex: 1; min-width: 130px; background: white; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-top: 3px solid #1a7b5b; }
+.stat-card.gold { border-top-color: #d4a017; } .stat-card.alert { border-top-color: #ea580c; } .stat-card.danger { border-top-color: #dc2626; }
+.stat-value { font-size: 28px; font-weight: 800; color: #1a2332; }
+.stat-label { font-size: 12px; color: #888; text-transform: uppercase; margin-top: 4px; }
+.filters-section { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; background: white; padding: 12px 16px; border-radius: 10px; }
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-group label { font-size: 13px; font-weight: 600; color: #555; }
+.filter-group select, .filter-group input { padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 13px; }
+.filter-checkbox label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+.stock-table-container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.stock-table { width: 100%; border-collapse: collapse; }
+.stock-table th { background: #1a2332; color: white; padding: 12px 14px; text-align: left; font-size: 12px; text-transform: uppercase; }
+.stock-table td { padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 14px; }
+.stock-row.in-stock:hover { background: #f0fff0; } .stock-row.low-stock { background: #fffbeb; } .stock-row.out-of-stock { background: #fef2f2; }
+.product-name { font-weight: 600; } .sku { font-family: monospace; color: #888; font-size: 12px; }
+.quantity { font-weight: 700; font-size: 16px; } .value { font-weight: 600; color: #1a7b5b; }
+.status-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+.status-badge.in-stock { background: #e8f5e9; color: #2e7d32; } .status-badge.low-stock { background: #fff3e0; color: #e65100; } .status-badge.out-of-stock { background: #ffebee; color: #c62828; }
+.no-data { text-align: center; padding: 30px; color: #aaa; }
+.loading-state { text-align: center; padding: 40px; color: #888; }

@@ -34,7 +34,7 @@ def init_database():
                 username="admin",
                 email="admin@akalmomiaiza.com",
                 full_name="System Administrator",
-                hashed_password=get_password_hash("admin"),  # Change this in production!
+                hashed_password=get_password_hash("admin123"),  # Change this in production!
                 role=UserRole.ADMIN,
                 is_superuser=True,
                 is_active=True

@@ -9,6 +9,7 @@ from app.core.database import Base
 class Supplier(Base):
     """Supplier master data - companies we buy from"""
     __tablename__ = "suppliers"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(50), unique=True, nullable=False, index=True)

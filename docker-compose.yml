@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      - DATABASE_URL=sqlite:///./warehouse.db
+      - SECRET_KEY=ak-momaiza-warehouse-prod-secret-key-2026-change-me
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=480
+      - CORS_ORIGINS=*
+      - DEBUG=False
+    volumes:
+      - warehouse_data:/app/backend
+    restart: always
+
+volumes:
+  warehouse_data:

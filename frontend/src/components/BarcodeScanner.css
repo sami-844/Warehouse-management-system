@@ -1,0 +1,36 @@
+.barcode-container { padding: 24px; background: #f0f2f5; min-height: 100vh; }
+.scan-section { margin: 20px 0; }
+.scan-input-wrapper { display: flex; gap: 8px; align-items: center; background: white; padding: 12px 20px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.scan-icon { font-size: 24px; }
+.scan-input { flex: 1; border: none; font-size: 18px; padding: 10px; outline: none; font-weight: 600; }
+.scan-input::placeholder { color: #aaa; font-weight: 400; }
+.scan-btn { padding: 10px 24px; background: #1a7b5b; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+.scan-btn:hover { background: #15664a; }
+.scan-btn:disabled { opacity: 0.5; }
+.scan-hint { color: #888; font-size: 13px; margin-top: 8px; }
+.product-result { margin-top: 20px; }
+.result-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+.product-info-card, .stock-info-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.product-info-card h2 { color: #1a2332; margin-bottom: 16px; }
+.product-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.detail .label { display: block; font-size: 11px; color: #888; text-transform: uppercase; }
+.detail .value { font-size: 15px; font-weight: 600; color: #333; }
+.total-stock { text-align: center; padding: 20px; border-radius: 12px; margin-bottom: 16px; }
+.total-stock.ok { background: #e8f5e9; } .total-stock.warning { background: #fff3e0; } .total-stock.danger { background: #ffebee; }
+.big-number { font-size: 48px; font-weight: 800; color: #1a2332; }
+.big-label { font-size: 13px; color: #666; text-transform: uppercase; }
+.location-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+.location-row .qty { font-weight: 700; color: #1a7b5b; }
+.history-section { margin-top: 20px; background: white; border-radius: 12px; padding: 20px; }
+.history-section h3 { margin-bottom: 12px; }
+.history-table { width: 100%; border-collapse: collapse; }
+.history-table th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #666; }
+.history-table td { padding: 10px 12px; border-bottom: 1px solid #eee; }
+.type-badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+.type-badge.RECEIPT { background: #e8f5e9; color: #2e7d32; } .type-badge.ISSUE { background: #ffebee; color: #c62828; }
+.negative { color: #dc2626; font-weight: 700; } .positive { color: #16a34a; font-weight: 700; }
+.scan-history { margin-top: 24px; background: white; border-radius: 12px; padding: 20px; }
+.scan-history h3 { margin-bottom: 12px; }
+.scan-entry { display: flex; gap: 16px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+.scan-time { color: #888; width: 80px; } .scan-product { flex: 1; font-weight: 600; } .scan-code { color: #666; font-family: monospace; }
+@media (max-width: 768px) { .result-grid { grid-template-columns: 1fr; } }
