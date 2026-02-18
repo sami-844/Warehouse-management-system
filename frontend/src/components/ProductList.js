@@ -78,10 +78,17 @@ function ProductList() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const cleanData = { ...formData };
+      ['category_id', 'default_supplier_id'].forEach(f => {
+        cleanData[f] = (cleanData[f] === '' || cleanData[f] == null) ? null : parseInt(cleanData[f]) || null;
+      });
+      ['standard_cost', 'selling_price', 'tax_rate', 'weight', 'volume'].forEach(f => {
+        cleanData[f] = (cleanData[f] === '' || cleanData[f] == null) ? null : parseFloat(cleanData[f]) || null;
+      });
       if (editingProduct) {
-        await productAPI.update(editingProduct.id, formData);
+        await productAPI.update(editingProduct.id, cleanData);
       } else {
-        await productAPI.create(formData);
+        await productAPI.create(cleanData);
       }
       await loadData();
       resetForm();
