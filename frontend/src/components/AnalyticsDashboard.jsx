@@ -56,7 +56,7 @@ const AnalyticsDashboard = () => {
     setError(null);
 
     const catParam = selectedCategory ? `&category_id=${selectedCategory}` : '';
-    const base     = 'http://localhost:8000/api/analytics';
+    const base     = '/api/analytics';
 
     try {
       const results = await Promise.allSettled([

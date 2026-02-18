@@ -47,7 +47,7 @@ function CompanySettings() {
 
   const exportCSV = (tableName) => {
     const token = localStorage.getItem('token');
-    const url = `http://localhost:8000/api/admin/export/${tableName}`;
+    const url = `/api/admin/export/${tableName}`;
     // Open in new window with auth header workaround
     fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(res => res.blob())
