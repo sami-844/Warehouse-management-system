@@ -334,7 +334,7 @@ def get_categories():
     """List all product categories"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name FROM categories ORDER BY name")
+    cursor.execute("SELECT id, name FROM product_categories WHERE is_active = 1 ORDER BY name")
     cats = [{"id": row[0], "name": row[1]} for row in cursor.fetchall()]
     conn.close()
     return {"categories": cats}
@@ -381,7 +381,7 @@ def get_category_breakdown(days: int = Query(30)):
             SUM(CASE WHEN p.current_stock = 0 THEN 1 ELSE 0 END) as out_of_stock,
             SUM(CASE WHEN p.current_stock <= p.reorder_point AND p.current_stock > 0 THEN 1 ELSE 0 END) as low_stock
         FROM products p
-        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN product_categories c ON p.category_id = c.id
         WHERE p.is_active = 1
         GROUP BY c.id, c.name
         ORDER BY total_value DESC
@@ -409,7 +409,7 @@ def get_alerts():
         SELECT p.id, p.sku, p.name, p.current_stock, p.reorder_point,
                COALESCE(c.name, 'General') as category
         FROM products p
-        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN product_categories c ON p.category_id = c.id
         WHERE p.current_stock > 0 AND p.current_stock <= p.reorder_point
           AND p.is_active = 1
         ORDER BY (p.current_stock - p.reorder_point) ASC LIMIT 30
@@ -426,7 +426,7 @@ def get_alerts():
         SELECT p.id, p.sku, p.name, p.reorder_quantity,
                COALESCE(c.name, 'General') as category
         FROM products p
-        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN product_categories c ON p.category_id = c.id
         WHERE p.current_stock = 0 AND p.is_active = 1 LIMIT 30
     """)
     for r in cursor.fetchall():
@@ -441,7 +441,7 @@ def get_alerts():
         SELECT p.id, p.sku, p.name, p.current_stock,
                COALESCE(c.name, 'General') as category
         FROM products p
-        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN product_categories c ON p.category_id = c.id
         WHERE p.is_dead_stock = 1 AND p.is_active = 1 LIMIT 30
     """)
     for r in cursor.fetchall():
