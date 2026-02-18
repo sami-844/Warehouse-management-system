@@ -3,7 +3,7 @@
  * Base URL: http://localhost:8000/api/analytics
  */
 
-const API_BASE = 'http://localhost:8000/api/analytics';
+const API_BASE = '/api/analytics';
 
 const get = async (path) => {
   const res = await fetch(`${API_BASE}${path}`);
