@@ -46,3 +46,5 @@ celery==5.3.6
 
 # Email
 fastapi-mail==1.4.1
+
+argon2-cffi==25.1.0
