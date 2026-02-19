@@ -36,7 +36,7 @@ services:
     restart: always
 
   # ─── Frontend (React + Nginx) ──────────────────────────────────
-frontend:
+  frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
@@ -45,12 +45,13 @@ frontend:
     depends_on:
       - backend
     restart: always
-    networks:
-      - dokploy-network
-
-networks:
-  dokploy-network:
-    external: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.warehouse-frontend.rule=Host(`almumayzatrad.com`) || Host(`www.almumayzatrad.com`)"
+      - "traefik.http.routers.warehouse-frontend.entrypoints=web,websecure"
+      - "traefik.http.routers.warehouse-frontend.tls=true"
+      - "traefik.http.routers.warehouse-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.warehouse-frontend.loadbalancer.server.port=80"
 
 volumes:
   postgres_data:
