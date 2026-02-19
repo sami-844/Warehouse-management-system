@@ -36,15 +36,21 @@ services:
     restart: always
 
   # ─── Frontend (React + Nginx) ──────────────────────────────────
-  frontend:
+frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     depends_on:
       - backend
     restart: always
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
 
 volumes:
   postgres_data:
