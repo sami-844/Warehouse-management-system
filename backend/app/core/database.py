@@ -1,16 +1,29 @@
 """
 Database connection and session management
+Supports both SQLite (development) and PostgreSQL (production)
 """
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
+# Build engine kwargs based on database type
+engine_kwargs = {}
+
+if "sqlite" in settings.DATABASE_URL:
+    # SQLite needs this for multi-threaded use
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+else:
+    # PostgreSQL connection pool settings for production
+    engine_kwargs["pool_size"] = 10
+    engine_kwargs["max_overflow"] = 20
+    engine_kwargs["pool_pre_ping"] = True  # Verify connection is alive before using
+
 # Create database engine
 engine = create_engine(
     settings.DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
-    echo=settings.DEBUG  # Log SQL queries in debug mode
+    echo=settings.DEBUG,
+    **engine_kwargs
 )
 
 # Create session factory

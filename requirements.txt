@@ -8,12 +8,13 @@ python-multipart==0.0.6
 # Database
 sqlalchemy==2.0.25
 alembic==1.13.1
-
+psycopg2-binary==2.9.9
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
+argon2-cffi==25.1.0
 
 # Data Validation
 pydantic==2.5.3
@@ -38,13 +39,5 @@ pytest==7.4.4
 pytest-asyncio==0.23.3
 httpx==0.26.0
 
-# Redis (Caching)
-redis==5.0.1
-
-# Background Tasks
-celery==5.3.6
-
 # Email
 fastapi-mail==1.4.1
-
-argon2-cffi==25.1.0
