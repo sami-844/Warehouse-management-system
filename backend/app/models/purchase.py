@@ -7,7 +7,7 @@ from app.core.database import Base
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
     __table_args__ = {'extend_existing': True}
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, )
     po_number = Column(String(50), unique=True, nullable=False)
     supplier_id = Column(Integer, ForeignKey('suppliers.id'), nullable=False)
     order_date = Column(Date, nullable=False)

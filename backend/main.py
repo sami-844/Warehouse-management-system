@@ -53,7 +53,7 @@ app.include_router(analytics_router)
 @app.on_event("startup")
 async def startup_event():
     print(f"Starting {settings.APP_NAME} v5.3")
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine, checkfirst=True)
     print("Database tables verified — All Phase 5c modules active")
 
 @app.on_event("shutdown")
