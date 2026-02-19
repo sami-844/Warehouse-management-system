@@ -40,8 +40,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    expose:
-      - "80"
+    ports:
+      - "80:80"
     depends_on:
       - backend
     restart: always
