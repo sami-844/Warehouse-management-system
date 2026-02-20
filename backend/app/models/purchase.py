@@ -36,7 +36,7 @@ class PurchaseOrder(Base):
 class PurchaseOrderItem(Base):
     __tablename__ = "purchase_order_items"
     __table_args__ = {'extend_existing': True}
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True,)
     purchase_order_id = Column(Integer, ForeignKey('purchase_orders.id'), nullable=False)
     product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
     quantity = Column(Integer, nullable=False)
