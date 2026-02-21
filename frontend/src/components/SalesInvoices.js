@@ -14,7 +14,7 @@ function SalesInvoices() {
 
   useEffect(() => { load(); loadAging(); loadOverdue(); }, [filterStatus]);
 
-  const load = async () => { setLoading(true); try { const p = {}; if (filterStatus) p.status = filterStatus; setInvoices(await salesAPI.listInvoices(p)); } catch(e) {} finally { setLoading(false); } };
+  const load = async () => { setLoading(true); try { const p = {}; if (filterStatus) p.status = filterStatus; const di = await salesAPI.listInvoices(p); setInvoices(Array.isArray(di) ? di : (di?.items || [])); } catch(e) {} finally { setLoading(false); } };
   const loadAging = async () => { try { setAging(await salesAPI.agingReport()); } catch(e) {} };
   const loadOverdue = async () => { try { setOverdue(await salesAPI.overdueInvoices()); } catch(e) {} };
 

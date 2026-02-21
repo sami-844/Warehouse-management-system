@@ -17,7 +17,7 @@ function SupplierList() {
 
   useEffect(() => { load(); }, []);
 
-  const load = async () => { setLoading(true); try { setSuppliers(await supplierAPI.list()); } catch(e) { console.error(e); } finally { setLoading(false); } };
+  const load = async () => { setLoading(true); try { const d = await supplierAPI.list(); setSuppliers(Array.isArray(d) ? d : (d?.items || d?.suppliers || [])); } catch(e) { console.error(e); } finally { setLoading(false); } };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setMessage({ text: '', type: '' });

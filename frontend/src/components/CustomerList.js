@@ -19,7 +19,7 @@ function CustomerList() {
 
   useEffect(() => { load(); loadAreas(); }, [filterArea]);
 
-  const load = async () => { setLoading(true); try { const params = {}; if (filterArea) params.area = filterArea; setCustomers(await customerAPI.list(params)); } catch(e) { console.error(e); } finally { setLoading(false); } };
+  const load = async () => { setLoading(true); try { const params = {}; if (filterArea) params.area = filterArea; const dc = await customerAPI.list(params); setCustomers(Array.isArray(dc) ? dc : (dc?.items || [])); } catch(e) { console.error(e); } finally { setLoading(false); } };
   const loadAreas = async () => { try { setAreas(await customerAPI.getAreas()); } catch(e) {} };
 
   const handleSubmit = async (e) => {

@@ -17,10 +17,10 @@ function SalesOrderList({ onViewOrder }) {
 
   useEffect(() => { load(); loadCustomers(); loadProducts(); loadStock(); }, [filterStatus]);
 
-  const load = async () => { setLoading(true); try { const params = {}; if (filterStatus) params.status = filterStatus; setOrders(await salesAPI.listOrders(params)); } catch(e) { console.error(e); } finally { setLoading(false); } };
-  const loadCustomers = async () => { try { setCustomers(await customerAPI.list({ active_only: true })); } catch(e) {} };
+  const load = async () => { setLoading(true); try { const params = {}; if (filterStatus) params.status = filterStatus; const d = await salesAPI.listOrders(params); setOrders(Array.isArray(d) ? d : (d?.items || d?.orders || [])); } catch(e) { console.error(e); } finally { setLoading(false); } };
+  const loadCustomers = async () => { try { const d = await customerAPI.list({ active_only: true }); setCustomers(Array.isArray(d) ? d : (d?.items || [])); } catch(e) {} };
   const loadProducts = async () => { try { const res = await productAPI.getAll(); setProducts((res.data || []).filter(p => p.is_active)); } catch(e) {} };
-  const loadStock = async () => { try { setStockLevels(await inventoryAPI.getStockLevels()); } catch(e) {} };
+  const loadStock = async () => { try { const d = await inventoryAPI.getStockLevels(); setStockLevels(Array.isArray(d) ? d : (d?.items || [])); } catch(e) {} };
 
   const getStock = (productId) => {
     const levels = stockLevels.filter(s => s.product_id === productId);
