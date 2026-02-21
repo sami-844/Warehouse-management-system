@@ -45,13 +45,7 @@ services:
     depends_on:
       - backend
     restart: always
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.warehouse-frontend.rule=Host(`almumayzatrad.com`) || Host(`www.almumayzatrad.com`)"
-      - "traefik.http.routers.warehouse-frontend.entrypoints=web,websecure"
-      - "traefik.http.routers.warehouse-frontend.tls=true"
-      - "traefik.http.routers.warehouse-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.warehouse-frontend.loadbalancer.server.port=80"
+    
 
 volumes:
   postgres_data:
