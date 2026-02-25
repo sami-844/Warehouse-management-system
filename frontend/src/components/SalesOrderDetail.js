@@ -89,7 +89,7 @@ function SalesOrderDetail({ soId, onBack }) {
         <div className="summary-card"><div className="sc-label">Required</div><div className="sc-value">{so.required_date || 'ASAP'}</div></div>
         <div className="summary-card"><div className="sc-label">Driver</div><div className="sc-value">{so.driver_name || 'Unassigned'}</div></div>
         <div className="summary-card"><div className="sc-label">Vehicle</div><div className="sc-value">{so.vehicle || '-'}</div></div>
-        <div className="summary-card highlight"><div className="sc-label">Total</div><div className="sc-value">{so.total_amount.toFixed(3)} OMR</div></div>
+        <div className="summary-card highlight"><div className="sc-label">Total</div><div className="sc-value">{(Number(so.total_amount) || 0).toFixed(3)} OMR</div></div>
       </div>
 
       {/* Items Table */}
@@ -98,23 +98,23 @@ function SalesOrderDetail({ soId, onBack }) {
         <table className="data-table">
           <thead><tr><th>Product</th><th>SKU</th><th>Ordered</th><th>Shipped</th><th>Price</th><th>Disc%</th><th>Total</th></tr></thead>
           <tbody>
-            {so.items.map(i => (
+            {(so.items || []).map(i => (
               <tr key={i.id}>
                 <td>{i.product_name}</td><td className="code">{i.sku}</td>
                 <td>{i.quantity_ordered}</td>
                 <td className={i.quantity_shipped < i.quantity_ordered ? 'negative' : 'positive'}>{i.quantity_shipped}</td>
-                <td>{i.unit_price.toFixed(3)}</td><td>{i.discount_percent}%</td>
-                <td className="value">{i.total_price.toFixed(3)}</td>
+                <td>{(Number(i.unit_price) || 0).toFixed(3)}</td><td>{i.discount_percent || 0}%</td>
+                <td className="value">{(Number(i.total_price) || 0).toFixed(3)}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
         <div className="so-totals">
-          <div className="total-line"><span>Subtotal</span><span>{so.subtotal.toFixed(3)} OMR</span></div>
-          {so.discount_amount > 0 && <div className="total-line discount"><span>Discount</span><span className="negative">-{so.discount_amount.toFixed(3)}</span></div>}
-          <div className="total-line"><span>VAT (5%)</span><span>{so.tax_amount.toFixed(3)}</span></div>
-          <div className="total-line grand"><span>Total</span><span>{so.total_amount.toFixed(3)} OMR</span></div>
+          <div className="total-line"><span>Subtotal</span><span>{(Number(so.subtotal) || 0).toFixed(3)} OMR</span></div>
+          {(Number(so.discount_amount) || 0) > 0 && <div className="total-line discount"><span>Discount</span><span className="negative">-{(Number(so.discount_amount) || 0).toFixed(3)}</span></div>}
+          <div className="total-line"><span>VAT (5%)</span><span>{(Number(so.tax_amount) || 0).toFixed(3)}</span></div>
+          <div className="total-line grand"><span>Total</span><span>{(Number(so.total_amount) || 0).toFixed(3)} OMR</span></div>
         </div>
       </div>
 
@@ -135,8 +135,8 @@ function SalesOrderDetail({ soId, onBack }) {
         <div className="info-card"><h4>🧾 Invoice</h4>
           <div className="info-grid">
             <div><span className="label">Invoice:</span> <strong>{so.invoice.number}</strong></div>
-            <div><span className="label">Total:</span> {so.invoice.total.toFixed(3)} OMR</div>
-            <div><span className="label">Paid:</span> <span className="positive">{so.invoice.paid.toFixed(3)}</span></div>
+            <div><span className="label">Total:</span> {(Number(so.invoice.total) || 0).toFixed(3)} OMR</div>
+            <div><span className="label">Paid:</span> <span className="positive">{(Number(so.invoice.paid) || 0).toFixed(3)}</span></div>
             <div><span className="label">Status:</span> <span className={`status-${so.invoice.status}`}>{so.invoice.status}</span></div>
           </div>
         </div>

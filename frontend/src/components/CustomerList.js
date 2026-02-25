@@ -115,7 +115,7 @@ function CustomerList() {
                   <td>{c.payment_terms_days === 0 ? 'COD' : `Net ${c.payment_terms_days}d`}</td>
                   <td>{c.preferred_delivery_day || 'Any'}</td>
                   <td className="center">{c.total_orders}</td>
-                  <td className={`value ${c.outstanding_balance > 0 ? 'negative' : ''}`}>{c.outstanding_balance > 0 ? `${c.outstanding_balance.toFixed(3)}` : '-'}</td>
+                  <td className={`value ${(Number(c.outstanding_balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(c.outstanding_balance) || 0) > 0 ? `${(Number(c.outstanding_balance)).toFixed(3)}` : '-'}</td>
                   <td><button className="edit-btn" onClick={() => editCustomer(c)}>✏️</button></td>
                 </tr>
               ))

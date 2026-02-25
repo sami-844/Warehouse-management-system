@@ -39,25 +39,33 @@ function PurchaseInvoices() {
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 
       {/* Aging Summary */}
-      {aging && (
-        <div className="aging-cards">
-          <div className="aging-card current"><div className="aging-label">Current</div><div className="aging-value">{aging.buckets.current.toFixed(3)}</div></div>
-          <div className="aging-card d30"><div className="aging-label">1-30 Days</div><div className="aging-value">{aging.buckets['1_30'].toFixed(3)}</div></div>
-          <div className="aging-card d60"><div className="aging-label">31-60 Days</div><div className="aging-value">{aging.buckets['31_60'].toFixed(3)}</div></div>
-          <div className="aging-card d90"><div className="aging-label">61-90 Days</div><div className="aging-value">{aging.buckets['61_90'].toFixed(3)}</div></div>
-          <div className="aging-card over90"><div className="aging-label">90+ Days</div><div className="aging-value">{aging.buckets.over_90.toFixed(3)}</div></div>
-          <div className="aging-card total"><div className="aging-label">Total Owed</div><div className="aging-value">{aging.total_outstanding.toFixed(3)}</div></div>
-        </div>
-      )}
+      {aging && (() => {
+        const b = aging.buckets || {};
+        const cur = Number(b.current) || 0;
+        const d30 = Number(b['1_30']) || 0;
+        const d60 = Number(b['31_60']) || 0;
+        const d90 = Number(b['61_90']) || 0;
+        const over = Number(b.over_90) || 0;
+        return (
+          <div className="aging-cards">
+            <div className="aging-card current"><div className="aging-label">Current</div><div className="aging-value">{cur.toFixed(3)}</div></div>
+            <div className="aging-card d30"><div className="aging-label">1-30 Days</div><div className="aging-value">{d30.toFixed(3)}</div></div>
+            <div className="aging-card d60"><div className="aging-label">31-60 Days</div><div className="aging-value">{d60.toFixed(3)}</div></div>
+            <div className="aging-card d90"><div className="aging-label">61-90 Days</div><div className="aging-value">{d90.toFixed(3)}</div></div>
+            <div className="aging-card over90"><div className="aging-label">90+ Days</div><div className="aging-value">{over.toFixed(3)}</div></div>
+            <div className="aging-card total"><div className="aging-label">Total Owed</div><div className="aging-value">{(Number(aging.total_outstanding) || 0).toFixed(3)}</div></div>
+          </div>
+        );
+      })()}
 
       {/* Payment Modal */}
       {payingInvoice && (
         <div className="modal-overlay" onClick={() => setPayingInvoice(null)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
             <h3>Record Payment — {payingInvoice.invoice_number}</h3>
-            <p>Balance: <strong>{payingInvoice.balance.toFixed(3)} OMR</strong></p>
+            <p>Balance: <strong>{(Number(payingInvoice.balance) || 0).toFixed(3)} OMR</strong></p>
             <div className="form-row-2">
-              <div className="form-group"><label>Amount *</label><input type="number" step="0.001" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({...p, amount: e.target.value}))} max={payingInvoice.balance} placeholder={payingInvoice.balance.toFixed(3)} /></div>
+              <div className="form-group"><label>Amount *</label><input type="number" step="0.001" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({...p, amount: e.target.value}))} max={payingInvoice.balance} placeholder={(Number(payingInvoice.balance) || 0).toFixed(3)} /></div>
               <div className="form-group"><label>Method</label>
                 <select value={paymentForm.payment_method} onChange={e => setPaymentForm(p => ({...p, payment_method: e.target.value}))}>
                   <option value="bank_transfer">Bank Transfer</option><option value="cash">Cash</option><option value="cheque">Cheque</option>
@@ -92,12 +100,12 @@ function PurchaseInvoices() {
                   <tr key={inv.id} className={inv.days_overdue > 0 ? 'overdue-row' : ''}>
                     <td className="code">{inv.invoice_number}</td><td>{inv.supplier_name}</td>
                     <td>{inv.invoice_date}</td><td>{inv.due_date}</td>
-                    <td className="value">{inv.total_amount.toFixed(3)}</td>
-                    <td className="positive">{inv.amount_paid.toFixed(3)}</td>
-                    <td className={`value ${inv.balance > 0 ? 'negative' : ''}`}>{inv.balance.toFixed(3)}</td>
+                    <td className="value">{(Number(inv.total_amount) || 0).toFixed(3)}</td>
+                    <td className="positive">{(Number(inv.amount_paid) || 0).toFixed(3)}</td>
+                    <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(inv.balance) || 0).toFixed(3)}</td>
                     <td className={inv.days_overdue > 0 ? 'negative' : ''}>{inv.days_overdue > 0 ? `${inv.days_overdue}d` : '-'}</td>
                     <td><span className="status-pill" style={{ backgroundColor: statusColor(inv.status) }}>{inv.status}</span></td>
-                    <td>{inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPaymentForm(p => ({...p, amount: inv.balance.toFixed(3)})); }}>💰 Pay</button>}</td>
+                    <td>{inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPaymentForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>💰 Pay</button>}</td>
                   </tr>
                 ))
               }

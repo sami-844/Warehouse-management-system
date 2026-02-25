@@ -98,10 +98,10 @@ function PricingRules() {
               {previewPrices.map(p => (
                 <tr key={p.product_id} className={p.discount_percent > 0 || p.special_price ? 'has-discount' : ''}>
                   <td>{p.name}</td><td className="code">{p.sku}</td>
-                  <td>{p.base_price.toFixed(3)}</td>
+                  <td>{(Number(p.base_price) || 0).toFixed(3)}</td>
                   <td className={p.discount_percent > 0 ? 'positive' : ''}>{p.discount_percent > 0 ? `${p.discount_percent}%` : '-'}</td>
-                  <td>{p.special_price ? p.special_price.toFixed(3) : '-'}</td>
-                  <td className="value highlight-value">{p.effective_price.toFixed(3)}</td>
+                  <td>{p.special_price ? (Number(p.special_price) || 0).toFixed(3) : '-'}</td>
+                  <td className="value highlight-value">{(Number(p.effective_price) || 0).toFixed(3)}</td>
                   <td>{p.rule || '-'}</td>
                 </tr>
               ))}
@@ -123,7 +123,7 @@ function PricingRules() {
                   <td>{r.product_name || 'All'}</td><td>{r.customer_name}</td>
                   <td className="center">{r.min_quantity}</td>
                   <td className={r.discount_percent > 0 ? 'positive' : ''}>{r.discount_percent > 0 ? `${r.discount_percent}%` : '-'}</td>
-                  <td className="value">{r.special_price ? `${r.special_price.toFixed(3)} OMR` : '-'}</td>
+                  <td className="value">{r.special_price ? `${(Number(r.special_price) || 0).toFixed(3)} OMR` : '-'}</td>
                   <td>{r.valid_from ? `${r.valid_from} → ${r.valid_to || '∞'}` : 'Always'}</td>
                   <td>{r.is_active ? '✅' : '❌'}</td>
                   <td><button className="remove-btn" onClick={() => deleteRule(r.id)}>🗑️</button></td>

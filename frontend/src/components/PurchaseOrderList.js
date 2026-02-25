@@ -135,8 +135,8 @@ function PurchaseOrderList({ onViewOrder }) {
                     <td className="code">{o.po_number}</td><td>{o.supplier_name}</td>
                     <td>{o.order_date}</td><td>{o.expected_delivery_date || '-'}</td>
                     <td>{o.container_reference || '-'}</td>
-                    <td className="value">{o.total_amount.toFixed(3)} {o.currency}</td>
-                    <td><span className="status-pill" style={{ backgroundColor: statusColor(o.status) }}>{o.status.replace('_', ' ')}</span></td>
+                    <td className="value">{(Number(o.total_amount) || 0).toFixed(3)} {o.currency}</td>
+                    <td><span className="status-pill" style={{ backgroundColor: statusColor(o.status) }}>{(o.status || '').replace('_', ' ')}</span></td>
                     <td className="actions">
                       <button className="view-btn" onClick={() => onViewOrder(o.id)}>👁️</button>
                       {o.status === 'draft' && <button className="send-btn" onClick={() => sendPO(o.id)}>📤 Send</button>}

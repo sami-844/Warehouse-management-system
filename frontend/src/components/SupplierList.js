@@ -98,7 +98,7 @@ function SupplierList() {
                     <td>{[s.city, s.country].filter(Boolean).join(', ') || '-'}</td>
                     <td>Net {s.payment_terms_days}d</td>
                     <td className="center">{s.total_orders}</td>
-                    <td className={`value ${s.outstanding_balance > 0 ? 'negative' : ''}`}>{s.outstanding_balance > 0 ? `${s.outstanding_balance.toFixed(3)} OMR` : '-'}</td>
+                    <td className={`value ${(Number(s.outstanding_balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(s.outstanding_balance) || 0) > 0 ? `${(Number(s.outstanding_balance)).toFixed(3)} OMR` : '-'}</td>
                     <td><button className="edit-btn" onClick={() => editSupplier(s)}>✏️</button></td>
                   </tr>
                 ))

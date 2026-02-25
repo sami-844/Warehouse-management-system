@@ -63,7 +63,7 @@ function SalesOrderList({ onViewOrder }) {
         tax_rate: parseFloat(form.tax_rate) || 5, notes: form.notes || null,
         items: lineItems.map(i => ({ product_id: i.product_id, quantity_ordered: i.quantity_ordered, unit_price: i.unit_price, discount_percent: i.discount_percent }))
       });
-      setMessage({ text: `✅ ${result.order_number} created! Total: ${result.total_amount.toFixed(3)} OMR`, type: 'success' });
+      setMessage({ text: `✅ ${result.order_number} created! Total: ${(Number(result.total_amount) || 0).toFixed(3)} OMR`, type: 'success' });
       setShowCreate(false); setLineItems([]); load();
     } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
@@ -158,7 +158,7 @@ function SalesOrderList({ onViewOrder }) {
               orders.map(o => (
                 <tr key={o.id}><td className="code">{o.order_number}</td><td>{o.customer_name}</td><td><span className="area-badge">{o.area || o.route_area || '-'}</span></td>
                   <td>{o.order_date}</td><td>{o.driver_name || '-'}</td>
-                  <td className="value">{o.total_amount.toFixed(3)} OMR</td>
+                  <td className="value">{(Number(o.total_amount) || 0).toFixed(3)} OMR</td>
                   <td><span className="status-pill" style={{ backgroundColor: statusColor(o.status) }}>{o.status}</span></td>
                   <td><button className="view-btn" onClick={() => onViewOrder(o.id)}>👁️</button></td></tr>
               ))

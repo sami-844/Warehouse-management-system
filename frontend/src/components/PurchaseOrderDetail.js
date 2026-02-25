@@ -28,13 +28,13 @@ function PurchaseOrderDetail({ poId, onBack }) {
     try {
       const data = await purchaseAPI.getOrder(poId);
       setPo(data);
-      setReceiptItems(data.items.filter(i => i.remaining > 0).map(i => ({ ...i, qty_to_receive: '', batch_number: '', expiry_date: '', quality_status: 'accepted' })));
-      setInvoiceForm(p => ({ ...p, subtotal: data.total_amount.toFixed(3), total_amount: data.total_amount.toFixed(3) }));
+      setReceiptItems((data.items || []).filter(i => i.remaining > 0).map(i => ({ ...i, qty_to_receive: '', batch_number: '', expiry_date: '', quality_status: 'accepted' })));
+      setInvoiceForm(p => ({ ...p, subtotal: (Number(data.total_amount) || 0).toFixed(3), total_amount: (Number(data.total_amount) || 0).toFixed(3) }));
       // Load landed cost data
       try { setLandedData(await purchaseAPI.getLandedCosts(poId)); } catch(e) {}
     } catch(e) { console.error(e); } finally { setLoading(false); }
   };
-  const loadWarehouses = async () => { try { const w = await warehouseAPI.list(); setWarehouses(w); if (w.length > 0) setReceiptForm(p => ({...p, warehouse_id: w[0].id})); } catch(e) {} };
+  const loadWarehouses = async () => { try { const res = await warehouseAPI.list(); const w = Array.isArray(res) ? res : (res?.items || []); setWarehouses(w); if (w.length > 0) setReceiptForm(p => ({...p, warehouse_id: w[0].id})); } catch(e) {} };
 
   // === RECEIVE GOODS ===
   const submitReceipt = async () => {
@@ -97,7 +97,7 @@ function PurchaseOrderDetail({ poId, onBack }) {
       <div className="page-header">
         <div className="header-content">
           <button className="back-btn" onClick={onBack}>← Back</button>
-          <div><h1>{po.po_number}</h1><p>{po.supplier?.name} — <span className="status-pill" style={{ backgroundColor: statusColor(po.status) }}>{po.status.replace('_', ' ')}</span></p></div>
+          <div><h1>{po.po_number}</h1><p>{po.supplier?.name} — <span className="status-pill" style={{ backgroundColor: statusColor(po.status) }}>{(po.status || '').replace('_', ' ')}</span></p></div>
         </div>
       </div>
 
@@ -107,9 +107,9 @@ function PurchaseOrderDetail({ poId, onBack }) {
         <div className="summary-card"><div className="sc-label">Order Date</div><div className="sc-value">{po.order_date}</div></div>
         <div className="summary-card"><div className="sc-label">Expected</div><div className="sc-value">{po.expected_delivery_date || 'TBD'}</div></div>
         <div className="summary-card"><div className="sc-label">Container</div><div className="sc-value">{po.container_reference || '-'}</div></div>
-        <div className="summary-card"><div className="sc-label">Subtotal</div><div className="sc-value">{po.subtotal.toFixed(3)} {po.currency}</div></div>
-        <div className="summary-card"><div className="sc-label">Tax</div><div className="sc-value">{po.tax_amount.toFixed(3)}</div></div>
-        <div className="summary-card highlight"><div className="sc-label">Total</div><div className="sc-value">{po.total_amount.toFixed(3)} {po.currency}</div></div>
+        <div className="summary-card"><div className="sc-label">Subtotal</div><div className="sc-value">{(Number(po.subtotal) || 0).toFixed(3)} {po.currency}</div></div>
+        <div className="summary-card"><div className="sc-label">Tax</div><div className="sc-value">{(Number(po.tax_amount) || 0).toFixed(3)}</div></div>
+        <div className="summary-card highlight"><div className="sc-label">Total</div><div className="sc-value">{(Number(po.total_amount) || 0).toFixed(3)} {po.currency}</div></div>
       </div>
 
       <div className="tab-bar">
@@ -126,19 +126,19 @@ function PurchaseOrderDetail({ poId, onBack }) {
           <table className="data-table">
             <thead><tr><th>Product</th><th>SKU</th><th>Ordered</th><th>Received</th><th>Remaining</th><th>Unit Price</th><th>Total</th></tr></thead>
             <tbody>
-              {po.items.map(i => (
+              {(po.items || []).map(i => (
                 <tr key={i.id} className={i.remaining === 0 ? 'completed' : i.received_quantity > 0 ? 'partial' : ''}>
                   <td>{i.product_name}</td><td className="code">{i.sku}</td><td>{i.quantity}</td>
                   <td className={i.received_quantity > 0 ? 'positive' : ''}>{i.received_quantity}</td>
                   <td className={i.remaining > 0 ? 'negative' : ''}>{i.remaining}</td>
-                  <td>{i.unit_price.toFixed(3)}</td><td className="value">{i.total_price.toFixed(3)}</td>
+                  <td>{(Number(i.unit_price) || 0).toFixed(3)}</td><td className="value">{(Number(i.total_price) || 0).toFixed(3)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {po.receipts.length > 0 && (
+          {(po.receipts || []).length > 0 && (
             <div className="receipts-list"><h4>Goods Received Notes</h4>
-              {po.receipts.map(r => <div key={r.id} className="receipt-tag">📦 {r.number} — {r.date}</div>)}
+              {(po.receipts || []).map(r => <div key={r.id} className="receipt-tag">📦 {r.number} — {r.date}</div>)}
             </div>
           )}
         </div>
@@ -184,25 +184,25 @@ function PurchaseOrderDetail({ poId, onBack }) {
       {/* LANDED COST TAB */}
       {tab === 'landed-cost' && (
         <div className="tab-content">
-          {landedData && landedData.costs.length > 0 && (
+          {landedData && (landedData.costs || []).length > 0 && (
             <div className="landed-existing">
               <h4>Existing Costs</h4>
               <table className="data-table compact">
                 <thead><tr><th>Type</th><th>Description</th><th>Amount (OMR)</th></tr></thead>
                 <tbody>
-                  {landedData.costs.map(c => <tr key={c.id}><td>{c.type}</td><td>{c.description || '-'}</td><td className="value">{c.amount.toFixed(3)}</td></tr>)}
-                  <tr className="totals-row"><td colSpan="2">Total Additional</td><td className="value">{landedData.total_additional.toFixed(3)}</td></tr>
-                  <tr className="totals-row grand"><td colSpan="2">Total Landed Cost</td><td className="value">{landedData.total_landed.toFixed(3)}</td></tr>
+                  {(landedData.costs || []).map(c => <tr key={c.id}><td>{c.type}</td><td>{c.description || '-'}</td><td className="value">{(Number(c.amount) || 0).toFixed(3)}</td></tr>)}
+                  <tr className="totals-row"><td colSpan="2">Total Additional</td><td className="value">{(Number(landedData.total_additional) || 0).toFixed(3)}</td></tr>
+                  <tr className="totals-row grand"><td colSpan="2">Total Landed Cost</td><td className="value">{(Number(landedData.total_landed) || 0).toFixed(3)}</td></tr>
                 </tbody>
               </table>
-              {landedData.allocation.length > 0 && (
+              {(landedData.allocation || []).length > 0 && (
                 <>
                   <h4>Cost Allocation by Product</h4>
                   <table className="data-table compact">
                     <thead><tr><th>Product</th><th>Qty</th><th>Product Cost</th><th>+ Additional</th><th>= Landed</th><th>Unit Cost</th><th>Orig. Unit</th></tr></thead>
                     <tbody>
-                      {landedData.allocation.map((a, i) => (
-                        <tr key={i}><td>{a.product}</td><td>{a.quantity}</td><td>{a.product_cost.toFixed(3)}</td><td>{a.additional_cost.toFixed(3)}</td><td className="value">{a.total_landed.toFixed(3)}</td><td className="highlight-value">{a.landed_unit_cost.toFixed(3)}</td><td>{a.original_unit_cost.toFixed(3)}</td></tr>
+                      {(landedData.allocation || []).map((a, i) => (
+                        <tr key={i}><td>{a.product}</td><td>{a.quantity}</td><td>{(Number(a.product_cost) || 0).toFixed(3)}</td><td>{(Number(a.additional_cost) || 0).toFixed(3)}</td><td className="value">{(Number(a.total_landed) || 0).toFixed(3)}</td><td className="highlight-value">{(Number(a.landed_unit_cost) || 0).toFixed(3)}</td><td>{(Number(a.original_unit_cost) || 0).toFixed(3)}</td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -224,8 +224,8 @@ function PurchaseOrderDetail({ poId, onBack }) {
               <table className="items-table">
                 <thead><tr><th>Type</th><th>Description</th><th>Amount</th><th></th></tr></thead>
                 <tbody>
-                  {landedCosts.map((c, i) => <tr key={i}><td>{c.cost_type}</td><td>{c.description || '-'}</td><td>{c.amount.toFixed(3)} OMR</td><td><button className="remove-btn" onClick={() => setLandedCosts(p => p.filter((_, j) => j !== i))}>✕</button></td></tr>)}
-                  <tr className="totals-row"><td colSpan="2">Total</td><td>{landedCosts.reduce((s, c) => s + c.amount, 0).toFixed(3)} OMR</td><td></td></tr>
+                  {landedCosts.map((c, i) => <tr key={i}><td>{c.cost_type}</td><td>{c.description || '-'}</td><td>{(Number(c.amount) || 0).toFixed(3)} OMR</td><td><button className="remove-btn" onClick={() => setLandedCosts(p => p.filter((_, j) => j !== i))}>✕</button></td></tr>)}
+                  <tr className="totals-row"><td colSpan="2">Total</td><td>{landedCosts.reduce((s, c) => s + (Number(c.amount) || 0), 0).toFixed(3)} OMR</td><td></td></tr>
                 </tbody>
               </table>
               <button className="submit-btn" onClick={submitLandedCosts}>💰 Save Landed Costs</button>
@@ -237,10 +237,10 @@ function PurchaseOrderDetail({ poId, onBack }) {
       {/* INVOICE TAB */}
       {tab === 'invoice' && (
         <div className="tab-content">
-          {po.invoices.length > 0 && (
+          {(po.invoices || []).length > 0 && (
             <div className="existing-invoices"><h4>Existing Invoices</h4>
-              {po.invoices.map(inv => (
-                <div key={inv.id} className="invoice-tag">🧾 {inv.number} — {inv.total.toFixed(3)} OMR — Paid: {inv.paid.toFixed(3)} — <span className={`status-${inv.status}`}>{inv.status}</span></div>
+              {(po.invoices || []).map(inv => (
+                <div key={inv.id} className="invoice-tag">🧾 {inv.number} — {(Number(inv.total) || 0).toFixed(3)} OMR — Paid: {(Number(inv.paid) || 0).toFixed(3)} — <span className={`status-${inv.status}`}>{inv.status}</span></div>
               ))}
             </div>
           )}

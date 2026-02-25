@@ -13,20 +13,22 @@ function StockLevels() {
   useEffect(() => { loadWarehouses(); }, []);
   useEffect(() => { loadStockLevels(); }, [selectedWarehouse, showLowStockOnly]);
 
-  const loadWarehouses = async () => { try { setWarehouses(await warehouseAPI.list()); } catch(e) { console.error(e); } };
+  const loadWarehouses = async () => { try { const res = await warehouseAPI.list(); setWarehouses(Array.isArray(res) ? res : (res?.items || [])); } catch(e) { console.error(e); } };
   const loadStockLevels = async () => {
     setLoading(true);
     try {
       const params = {};
       if (selectedWarehouse !== 'all') params.warehouse_id = selectedWarehouse;
       if (showLowStockOnly) params.low_stock_only = true;
-      setStockLevels(await inventoryAPI.getStockLevels(params));
+      const res = await inventoryAPI.getStockLevels(params);
+      setStockLevels(Array.isArray(res) ? res : (res?.items || []));
     } catch(e) { console.error(e); } finally { setLoading(false); }
   };
 
+  const lowerSearch = searchTerm.toLowerCase();
   const filtered = stockLevels.filter(i =>
-    i.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    i.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    (i.product_name || '').toLowerCase().includes(lowerSearch) ||
+    (i.sku || '').toLowerCase().includes(lowerSearch)
   );
 
   const getStatus = (item) => item.quantity_on_hand === 0 ? 'out-of-stock' : item.needs_reorder ? 'low-stock' : 'in-stock';
@@ -42,7 +44,7 @@ function StockLevels() {
   };
 
   const totalValue = filtered.reduce((s, i) => s + (i.stock_value || 0), 0);
-  const totalUnits = filtered.reduce((s, i) => s + i.quantity_on_hand, 0);
+  const totalUnits = filtered.reduce((s, i) => s + (Number(i.quantity_on_hand) || 0), 0);
 
   return (
     <div className="stock-levels-container">

@@ -16,7 +16,16 @@ function FinancialDashboard() {
 
   if (loading || !data) return <div className="admin-container"><div className="loading-state">Loading financial data...</div></div>;
 
-  const maxTrend = Math.max(...data.monthly_trend.map(m => Math.max(m.sales, m.purchases)), 1);
+  // Safe number formatter — prevents .toFixed() crash on null/undefined
+  const n = (v) => (Number(v) || 0).toFixed(3);
+  const n0 = (v) => (Number(v) || 0).toFixed(0);
+
+  const trend = Array.isArray(data.monthly_trend) ? data.monthly_trend : [];
+  const maxTrend = Math.max(...trend.map(m => Math.max(Number(m.sales) || 0, Number(m.purchases) || 0, 0)), 1);
+  const topCustomers = Array.isArray(data.top_customers) ? data.top_customers : [];
+  const topProducts = Array.isArray(data.top_products) ? data.top_products : [];
+  const netPos = Number(data.net_position) || 0;
+  const grossProfit = Number(data.gross_profit_month) || 0;
 
   return (
     <div className="admin-container">
@@ -26,27 +35,27 @@ function FinancialDashboard() {
       <div className="kpi-grid">
         <div className="kpi-card receivable">
           <div className="kpi-icon">📥</div>
-          <div className="kpi-body"><div className="kpi-label">Receivables</div><div className="kpi-value">{data.receivables.toFixed(3)}</div><div className="kpi-sub">OMR owed by customers</div></div>
+          <div className="kpi-body"><div className="kpi-label">Receivables</div><div className="kpi-value">{n(data.receivables)}</div><div className="kpi-sub">OMR owed by customers</div></div>
         </div>
         <div className="kpi-card payable">
           <div className="kpi-icon">📤</div>
-          <div className="kpi-body"><div className="kpi-label">Payables</div><div className="kpi-value">{data.payables.toFixed(3)}</div><div className="kpi-sub">OMR owed to suppliers</div></div>
+          <div className="kpi-body"><div className="kpi-label">Payables</div><div className="kpi-value">{n(data.payables)}</div><div className="kpi-sub">OMR owed to suppliers</div></div>
         </div>
         <div className="kpi-card net">
           <div className="kpi-icon">⚖️</div>
-          <div className="kpi-body"><div className="kpi-label">Net Position</div><div className={`kpi-value ${data.net_position >= 0 ? 'positive' : 'negative'}`}>{data.net_position.toFixed(3)}</div><div className="kpi-sub">Receivables − Payables</div></div>
+          <div className="kpi-body"><div className="kpi-label">Net Position</div><div className={`kpi-value ${netPos >= 0 ? 'positive' : 'negative'}`}>{n(netPos)}</div><div className="kpi-sub">Receivables − Payables</div></div>
         </div>
         <div className="kpi-card sales">
           <div className="kpi-icon">📈</div>
-          <div className="kpi-body"><div className="kpi-label">Sales This Month</div><div className="kpi-value">{data.sales.month.toFixed(3)}</div><div className="kpi-sub">{data.sales.orders_month} orders</div></div>
+          <div className="kpi-body"><div className="kpi-label">Sales This Month</div><div className="kpi-value">{n(data.sales?.month)}</div><div className="kpi-sub">{data.sales?.orders_month || 0} orders</div></div>
         </div>
         <div className="kpi-card profit">
           <div className="kpi-icon">💵</div>
-          <div className="kpi-body"><div className="kpi-label">Gross Profit (Month)</div><div className="kpi-value positive">{data.gross_profit_month.toFixed(3)}</div><div className="kpi-sub">{data.margin_pct}% margin</div></div>
+          <div className="kpi-body"><div className="kpi-label">Gross Profit (Month)</div><div className={`kpi-value ${grossProfit >= 0 ? 'positive' : 'negative'}`}>{n(grossProfit)}</div><div className="kpi-sub">{data.margin_pct || 0}% margin</div></div>
         </div>
         <div className="kpi-card stock">
           <div className="kpi-icon">🏭</div>
-          <div className="kpi-body"><div className="kpi-label">Stock Value</div><div className="kpi-value">{data.stock_value.toFixed(3)}</div><div className="kpi-sub">OMR at cost</div></div>
+          <div className="kpi-body"><div className="kpi-label">Stock Value</div><div className="kpi-value">{n(data.stock_value)}</div><div className="kpi-sub">OMR at cost</div></div>
         </div>
       </div>
 
@@ -55,9 +64,9 @@ function FinancialDashboard() {
         <div className="section-card cash-flow">
           <h3>💸 Cash Flow This Month</h3>
           <div className="cash-flow-bar">
-            <div className="cf-row"><span className="cf-label">Money In (Collections)</span><div className="cf-bar-wrap"><div className="cf-bar in" style={{width: `${Math.min(data.cash_flow.month.in / Math.max(data.cash_flow.month.in, data.cash_flow.month.out, 1) * 100, 100)}%`}} /><span className="cf-amount positive">{data.cash_flow.month.in.toFixed(3)}</span></div></div>
-            <div className="cf-row"><span className="cf-label">Money Out (Payments)</span><div className="cf-bar-wrap"><div className="cf-bar out" style={{width: `${Math.min(data.cash_flow.month.out / Math.max(data.cash_flow.month.in, data.cash_flow.month.out, 1) * 100, 100)}%`}} /><span className="cf-amount negative">{data.cash_flow.month.out.toFixed(3)}</span></div></div>
-            <div className="cf-net"><span>Net Cash Flow</span><span className={data.cash_flow.month.net >= 0 ? 'positive' : 'negative'}>{data.cash_flow.month.net.toFixed(3)} OMR</span></div>
+            <div className="cf-row"><span className="cf-label">Money In (Collections)</span><div className="cf-bar-wrap"><div className="cf-bar in" style={{width: `${Math.min((Number(data.cash_flow?.month?.in)||0) / Math.max(Number(data.cash_flow?.month?.in)||0, Number(data.cash_flow?.month?.out)||0, 1) * 100, 100)}%`}} /><span className="cf-amount positive">{n(data.cash_flow?.month?.in)}</span></div></div>
+            <div className="cf-row"><span className="cf-label">Money Out (Payments)</span><div className="cf-bar-wrap"><div className="cf-bar out" style={{width: `${Math.min((Number(data.cash_flow?.month?.out)||0) / Math.max(Number(data.cash_flow?.month?.in)||0, Number(data.cash_flow?.month?.out)||0, 1) * 100, 100)}%`}} /><span className="cf-amount negative">{n(data.cash_flow?.month?.out)}</span></div></div>
+            <div className="cf-net"><span>Net Cash Flow</span><span className={(Number(data.cash_flow?.month?.net)||0) >= 0 ? 'positive' : 'negative'}>{n(data.cash_flow?.month?.net)} OMR</span></div>
           </div>
         </div>
 
@@ -72,13 +81,13 @@ function FinancialDashboard() {
           </div>
           {pnl && (
             <div className="pnl-body">
-              <div className="pnl-line"><span>Revenue</span><span className="val">{pnl.revenue.toFixed(3)}</span></div>
-              <div className="pnl-line sub"><span>Cost of Goods Sold</span><span className="val negative">({pnl.cost_of_goods_sold.toFixed(3)})</span></div>
-              <div className="pnl-line sub"><span>Discounts Given</span><span className="val negative">({pnl.discounts_given.toFixed(3)})</span></div>
-              <div className="pnl-line bold"><span>Gross Profit</span><span className={`val ${pnl.gross_profit >= 0 ? 'positive' : 'negative'}`}>{pnl.gross_profit.toFixed(3)}</span></div>
-              <div className="pnl-line sub"><span>Freight & Customs</span><span className="val negative">({pnl.operating_expenses.freight_customs.toFixed(3)})</span></div>
-              <div className="pnl-line grand"><span>Net Profit</span><span className={`val ${pnl.net_profit >= 0 ? 'positive' : 'negative'}`}>{pnl.net_profit.toFixed(3)} OMR</span></div>
-              <div className="pnl-margin">Gross Margin: {pnl.gross_margin_pct}% — Net Margin: {pnl.net_margin_pct}%</div>
+              <div className="pnl-line"><span>Revenue</span><span className="val">{n(pnl.revenue)}</span></div>
+              <div className="pnl-line sub"><span>Cost of Goods Sold</span><span className="val negative">({n(pnl.cost_of_goods_sold)})</span></div>
+              <div className="pnl-line sub"><span>Discounts Given</span><span className="val negative">({n(pnl.discounts_given)})</span></div>
+              <div className="pnl-line bold"><span>Gross Profit</span><span className={`val ${(Number(pnl.gross_profit)||0) >= 0 ? 'positive' : 'negative'}`}>{n(pnl.gross_profit)}</span></div>
+              <div className="pnl-line sub"><span>Freight & Customs</span><span className="val negative">({n(pnl.operating_expenses?.freight_customs)})</span></div>
+              <div className="pnl-line grand"><span>Net Profit</span><span className={`val ${(Number(pnl.net_profit)||0) >= 0 ? 'positive' : 'negative'}`}>{n(pnl.net_profit)} OMR</span></div>
+              <div className="pnl-margin">Gross Margin: {pnl.gross_margin_pct || 0}% — Net Margin: {pnl.net_margin_pct || 0}%</div>
             </div>
           )}
         </div>
@@ -88,13 +97,13 @@ function FinancialDashboard() {
       <div className="section-card">
         <h3>📈 Monthly Sales vs Purchases (12 months)</h3>
         <div className="trend-chart">
-          {data.monthly_trend.map((m, idx) => (
+          {trend.map((m, idx) => (
             <div key={idx} className="trend-month">
               <div className="trend-bars">
-                <div className="trend-bar sales" style={{height: `${(m.sales / maxTrend) * 120}px`}} title={`Sales: ${m.sales.toFixed(0)}`} />
-                <div className="trend-bar purchases" style={{height: `${(m.purchases / maxTrend) * 120}px`}} title={`Purchases: ${m.purchases.toFixed(0)}`} />
+                <div className="trend-bar sales" style={{height: `${((Number(m.sales)||0) / maxTrend) * 120}px`}} title={`Sales: ${n0(m.sales)}`} />
+                <div className="trend-bar purchases" style={{height: `${((Number(m.purchases)||0) / maxTrend) * 120}px`}} title={`Purchases: ${n0(m.purchases)}`} />
               </div>
-              <div className="trend-label">{m.month.slice(5)}</div>
+              <div className="trend-label">{(m.month || '').slice(5)}</div>
             </div>
           ))}
         </div>
@@ -108,11 +117,11 @@ function FinancialDashboard() {
           <table className="data-table compact">
             <thead><tr><th>Customer</th><th>Area</th><th>Orders</th><th>Revenue</th></tr></thead>
             <tbody>
-              {data.top_customers.map((c, i) => (
+              {topCustomers.map((c, i) => (
                 <tr key={i}><td><span className="rank">#{i+1}</span> {c.name}</td><td><span className="area-badge">{c.area || '-'}</span></td>
-                  <td className="center">{c.orders}</td><td className="value">{c.revenue.toFixed(3)}</td></tr>
+                  <td className="center">{c.orders || 0}</td><td className="value">{n(c.revenue)}</td></tr>
               ))}
-              {data.top_customers.length === 0 && <tr><td colSpan="4" className="no-data">No sales data yet</td></tr>}
+              {topCustomers.length === 0 && <tr><td colSpan="4" className="no-data">No sales data yet</td></tr>}
             </tbody>
           </table>
         </div>
@@ -121,12 +130,12 @@ function FinancialDashboard() {
           <table className="data-table compact">
             <thead><tr><th>Product</th><th>Margin</th><th>Qty Sold</th><th>Profit</th></tr></thead>
             <tbody>
-              {data.top_products.map((p, i) => (
+              {topProducts.map((p, i) => (
                 <tr key={i}><td><span className="rank">#{i+1}</span> {p.name}</td>
-                  <td><span className={`margin-badge ${p.margin_pct > 30 ? 'high' : p.margin_pct > 15 ? 'med' : 'low'}`}>{p.margin_pct}%</span></td>
-                  <td className="center">{p.qty_sold}</td><td className="value">{p.profit.toFixed(3)}</td></tr>
+                  <td><span className={`margin-badge ${(p.margin_pct||0) > 30 ? 'high' : (p.margin_pct||0) > 15 ? 'med' : 'low'}`}>{p.margin_pct || 0}%</span></td>
+                  <td className="center">{p.qty_sold || 0}</td><td className="value">{n(p.profit)}</td></tr>
               ))}
-              {data.top_products.length === 0 && <tr><td colSpan="4" className="no-data">No sales data yet</td></tr>}
+              {topProducts.length === 0 && <tr><td colSpan="4" className="no-data">No sales data yet</td></tr>}
             </tbody>
           </table>
         </div>
