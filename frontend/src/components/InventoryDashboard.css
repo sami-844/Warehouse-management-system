@@ -248,3 +248,22 @@
   color: var(--ds-text-muted);
   text-align: right;
 }
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  .inventory-dashboard-container { padding: var(--ds-sp-3); }
+  .dashboard-header { flex-direction: column; align-items: flex-start; gap: var(--ds-sp-3); }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .movement-item {
+    grid-template-columns: 44px 1fr;
+    grid-template-rows: auto auto;
+  }
+  .movement-quantity { text-align: left; grid-column: 2; }
+  .movement-date    { text-align: left; grid-column: 2; }
+  .alert-details { flex-direction: column; gap: var(--ds-sp-1); }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .movement-item { grid-template-columns: 36px 1fr; }
+}

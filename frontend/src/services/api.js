@@ -115,6 +115,25 @@ export const salesAPI = {
   customerPrices: async (customerId) => (await api.get(`/api/sales/pricing/customer/${customerId}`)).data,
 };
 
+export const analyticsAPI = {
+  dashboard: async (days = 30, categoryId = null) => {
+    const params = { days };
+    if (categoryId) params.category_id = categoryId;
+    return (await api.get('/api/analytics/dashboard', { params })).data;
+  },
+  trends: async (days = 30, categoryId = null) => {
+    const params = { days };
+    if (categoryId) params.category_id = categoryId;
+    return (await api.get('/api/analytics/trends', { params })).data;
+  },
+  categoryBreakdown: async (days = 30) => (await api.get('/api/analytics/category-breakdown', { params: { days } })).data,
+  alerts: async () => (await api.get('/api/analytics/alerts')).data,
+  categories: async () => (await api.get('/api/analytics/categories')).data,
+  stockStatus: async () => (await api.get('/api/analytics/stock-status')).data,
+  salesSummary: async (days = 30) => (await api.get('/api/analytics/sales-summary', { params: { days } })).data,
+  lowStockProducts: async () => (await api.get('/api/analytics/low-stock-products')).data,
+};
+
 export const financialAPI = {
   dashboard: async () => (await api.get('/api/financial/dashboard')).data,
   profitLoss: async (params = {}) => (await api.get('/api/financial/profit-loss', { params })).data,

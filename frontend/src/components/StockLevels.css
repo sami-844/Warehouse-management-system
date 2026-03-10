@@ -49,3 +49,14 @@
 .status-badge.out-of-stock { background: var(--ds-danger-bg); color: #7f1d1d; border: 1px solid var(--ds-danger-border); }
 .no-data { text-align: center; padding: var(--ds-sp-8); color: var(--ds-text-muted); font-style: italic; }
 .loading-state { text-align: center; padding: var(--ds-sp-10); color: var(--ds-text-muted); font-size: var(--ds-text-base); }
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  .stock-levels-container { padding: var(--ds-sp-3); }
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .stock-table-container { overflow-x: auto; }
+  .stock-table th, .stock-table td { padding: 8px 8px; font-size: var(--ds-text-xs); }
+  .filters-section { flex-direction: column; align-items: stretch; gap: var(--ds-sp-2); }
+  .summary-stats { gap: var(--ds-sp-2); }
+  .stat-card { min-width: unset; flex: 1 1 calc(50% - var(--ds-sp-2)); }
+}
