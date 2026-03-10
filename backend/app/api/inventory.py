@@ -4,6 +4,7 @@ Inventory Management API — PHASE 1 COMPLETE
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from datetime import date, datetime, timedelta
 from pydantic import BaseModel
@@ -71,7 +72,11 @@ async def record_receipt(
     else:
         stock = StockLevel(product_id=product_id, warehouse_id=warehouse_id, quantity_on_hand=quantity)
         db.add(stock)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Failed to record receipt")
     return {"transaction_id": transaction.id, "product_name": product.name, "quantity": quantity, "new_stock_level": float(stock.quantity_on_hand)}
 
 # ===== Issue =====

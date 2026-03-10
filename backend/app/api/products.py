@@ -4,6 +4,7 @@ Create, Read, Update, Delete products
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from app.core.database import get_db
@@ -59,7 +60,11 @@ def create_category(
     
     db_category = ProductCategory(**category.dict())
     db.add(db_category)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Category name already exists")
     db.refresh(db_category)
     return db_category
 
@@ -146,7 +151,11 @@ def create_product(
     # Create product
     db_product = Product(**product.dict(), created_by=current_user.id)
     db.add(db_product)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="SKU or barcode already exists")
     db.refresh(db_product)
     return db_product
 
@@ -237,7 +246,11 @@ def update_product(
         setattr(db_product, field, value)
     
     db_product.updated_by = current_user.id
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="SKU or barcode conflict with existing product")
     db.refresh(db_product)
     return db_product
 

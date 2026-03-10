@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
+from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from datetime import date, datetime, timedelta
 from pydantic import BaseModel
@@ -186,18 +187,22 @@ async def create_order(data: SOCreate, db: Session = Depends(get_db), current_us
         tax_amount=tax, total_amount=net_subtotal + tax,
         status='draft', notes=data.notes, created_by=current_user.id
     )
-    db.add(so)
-    db.flush()
+    try:
+        db.add(so)
+        db.flush()
 
-    for item, product, price, disc, line_total in item_data:
-        db.add(SalesOrderItem(
-            sales_order_id=so.id, product_id=item.product_id,
-            quantity_ordered=item.quantity_ordered, quantity_shipped=0,
-            unit_price=price, unit_cost=float(product.cost_price) if product.cost_price else 0,
-            discount_percent=disc, total_price=line_total
-        ))
+        for item, product, price, disc, line_total in item_data:
+            db.add(SalesOrderItem(
+                sales_order_id=so.id, product_id=item.product_id,
+                quantity_ordered=item.quantity_ordered, quantity_shipped=0,
+                unit_price=price, unit_cost=float(product.cost_price) if product.cost_price else 0,
+                discount_percent=disc, total_price=line_total
+            ))
 
-    db.commit()
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Failed to create order — database constraint error")
     db.refresh(so)
     return {"id": so.id, "order_number": so.order_number, "total_amount": float(so.total_amount), "status": so.status}
 
@@ -447,7 +452,11 @@ async def record_payment(invoice_id: int, data: PaymentCreate,
     customer = db.query(Customer).filter(Customer.id == inv.customer_id).first()
     if customer:
         customer.current_balance = max(0, float(customer.current_balance or 0) - data.amount)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Failed to record payment")
     return {"invoice_number": inv.invoice_number, "payment": data.amount, "new_balance": round(float(inv.total_amount) - float(inv.amount_paid), 3), "status": inv.status}
 
 # ===== SALES AGING =====

@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from typing import Optional
 from pydantic import BaseModel
 from datetime import date
@@ -159,7 +160,11 @@ async def create_customer(data: CustomerCreate, db: Session = Depends(get_db), c
         raise HTTPException(status_code=400, detail="Customer code already exists")
     c = Customer(**data.dict(), created_by=current_user.id, is_active=True, current_balance=0)
     db.add(c)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Customer code already exists")
     db.refresh(c)
     return {"id": c.id, "code": c.code, "name": c.name, "message": "Customer created"}
 
@@ -171,5 +176,9 @@ async def update_customer(customer_id: int, data: CustomerUpdate, db: Session = 
     for field, value in data.dict(exclude_unset=True).items():
         setattr(c, field, value)
     c.updated_by = current_user.id
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Update failed — constraint violation")
     return {"id": c.id, "name": c.name, "message": "Customer updated"}
