@@ -90,7 +90,7 @@ function ReturnsManager() {
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 1100, margin: '0 auto' }}>
-      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>🔄 Returns & Credit Notes</h2>
+      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>Returns & Credit Notes</h2>
       <p style={{ color: '#666', fontSize: 13, marginBottom: 16 }}>Handle customer returns, restocking, and credit notes</p>
 
       {error && <div style={err}>{error} <button onClick={() => setError('')} style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button></div>}
@@ -108,7 +108,7 @@ function ReturnsManager() {
       {/* Tabs + Create Button */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 2, borderBottom: '2px solid #e5e5e5' }}>
-          {[{ id: 'returns', label: '🔄 Returns' }, { id: 'credits', label: '📄 Credit Notes' }].map(t => (
+          {[{ id: 'returns', label: 'Returns' }, { id: 'credits', label: 'Credit Notes' }].map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
               padding: '9px 18px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
               background: activeTab === t.id ? '#0d7a3e' : 'transparent',
@@ -216,7 +216,7 @@ function ReturnsManager() {
                     <td style={td}>
                       {r.status === 'pending' && (
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button onClick={() => processReturn(r.id)} style={actionBtn}>✅ Process</button>
+                          <button onClick={() => processReturn(r.id)} style={actionBtn}>Process</button>
                           <button onClick={() => rejectReturn(r.id)} style={{ ...actionBtn, background: '#e74c3c' }}>✕ Reject</button>
                         </div>
                       )}

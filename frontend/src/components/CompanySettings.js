@@ -32,17 +32,17 @@ function CompanySettings() {
   const saveSettings = async () => {
     try {
       await adminAPI.updateSettingsBulk(form);
-      setMessage({ text: '✅ Settings saved!', type: 'success' });
+      setMessage({ text: 'Settings saved!', type: 'success' });
       loadSettings();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `Error: ${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const createBackup = async () => {
     try {
       const result = await adminAPI.createBackup();
-      setMessage({ text: `✅ Backup created! (${result.size_mb} MB)`, type: 'success' });
+      setMessage({ text: `Backup created! (${result.size_mb} MB)`, type: 'success' });
       loadBackups();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `Error: ${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const exportCSV = (tableName) => {
@@ -57,21 +57,21 @@ function CompanySettings() {
         a.download = `${tableName}_${new Date().toISOString().slice(0,10)}.csv`;
         a.click();
       })
-      .catch(err => setMessage({ text: `❌ Export failed: ${err.message}`, type: 'error' }));
+      .catch(err => setMessage({ text: `Export failed: ${err.message}`, type: 'error' }));
   };
 
   return (
     <div className="admin-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon settings">⚙️</div><div><h1>Settings & Admin</h1><p>Company configuration and maintenance</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon settings"></div><div><h1>Settings & Admin</h1><p>Company configuration and maintenance</p></div></div></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 
       <div className="tab-bar">
-        <button className={`tab-btn ${tab === 'company' ? 'active' : ''}`} onClick={() => setTab('company')}>🏢 Company</button>
-        <button className={`tab-btn ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>⚙️ System</button>
-        <button className={`tab-btn ${tab === 'backup' ? 'active' : ''}`} onClick={() => setTab('backup')}>💾 Backup</button>
-        <button className={`tab-btn ${tab === 'export' ? 'active' : ''}`} onClick={() => setTab('export')}>📥 Export</button>
-        <button className={`tab-btn ${tab === 'activity' ? 'active' : ''}`} onClick={() => setTab('activity')}>📋 Activity Log</button>
+        <button className={`tab-btn ${tab === 'company' ? 'active' : ''}`} onClick={() => setTab('company')}>Company</button>
+        <button className={`tab-btn ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>System</button>
+        <button className={`tab-btn ${tab === 'backup' ? 'active' : ''}`} onClick={() => setTab('backup')}>Backup</button>
+        <button className={`tab-btn ${tab === 'export' ? 'active' : ''}`} onClick={() => setTab('export')}>Export</button>
+        <button className={`tab-btn ${tab === 'activity' ? 'active' : ''}`} onClick={() => setTab('activity')}>Activity Log</button>
       </div>
 
       {/* Company Tab */}
@@ -94,7 +94,7 @@ function CompanySettings() {
                 <div className="form-group"><label>Email</label>
                   <input value={form.company_email || ''} onChange={e => setForm(p => ({...p, company_email: e.target.value}))} placeholder="info@akmomaiza.com" /></div>
               </div>
-              <button className="submit-btn" onClick={saveSettings}>💾 Save Company Info</button>
+              <button className="submit-btn" onClick={saveSettings}>Save Company Info</button>
             </div>
           )}
         </div>
@@ -131,7 +131,7 @@ function CompanySettings() {
               <div className="form-group"><label>Expiry Warning (days before)</label>
                 <input type="number" value={form.expiry_warning_days || ''} onChange={e => setForm(p => ({...p, expiry_warning_days: e.target.value}))} /></div>
             </div>
-            <button className="submit-btn" onClick={saveSettings}>💾 Save System Settings</button>
+            <button className="submit-btn" onClick={saveSettings}>Save System Settings</button>
           </div>
         </div>
       )}
@@ -143,7 +143,7 @@ function CompanySettings() {
           <div className="backup-section">
             <div className="backup-action">
               <p>Create a snapshot of your entire database. Backups are stored in the <code>backend/backups/</code> folder.</p>
-              <button className="action-btn primary" onClick={createBackup}>💾 Create Backup Now</button>
+              <button className="action-btn primary" onClick={createBackup}>Create Backup Now</button>
             </div>
             <h4 style={{marginTop: 24}}>Previous Backups</h4>
             {backups.length === 0 ? <div className="no-data">No backups yet</div> : (
@@ -166,7 +166,7 @@ function CompanySettings() {
           <div className="export-grid">
             {tables.map(t => (
               <div key={t.table} className="export-card" onClick={() => exportCSV(t.table)}>
-                <div className="ec-name">📥 {t.table}</div>
+                <div className="ec-name">{t.table}</div>
                 <div className="ec-rows">{t.rows} rows</div>
               </div>
             ))}

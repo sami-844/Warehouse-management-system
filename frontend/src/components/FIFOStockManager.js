@@ -122,7 +122,7 @@ function FIFOStockManager() {
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 1200, margin: '0 auto' }}>
-      <h2 style={{ color: '#0d7a3e', marginBottom: 6 }}>📦 FIFO Stock Rotation</h2>
+      <h2 style={{ color: '#0d7a3e', marginBottom: 6 }}>FIFO Stock Rotation</h2>
       <p style={{ color: '#666', fontSize: 13, marginBottom: 20 }}>Oldest stock first — expiry-driven batch management for FMCG</p>
 
       {/* Summary Cards */}
@@ -142,10 +142,10 @@ function FIFOStockManager() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 2, marginBottom: 20, borderBottom: '2px solid #e5e5e5' }}>
         {[
-          { id: 'batches', label: '📋 All Batches' },
-          { id: 'issue', label: '📤 FIFO Issue' },
-          { id: 'receive', label: '📥 Receive Batch' },
-          { id: 'expiring', label: '⚠️ Expiring Soon' },
+          { id: 'batches', label: 'All Batches' },
+          { id: 'issue', label: 'FIFO Issue' },
+          { id: 'receive', label: 'Receive Batch' },
+          { id: 'expiring', label: 'Expiring Soon' },
         ].map(tab => (
           <button key={tab.id} onClick={() => { setActiveTab(tab.id); setError(''); setSuccess(''); }}
             style={{
@@ -235,11 +235,11 @@ function FIFOStockManager() {
           {suggestedPicks && (
             <div style={{ background: '#f0f7f4', borderRadius: 10, padding: 16, marginBottom: 16 }}>
               <h4 style={{ margin: '0 0 10px 0', color: '#0d7a3e' }}>
-                Suggested Picks {suggestedPicks.fully_satisfiable ? '✅' : '⚠️ Shortfall'}
+                Suggested Picks {suggestedPicks.fully_satisfiable ? '' : '— Shortfall'}
               </h4>
               {suggestedPicks.shortfall > 0 && (
                 <p style={{ color: '#e74c3c', fontSize: 13, marginBottom: 8 }}>
-                  ⚠️ Shortfall: {suggestedPicks.shortfall} units — not enough stock
+                  Shortfall: {suggestedPicks.shortfall} units — not enough stock
                 </p>
               )}
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -257,7 +257,7 @@ function FIFOStockManager() {
                     <tr key={i} style={{ borderBottom: '1px solid #ddd' }}>
                       <td style={td}>{p.batch_number}</td>
                       <td style={td}>{p.expiry_date || '—'} {expiryBadge(p.days_until_expiry)}</td>
-                      <td style={td}>{p.days_until_expiry !== null && p.days_until_expiry < 0 ? '🔴 Expired' : '🟢 Active'}</td>
+                      <td style={td}>{p.days_until_expiry !== null && p.days_until_expiry < 0 ? 'Expired' : 'Active'}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{p.quantity_available}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: '#0d7a3e' }}>{p.pick_quantity}</td>
                     </tr>
@@ -265,7 +265,7 @@ function FIFOStockManager() {
                 </tbody>
               </table>
               <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
-                <button onClick={handleIssue} style={btnGreen}>✅ Confirm Issue ({suggestedPicks.total_picked} units)</button>
+                <button onClick={handleIssue} style={btnGreen}>Confirm Issue ({suggestedPicks.total_picked} units)</button>
                 <button onClick={() => setSuggestedPicks(null)} style={{ ...btnGreen, background: '#666' }}>Cancel</button>
               </div>
             </div>
@@ -309,7 +309,7 @@ function FIFOStockManager() {
             </div>
             <button onClick={handleReceive} disabled={!rcvProductId || !rcvQty}
               style={{ ...btnGreen, opacity: (rcvProductId && rcvQty) ? 1 : 0.5, alignSelf: 'flex-start' }}>
-              📥 Receive Batch
+              Receive Batch
             </button>
           </div>
         </div>
@@ -332,7 +332,7 @@ function FIFOStockManager() {
           </div>
 
           {expiring.length === 0 ? (
-            <p style={{ color: '#27ae60', padding: 20, fontSize: 14 }}>✅ No batches expiring within {expiryDays} days.</p>
+            <p style={{ color: '#27ae60', padding: 20, fontSize: 14 }}>No batches expiring within {expiryDays} days.</p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>

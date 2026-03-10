@@ -157,12 +157,12 @@ function ProductList() {
   return (
     <div className="product-list-container">
       <div className="product-header">
-        <h2>📦 Products</h2>
+        <h2>Products</h2>
         <button 
           onClick={() => setShowAddForm(!showAddForm)}
           className="btn-primary"
         >
-          {showAddForm ? 'Cancel' : '➕ Add Product'}
+          {showAddForm ? 'Cancel' : 'Add Product'}
         </button>
       </div>
 
@@ -370,10 +370,10 @@ function ProductList() {
             </div>
             <div className="product-actions">
               <button onClick={() => handleEdit(product)} className="btn-edit">
-                ✏️ Edit
+                Edit
               </button>
               <button onClick={() => handleDelete(product)} className="btn-delete">
-                🗑️ Delete
+                Delete
               </button>
             </div>
           </div>

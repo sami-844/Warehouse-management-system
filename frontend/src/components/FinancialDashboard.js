@@ -29,32 +29,32 @@ function FinancialDashboard() {
 
   return (
     <div className="admin-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon finance">💰</div><div><h1>Financial Dashboard</h1><p>Business overview at a glance</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon finance"><div><h1>Financial Dashboard</h1><p>Business overview at a glance</p></div></div></div>
 
       {/* KPI Cards */}
       <div className="kpi-grid">
         <div className="kpi-card receivable">
-          <div className="kpi-icon">📥</div>
+          <div className="kpi-icon"></div>
           <div className="kpi-body"><div className="kpi-label">Receivables</div><div className="kpi-value">{n(data.receivables)}</div><div className="kpi-sub">OMR owed by customers</div></div>
         </div>
         <div className="kpi-card payable">
-          <div className="kpi-icon">📤</div>
+          <div className="kpi-icon"></div>
           <div className="kpi-body"><div className="kpi-label">Payables</div><div className="kpi-value">{n(data.payables)}</div><div className="kpi-sub">OMR owed to suppliers</div></div>
         </div>
         <div className="kpi-card net">
-          <div className="kpi-icon">⚖️</div>
+          <div className="kpi-icon"></div>
           <div className="kpi-body"><div className="kpi-label">Net Position</div><div className={`kpi-value ${netPos >= 0 ? 'positive' : 'negative'}`}>{n(netPos)}</div><div className="kpi-sub">Receivables − Payables</div></div>
         </div>
         <div className="kpi-card sales">
-          <div className="kpi-icon">📈</div>
+          <div className="kpi-icon"></div>
           <div className="kpi-body"><div className="kpi-label">Sales This Month</div><div className="kpi-value">{n(data.sales?.month)}</div><div className="kpi-sub">{data.sales?.orders_month || 0} orders</div></div>
         </div>
         <div className="kpi-card profit">
-          <div className="kpi-icon">💵</div>
+          <div className="kpi-icon"></div>
           <div className="kpi-body"><div className="kpi-label">Gross Profit (Month)</div><div className={`kpi-value ${grossProfit >= 0 ? 'positive' : 'negative'}`}>{n(grossProfit)}</div><div className="kpi-sub">{data.margin_pct || 0}% margin</div></div>
         </div>
         <div className="kpi-card stock">
-          <div className="kpi-icon">🏭</div>
+          <div className="kpi-icon"></div>
           <div className="kpi-body"><div className="kpi-label">Stock Value</div><div className="kpi-value">{n(data.stock_value)}</div><div className="kpi-sub">OMR at cost</div></div>
         </div>
       </div>
@@ -62,7 +62,7 @@ function FinancialDashboard() {
       {/* Cash Flow */}
       <div className="section-row">
         <div className="section-card cash-flow">
-          <h3>💸 Cash Flow This Month</h3>
+          <h3>Cash Flow This Month</h3>
           <div className="cash-flow-bar">
             <div className="cf-row"><span className="cf-label">Money In (Collections)</span><div className="cf-bar-wrap"><div className="cf-bar in" style={{width: `${Math.min((Number(data.cash_flow?.month?.in)||0) / Math.max(Number(data.cash_flow?.month?.in)||0, Number(data.cash_flow?.month?.out)||0, 1) * 100, 100)}%`}} /><span className="cf-amount positive">{n(data.cash_flow?.month?.in)}</span></div></div>
             <div className="cf-row"><span className="cf-label">Money Out (Payments)</span><div className="cf-bar-wrap"><div className="cf-bar out" style={{width: `${Math.min((Number(data.cash_flow?.month?.out)||0) / Math.max(Number(data.cash_flow?.month?.in)||0, Number(data.cash_flow?.month?.out)||0, 1) * 100, 100)}%`}} /><span className="cf-amount negative">{n(data.cash_flow?.month?.out)}</span></div></div>
@@ -72,7 +72,7 @@ function FinancialDashboard() {
 
         {/* P&L Summary */}
         <div className="section-card pnl">
-          <div className="pnl-header"><h3>📊 Profit & Loss</h3>
+          <div className="pnl-header"><h3>Profit & Loss</h3>
             <div className="period-tabs">
               {['month', 'quarter', 'year'].map(p => (
                 <button key={p} className={`period-btn ${pnlPeriod === p ? 'active' : ''}`} onClick={() => setPnlPeriod(p)}>{p.charAt(0).toUpperCase() + p.slice(1)}</button>
@@ -95,7 +95,7 @@ function FinancialDashboard() {
 
       {/* Monthly Trend Chart (CSS bars) */}
       <div className="section-card">
-        <h3>📈 Monthly Sales vs Purchases (12 months)</h3>
+        <h3>Monthly Sales vs Purchases (12 months)</h3>
         <div className="trend-chart">
           {trend.map((m, idx) => (
             <div key={idx} className="trend-month">
@@ -113,7 +113,7 @@ function FinancialDashboard() {
       {/* Top Customers & Products */}
       <div className="section-row">
         <div className="section-card">
-          <h3>🏆 Top 10 Customers by Revenue</h3>
+          <h3>Top 10 Customers by Revenue</h3>
           <table className="data-table compact">
             <thead><tr><th>Customer</th><th>Area</th><th>Orders</th><th>Revenue</th></tr></thead>
             <tbody>
@@ -126,7 +126,7 @@ function FinancialDashboard() {
           </table>
         </div>
         <div className="section-card">
-          <h3>🏆 Top 10 Products by Profit</h3>
+          <h3>Top 10 Products by Profit</h3>
           <table className="data-table compact">
             <thead><tr><th>Product</th><th>Margin</th><th>Qty Sold</th><th>Profit</th></tr></thead>
             <tbody>

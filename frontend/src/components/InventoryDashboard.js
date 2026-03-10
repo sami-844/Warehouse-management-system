@@ -42,17 +42,17 @@ function InventoryDashboard() {
   return (
     <div className="inventory-dashboard-container">
       <div className="dashboard-header">
-        <h1>📦 Inventory Dashboard</h1>
+        <h1>Inventory Dashboard</h1>
         <p>Real-time overview of your warehouse</p>
         <button className="refresh-btn" onClick={loadDashboardData}>
-          🔄 Refresh
+          Refresh
         </button>
       </div>
 
       {/* Summary Stats */}
       <div className="stats-grid">
         <div className="stat-card primary">
-          <div className="stat-icon">📦</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <div className="stat-value">{summary?.total_products_in_stock || 0}</div>
             <div className="stat-label">Products in Stock</div>
@@ -60,7 +60,7 @@ function InventoryDashboard() {
         </div>
 
         <div className="stat-card success">
-          <div className="stat-icon">💰</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <div className="stat-value">OMR {summary?.total_stock_value?.toFixed(3) || '0.000'}</div>
             <div className="stat-label">Total Stock Value</div>
@@ -68,7 +68,7 @@ function InventoryDashboard() {
         </div>
 
         <div className="stat-card warning">
-          <div className="stat-icon">⚠️</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <div className="stat-value">{summary?.low_stock_items || 0}</div>
             <div className="stat-label">Low Stock Items</div>
@@ -109,7 +109,7 @@ function InventoryDashboard() {
       {/* Low Stock Alerts */}
       {lowStock.length > 0 && (
         <div className="dashboard-section">
-          <h2>⚠️ Low Stock Alerts</h2>
+          <h2>Low Stock Alerts</h2>
           <div className="alerts-container">
             {lowStock.map((item, idx) => (
               <div key={idx} className={`alert-item ${item.urgency?.toLowerCase()}`}>
@@ -137,7 +137,7 @@ function InventoryDashboard() {
           {recentMovements.slice(0, 8).map((movement, idx) => (
             <div key={idx} className="movement-item">
               <div className={`movement-type ${movement.transaction_type.toLowerCase()}`}>
-                {movement.transaction_type === 'RECEIPT' ? '📦' : '📤'}
+                {movement.transaction_type === 'RECEIPT' ? 'IN' : 'OUT'}
               </div>
               <div className="movement-content">
                 <div className="movement-product">{movement.product_name}</div>
