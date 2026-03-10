@@ -14,6 +14,8 @@ const REPORTS = [
   { id: 'dead-stock', name: 'Dead Stock', icon: '', desc: 'Products not sold in 90+ days' },
   { id: 'expiry', name: 'Expiry Report', icon: '', desc: 'Expired and expiring products' },
   { id: 'delivery', name: 'Delivery Performance', icon: '', desc: 'Driver completion rates' },
+  { id: 'sales-items', name: 'Sales Items', icon: '', desc: 'Individual items sold with profit' },
+  { id: 'return-items', name: 'Return Items', icon: '', desc: 'All items returned by customers' },
   { id: 'sales-payments', name: 'Sales Payments', icon: '', desc: 'Customer payment history' },
   { id: 'purchase-payments', name: 'Purchase Payments', icon: '', desc: 'Supplier payment history' },
   { id: 'customer-orders', name: 'Customer Orders', icon: '', desc: 'Order summary per customer' },
@@ -44,6 +46,8 @@ function ReportsPage() {
         case 'dead-stock': data = await reportsAPI.deadStock(90); break;
         case 'expiry': data = await reportsAPI.expiryReport(90); break;
         case 'delivery': data = await reportsAPI.deliveryPerformance(params); break;
+        case 'sales-items': data = await reportsAPI2.salesByItem(params); break;
+        case 'return-items': data = await reportsAPI2.returnItems(params); break;
         case 'sales-payments': data = await reportsAPI2.salesPayments(params); break;
         case 'purchase-payments': data = await reportsAPI2.purchasePayments(params); break;
         case 'customer-orders': data = await reportsAPI2.customerOrders(params); break;
@@ -195,6 +199,30 @@ function ReportsPage() {
                 <td><div className="perf-bar"><div className="perf-fill" style={{width: `${r.completion_pct || 0}%`}} /><span>{r.completion_pct || 0}%</span></div></td></tr>
             ))}</tbody></table>
         );
+
+      case 'sales-items':
+        return (<>
+          <div className="report-summary">Total: <strong>{fmt(reportData.grand_total)} OMR</strong> — Profit: <strong className="positive">{fmt(reportData.grand_profit)} OMR</strong> — {reportData.count || 0} items</div>
+          <table className="data-table"><thead><tr><th>#</th><th>Date</th><th>Order</th><th>Customer</th><th>SKU</th><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Profit</th></tr></thead>
+            <tbody>{(reportData.data || []).map((r, i) => (
+              <tr key={i}><td>{i+1}</td><td>{r.date || '-'}</td><td className="code">{r.order || '-'}</td><td>{r.customer || '-'}</td>
+                <td className="code">{r.sku}</td><td>{r.product}</td><td className="center">{r.qty}</td>
+                <td className="value">{fmt(r.unit_price)}</td><td className="value">{fmt(r.total)}</td>
+                <td className={`value ${(r.profit || 0) >= 0 ? 'positive' : 'negative'}`}>{fmt(r.profit)}</td></tr>
+            ))}</tbody></table>
+        </>);
+
+      case 'return-items':
+        return (<>
+          <div className="report-summary">Total Returned: <strong className="negative">{fmt(reportData.total_value)} OMR</strong> — {reportData.total_qty || 0} units — {reportData.count || 0} items</div>
+          <table className="data-table"><thead><tr><th>#</th><th>Date</th><th>Return #</th><th>Customer</th><th>SKU</th><th>Product</th><th>Qty</th><th>Amount</th><th>Reason</th><th>Condition</th></tr></thead>
+            <tbody>{(reportData.data || []).map((r, i) => (
+              <tr key={i}><td>{i+1}</td><td>{r.date || '-'}</td><td className="code">{r.return_number}</td><td>{r.customer || '-'}</td>
+                <td className="code">{r.sku}</td><td>{r.product}</td><td className="center">{r.qty}</td>
+                <td className="value negative">{fmt(r.amount)}</td><td>{r.reason || '-'}</td>
+                <td><span className={`type-badge ${r.condition}`}>{r.condition || '-'}</span></td></tr>
+            ))}</tbody></table>
+        </>);
 
       case 'sales-payments':
         return (

@@ -141,6 +141,7 @@ export const financialAPI = {
 
 export const reportsAPI2 = {
   salesByItem: async (params = {}) => (await api.get('/api/reports/sales-by-item', { params })).data,
+  returnItems: async (params = {}) => (await api.get('/api/reports/return-items', { params })).data,
   purchasePayments: async (params = {}) => (await api.get('/api/reports/purchase-payments', { params })).data,
   salesPayments: async (params = {}) => (await api.get('/api/reports/sales-payments', { params })).data,
   customerOrders: async (params = {}) => (await api.get('/api/reports/customer-orders', { params })).data,

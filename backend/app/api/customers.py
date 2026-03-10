@@ -30,6 +30,7 @@ class CustomerCreate(BaseModel):
     longitude: Optional[float] = None
     payment_terms_days: int = 7
     credit_limit: Optional[float] = None
+    opening_balance: Optional[float] = None
     preferred_delivery_day: Optional[str] = None
     delivery_instructions: Optional[str] = None
     notes: Optional[str] = None
@@ -158,7 +159,9 @@ async def customer_statement(customer_id: int, from_date: Optional[str] = None, 
 async def create_customer(data: CustomerCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if db.query(Customer).filter(Customer.code == data.code).first():
         raise HTTPException(status_code=400, detail="Customer code already exists")
-    c = Customer(**data.dict(), created_by=current_user.id, is_active=True, current_balance=0)
+    opening_bal = float(data.opening_balance or 0)
+    fields = data.dict(exclude={'opening_balance'})
+    c = Customer(**fields, created_by=current_user.id, is_active=True, current_balance=opening_bal)
     db.add(c)
     try:
         db.commit()

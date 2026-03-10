@@ -78,6 +78,7 @@ const SECTIONS = [
       { label: 'Settings',        page: 'settings' },
       { label: 'Lookup Tables',   page: 'settings-lookup' },
       { label: 'Notifications',   page: 'notifications' },
+      { label: 'Messaging',       page: 'messaging' },
     ],
   },
 ];

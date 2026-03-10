@@ -17,7 +17,7 @@ function CustomerList() {
   const [form, setForm] = useState({
     code: '', name: '', business_type: 'Grocery', contact_person: '', email: '', phone: '', mobile: '',
     address_line1: '', city: '', area: '', latitude: '', longitude: '',
-    payment_terms_days: 7, credit_limit: '', preferred_delivery_day: '', delivery_instructions: '', notes: ''
+    payment_terms_days: 7, credit_limit: '', opening_balance: '', preferred_delivery_day: '', delivery_instructions: '', notes: ''
   });
 
   useEffect(() => { load(); loadAreas(); }, [filterArea]);
@@ -30,6 +30,7 @@ function CustomerList() {
     try {
       const data = { ...form, payment_terms_days: parseInt(form.payment_terms_days) || 7 };
       if (data.credit_limit) data.credit_limit = parseFloat(data.credit_limit); else delete data.credit_limit;
+      if (data.opening_balance) data.opening_balance = parseFloat(data.opening_balance); else delete data.opening_balance;
       if (data.latitude) data.latitude = parseFloat(data.latitude); else delete data.latitude;
       if (data.longitude) data.longitude = parseFloat(data.longitude); else delete data.longitude;
       if (editingId) { await customerAPI.update(editingId, data); setMessage({ text: 'Customer updated!', type: 'success' }); }
@@ -39,11 +40,11 @@ function CustomerList() {
   };
 
   const editCustomer = (c) => {
-    setForm({ code: c.code, name: c.name, business_type: c.business_type || 'Grocery', contact_person: c.contact_person || '', email: c.email || '', phone: c.phone || '', mobile: c.mobile || '', address_line1: c.address_line1 || '', city: c.city || '', area: c.area || '', latitude: c.latitude || '', longitude: c.longitude || '', payment_terms_days: c.payment_terms_days || 7, credit_limit: c.credit_limit || '', preferred_delivery_day: c.preferred_delivery_day || '', delivery_instructions: c.delivery_instructions || '', notes: c.notes || '' });
+    setForm({ code: c.code, name: c.name, business_type: c.business_type || 'Grocery', contact_person: c.contact_person || '', email: c.email || '', phone: c.phone || '', mobile: c.mobile || '', address_line1: c.address_line1 || '', city: c.city || '', area: c.area || '', latitude: c.latitude || '', longitude: c.longitude || '', payment_terms_days: c.payment_terms_days || 7, credit_limit: c.credit_limit || '', opening_balance: '', preferred_delivery_day: c.preferred_delivery_day || '', delivery_instructions: c.delivery_instructions || '', notes: c.notes || '' });
     setEditingId(c.id); setShowForm(true);
   };
 
-  const resetForm = () => setForm({ code: '', name: '', business_type: 'Grocery', contact_person: '', email: '', phone: '', mobile: '', address_line1: '', city: '', area: '', latitude: '', longitude: '', payment_terms_days: 7, credit_limit: '', preferred_delivery_day: '', delivery_instructions: '', notes: '' });
+  const resetForm = () => setForm({ code: '', name: '', business_type: 'Grocery', contact_person: '', email: '', phone: '', mobile: '', address_line1: '', city: '', area: '', latitude: '', longitude: '', payment_terms_days: 7, credit_limit: '', opening_balance: '', preferred_delivery_day: '', delivery_instructions: '', notes: '' });
 
   const filtered = customers.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.code.toLowerCase().includes(search.toLowerCase()) || (c.area || '').toLowerCase().includes(search.toLowerCase()));
 
@@ -97,7 +98,8 @@ function CustomerList() {
                 <select value={form.payment_terms_days} onChange={e => setForm(p => ({...p, payment_terms_days: e.target.value}))}>
                   <option value="0">Cash on Delivery</option><option value="7">Net 7 days</option><option value="14">Net 14 days</option><option value="30">Net 30 days</option>
                 </select></div>
-              <div className="form-group"><label>Credit Limit (OMR)</label><input type="number" step="0.001" value={form.credit_limit} onChange={e => setForm(p => ({...p, credit_limit: e.target.value}))} /></div>
+              <div className="form-group"><label>Credit Limit (OMR)</label><input type="number" step="0.001" value={form.credit_limit} onChange={e => setForm(p => ({...p, credit_limit: e.target.value}))} placeholder="0 = unlimited" /></div>
+              {!editingId && <div className="form-group"><label>Opening Balance (OMR)</label><input type="number" step="0.001" value={form.opening_balance} onChange={e => setForm(p => ({...p, opening_balance: e.target.value}))} placeholder="0.000" /></div>}
               <div className="form-group"><label>Delivery Day</label>
                 <select value={form.preferred_delivery_day} onChange={e => setForm(p => ({...p, preferred_delivery_day: e.target.value}))}>
                   <option value="">Any Day</option><option>Sunday</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Saturday</option>
@@ -123,22 +125,27 @@ function CustomerList() {
 
       {loading ? <div className="loading-state">Loading...</div> : (
         <div className="table-container"><table className="data-table">
-          <thead><tr><th>Code</th><th>Shop Name</th><th>Type</th><th>Area</th><th>Phone</th><th>Terms</th><th>Delivery</th><th>Orders</th><th>Outstanding</th><th></th></tr></thead>
+          <thead><tr><th>Code</th><th>Shop Name</th><th>Type</th><th>Area</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>Balance</th><th>Orders</th><th>Outstanding</th><th></th></tr></thead>
           <tbody>
-            {filtered.length === 0 ? <tr><td colSpan="10" className="no-data">No customers found</td></tr> :
-              filtered.map(c => (
+            {filtered.length === 0 ? <tr><td colSpan="11" className="no-data">No customers found</td></tr> :
+              filtered.map(c => {
+                const bal = Number(c.current_balance) || 0;
+                const limit = Number(c.credit_limit) || 0;
+                const overLimit = limit > 0 && bal > limit;
+                return (
                 <tr key={c.id} className={!c.is_active ? 'inactive' : ''}>
                   <td className="code">{c.code}</td><td className="name">{c.name}</td>
                   <td><span className="type-badge">{c.business_type || 'Grocery'}</span></td>
                   <td><span className="area-badge">{c.area || '-'}</span></td>
                   <td>{c.phone || c.mobile || '-'}</td>
                   <td>{c.payment_terms_days === 0 ? 'COD' : `Net ${c.payment_terms_days}d`}</td>
-                  <td>{c.preferred_delivery_day || 'Any'}</td>
+                  <td className="value">{limit > 0 ? limit.toFixed(3) : 'Unlimited'}</td>
+                  <td className={`value ${overLimit ? 'negative' : ''}`} title={overLimit ? 'Exceeds credit limit!' : ''}>{bal > 0 ? bal.toFixed(3) : '-'}{overLimit && <span style={{ color: '#dc2626', fontSize: '0.75rem', marginLeft: 4 }}>!</span>}</td>
                   <td className="center">{c.total_orders}</td>
                   <td className={`value ${(Number(c.outstanding_balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(c.outstanding_balance) || 0) > 0 ? `${(Number(c.outstanding_balance)).toFixed(3)}` : '-'}</td>
                   <td><button className="edit-btn" onClick={() => editCustomer(c)}>Edit</button></td>
-                </tr>
-              ))
+                </tr>);
+              })
             }
           </tbody>
         </table></div>

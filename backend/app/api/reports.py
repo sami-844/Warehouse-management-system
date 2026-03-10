@@ -446,3 +446,87 @@ async def customer_orders_report(from_date: Optional[str] = None, to_date: Optio
         "last_order": str(r['last_order'])[:10] if r['last_order'] else '-',
     } for r in rows]
     return {"data": data, "count": len(data), "period": {"from": start, "to": end}}
+
+
+@router.get("/sales-by-item")
+async def sales_by_item(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                        category_id: Optional[int] = None, customer_id: Optional[int] = None,
+                        current_user: User = Depends(get_current_user)):
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    where = ["so.order_date BETWEEN :start AND :end"]
+    params: dict = {"start": start, "end": end}
+    if category_id:
+        where.append("p.category_id = :category_id")
+        params["category_id"] = category_id
+    if customer_id:
+        where.append("so.customer_id = :customer_id")
+        params["customer_id"] = customer_id
+    wc = " AND ".join(where)
+    rows = run_q(f"""
+        SELECT p.sku, p.name as product, c.name as customer,
+               soi.quantity_ordered as qty, soi.unit_price, soi.unit_cost,
+               soi.total_price as total,
+               so.order_number, so.order_date
+        FROM sales_order_items soi
+        JOIN sales_orders so ON soi.sales_order_id = so.id
+        JOIN products p ON soi.product_id = p.id
+        LEFT JOIN customers c ON so.customer_id = c.id
+        WHERE {wc}
+        ORDER BY so.order_date DESC, so.id DESC
+    """, params)
+    grand_total = sum(float(r['total'] or 0) for r in rows)
+    grand_profit = sum(float(r['total'] or 0) - float(r['qty'] or 0) * float(r['unit_cost'] or 0) for r in rows)
+    data = [{
+        "sku": r['sku'], "product": r['product'], "customer": r['customer'],
+        "order": r['order_number'], "date": str(r['order_date'])[:10],
+        "qty": r['qty'], "unit_price": round(float(r['unit_price'] or 0), 3),
+        "total": round(float(r['total'] or 0), 3),
+        "profit": round(float(r['total'] or 0) - float(r['qty'] or 0) * float(r['unit_cost'] or 0), 3),
+    } for r in rows]
+    return {"data": data, "count": len(data), "grand_total": round(grand_total, 3),
+            "grand_profit": round(grand_profit, 3), "period": {"from": start, "to": end}}
+
+
+@router.get("/return-items")
+async def return_items(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                       product_id: Optional[int] = None,
+                       current_user: User = Depends(get_current_user)):
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    where = ["r.return_date BETWEEN :start AND :end"]
+    params: dict = {"start": start, "end": end}
+    if product_id:
+        where.append("ri.product_id = :product_id")
+        params["product_id"] = product_id
+    wc = " AND ".join(where)
+    try:
+        rows = run_q(f"""
+            SELECT r.return_number, r.return_date, r.return_type, r.status,
+                   c.name as customer,
+                   p.name as product, p.sku,
+                   ri.quantity, ri.unit_price, ri.reason, ri.condition,
+                   (ri.quantity * ri.unit_price) as amount
+            FROM return_items ri
+            JOIN returns r ON ri.return_id = r.id
+            JOIN products p ON ri.product_id = p.id
+            LEFT JOIN customers c ON r.customer_id = c.id
+            WHERE {wc}
+            ORDER BY r.return_date DESC
+        """, params)
+    except Exception:
+        rows = []
+    total_value = sum(float(r['amount'] or 0) for r in rows)
+    total_qty = sum(float(r['quantity'] or 0) for r in rows)
+    data = [{
+        "return_number": r['return_number'], "date": str(r['return_date'])[:10],
+        "type": r['return_type'], "status": r['status'],
+        "customer": r['customer'], "product": r['product'], "sku": r['sku'],
+        "qty": r['quantity'], "unit_price": round(float(r['unit_price'] or 0), 3),
+        "amount": round(float(r['amount'] or 0), 3),
+        "reason": r['reason'] or '', "condition": r['condition'] or '',
+    } for r in rows]
+    return {"data": data, "count": len(data), "total_value": round(total_value, 3),
+            "total_qty": round(total_qty, 3), "period": {"from": start, "to": end}}

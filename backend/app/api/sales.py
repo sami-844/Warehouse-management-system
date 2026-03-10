@@ -176,6 +176,17 @@ async def create_order(data: SOCreate, db: Session = Depends(get_db), current_us
 
     net_subtotal = subtotal - total_discount
     tax = net_subtotal * (data.tax_rate / 100)
+    order_total = net_subtotal + tax
+
+    # Credit limit check
+    if customer.credit_limit and float(customer.credit_limit) > 0:
+        current_bal = float(customer.current_balance or 0)
+        if (current_bal + order_total) > float(customer.credit_limit):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Order would exceed credit limit of {float(customer.credit_limit):.3f} OMR. "
+                       f"Current balance: {current_bal:.3f}, Order total: {order_total:.3f}"
+            )
 
     so = SalesOrder(
         order_number=next_so_number(db), customer_id=data.customer_id,

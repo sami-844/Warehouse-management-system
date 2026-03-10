@@ -43,6 +43,7 @@ import BarcodeLabelPrinter from './components/BarcodeLabelPrinter';
 import MultiCurrencyDashboard from './components/MultiCurrencyDashboard';
 import ReturnsManager from './components/ReturnsManager';
 import NotificationSettings from './components/NotificationSettings';
+import MessagingSettings from './components/MessagingSettings';
 import SettingsPages from './components/SettingsPages';
 import StockAdjustmentLog from './components/StockAdjustmentLog';
 import ToastContainer from './components/Toast';
@@ -112,6 +113,7 @@ const PAGE_ROLE_MAP = {
   'users':              ['ADMIN'],
   'settings':           ['ADMIN'],
   'notifications':      ['ADMIN','ACCOUNTANT','WAREHOUSE_MANAGER'],
+  'messaging':          ['ADMIN'],
   'activity-log':       ['ADMIN'],
   'settings-lookup':    ['ADMIN'],
   'stock-log':          ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
@@ -309,6 +311,7 @@ function App() {
       case 'settings':             return <CompanySettings />;
       case 'settings-lookup':      return <SettingsPages />;
       case 'notifications':        return <NotificationSettings />;
+      case 'messaging':            return <MessagingSettings />;
       case 'activity-log':         return <UserManagement />;
       case 'stock-log':            return <StockAdjustmentLog />;
 
