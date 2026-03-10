@@ -94,7 +94,7 @@ function ProductList() {
       resetForm();
     } catch (err) {
       console.error('Error saving product:', err);
-      alert('Failed to save product: ' + (err.response?.data?.detail || err.message));
+      setError('Failed to save product: ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -125,7 +125,7 @@ function ProductList() {
         await loadData();
       } catch (err) {
         console.error('Error deleting product:', err);
-        alert('Failed to delete product');
+        setError('Failed to delete product');
       }
     }
   };

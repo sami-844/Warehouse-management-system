@@ -38,7 +38,7 @@ function PricingRules() {
 
   const deleteRule = async (id) => {
     if (!window.confirm('Delete this pricing rule?')) return;
-    try { await salesAPI.deletePricingRule(id); load(); } catch(e) { alert(e.message); }
+    try { await salesAPI.deletePricingRule(id); load(); } catch(e) { setMessage({ text: e.response?.data?.detail || e.message, type: 'error' }); }
   };
 
   const loadPreview = async (customerId) => {
