@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import './AdminPanel.css';
@@ -104,7 +105,7 @@ function UserManagement() {
         </div>
       )}
 
-      {loading ? <div className="loading-state">Loading...</div> : (
+      {loading ? <LoadingSpinner /> : (
         <div className="table-container"><table className="data-table">
           <thead><tr><th>Username</th><th>Name</th><th>Email</th><th>Role</th><th>Phone</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
           <tbody>

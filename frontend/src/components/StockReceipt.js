@@ -14,6 +14,7 @@ function StockReceipt() {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [recentReceipts, setRecentReceipts] = useState([]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadProducts(); loadWarehouses(); loadRecent(); }, []);
 
   const loadProducts = async () => {

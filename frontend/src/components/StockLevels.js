@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoadingSpinner from './LoadingSpinner';
 import { inventoryAPI, warehouseAPI } from '../services/api';
 import './StockLevels.css';
 import { Layers } from 'lucide-react';
@@ -11,7 +12,9 @@ function StockLevels() {
   const [loading, setLoading] = useState(true);
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadWarehouses(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadStockLevels(); }, [selectedWarehouse, showLowStockOnly]);
 
   const loadWarehouses = async () => { try { const res = await warehouseAPI.list(); setWarehouses(Array.isArray(res) ? res : (res?.items || [])); } catch(e) { console.error(e); } };
@@ -76,7 +79,7 @@ function StockLevels() {
         <div className="filter-checkbox"><label><input type="checkbox" checked={showLowStockOnly} onChange={e => setShowLowStockOnly(e.target.checked)} /> Low stock only</label></div>
       </div>
 
-      {loading ? <div className="loading-state">Loading stock levels...</div> : (
+      {loading ? <LoadingSpinner text="Loading stock levels..." /> : (
         <div className="stock-table-container">
           <table className="stock-table">
             <thead><tr><th>Product</th><th>SKU</th><th>Warehouse</th><th>On Hand</th><th>Reorder Lvl</th><th>Unit</th><th>Value (OMR)</th><th>Status</th></tr></thead>

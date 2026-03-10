@@ -1,5 +1,6 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect, useCallback } from 'react';
-import { returnsAPI, customerAPI, productAPI, salesAPI } from '../services/api';
+import { returnsAPI, customerAPI, productAPI } from '../services/api';
 import './Sales.css';
 import { RotateCcw } from 'lucide-react';
 
@@ -10,7 +11,7 @@ function ReturnsManager() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedReturn, setSelectedReturn] = useState(null);
+  const [, setSelectedReturn] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -178,7 +179,7 @@ function ReturnsManager() {
 
       {/* Returns Table */}
       {activeTab === 'returns' && (
-        loading ? <div className="loading-state">Loading...</div> : (
+        loading ? <LoadingSpinner /> : (
           <div className="table-container">
             <table className="data-table">
               <thead>

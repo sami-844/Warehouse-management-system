@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { reportsAPI, reportsAPI2 } from '../services/api';
+import { reportsAPI, reportsAPI2, accountingAPI, customerAPI } from '../services/api';
 import './AdminPanel.css';
 import { BarChart2 } from 'lucide-react';
 
@@ -19,6 +19,8 @@ const REPORTS = [
   { id: 'sales-payments', name: 'Sales Payments', icon: '', desc: 'Customer payment history' },
   { id: 'purchase-payments', name: 'Purchase Payments', icon: '', desc: 'Supplier payment history' },
   { id: 'customer-orders', name: 'Customer Orders', icon: '', desc: 'Order summary per customer' },
+  { id: 'profit-loss', name: 'Profit & Loss', icon: '', desc: 'Detailed P&L statement' },
+  { id: 'customer-ledger', name: 'Customer Ledger', icon: '', desc: 'Per-customer invoices and payments' },
 ];
 
 function ReportsPage() {
@@ -27,6 +29,12 @@ function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState(new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10));
   const [toDate, setToDate] = useState(new Date().toISOString().slice(0, 10));
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState('');
+
+  useEffect(() => {
+    customerAPI.list().then(d => setCustomers(Array.isArray(d) ? d : (d?.items || []))).catch(() => {});
+  }, []);
 
   const loadReport = async (reportId) => {
     setActiveReport(reportId);
@@ -51,6 +59,11 @@ function ReportsPage() {
         case 'sales-payments': data = await reportsAPI2.salesPayments(params); break;
         case 'purchase-payments': data = await reportsAPI2.purchasePayments(params); break;
         case 'customer-orders': data = await reportsAPI2.customerOrders(params); break;
+        case 'profit-loss': data = await accountingAPI.profitLossDetailed(params); break;
+        case 'customer-ledger':
+          if (!selectedCustomer) { setReportData({ error: 'Please select a customer first.' }); setLoading(false); return; }
+          data = await accountingAPI.customerLedger({ ...params, customer_id: selectedCustomer });
+          break;
         default: break;
       }
       setReportData(data);
@@ -255,6 +268,72 @@ function ReportsPage() {
             ))}</tbody></table>
         );
 
+      case 'profit-loss': {
+        const rev = reportData.revenue || {};
+        const exp = reportData.expenses || {};
+        const cogs = reportData.cogs || {};
+        return (<>
+          <div className="report-summary" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            <div>Revenue: <strong className="positive">{fmt(rev.total)} OMR</strong></div>
+            <div>COGS: <strong className="negative">{fmt(cogs.total)} OMR</strong></div>
+            <div>Gross Profit: <strong className={reportData.gross_profit >= 0 ? 'positive' : 'negative'}>{fmt(reportData.gross_profit)} OMR</strong></div>
+            <div>Expenses: <strong className="negative">{fmt(exp.total)} OMR</strong></div>
+            <div>Net Profit: <strong className={reportData.net_profit >= 0 ? 'positive' : 'negative'}>{fmt(reportData.net_profit)} OMR</strong></div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginTop: 16 }}>
+            <div>
+              <h4 style={{ color: '#16a34a', marginBottom: 8 }}>Revenue</h4>
+              <table className="data-table"><thead><tr><th>Account</th><th>Amount</th></tr></thead>
+                <tbody>{(rev.items || []).map((r, i) => (
+                  <tr key={i}><td>{r.code} — {r.name}</td><td className="value positive">{fmt(r.balance)}</td></tr>
+                ))}</tbody>
+                <tfoot><tr><td><strong>Total Revenue</strong></td><td className="value"><strong>{fmt(rev.total)}</strong></td></tr></tfoot>
+              </table>
+            </div>
+            <div>
+              <h4 style={{ color: '#ea580c', marginBottom: 8 }}>Cost of Goods Sold</h4>
+              <table className="data-table"><thead><tr><th>Account</th><th>Amount</th></tr></thead>
+                <tbody>{(cogs.items || []).map((r, i) => (
+                  <tr key={i}><td>{r.code} — {r.name}</td><td className="value">{fmt(r.balance)}</td></tr>
+                ))}</tbody>
+                <tfoot><tr><td><strong>Total COGS</strong></td><td className="value"><strong>{fmt(cogs.total)}</strong></td></tr></tfoot>
+              </table>
+            </div>
+            <div>
+              <h4 style={{ color: '#dc2626', marginBottom: 8 }}>Expenses</h4>
+              <table className="data-table"><thead><tr><th>Account</th><th>Amount</th></tr></thead>
+                <tbody>{(exp.items || []).map((r, i) => (
+                  <tr key={i}><td>{r.code} — {r.name}</td><td className="value negative">{fmt(r.balance)}</td></tr>
+                ))}</tbody>
+                <tfoot><tr><td><strong>Total Expenses</strong></td><td className="value"><strong>{fmt(exp.total)}</strong></td></tr></tfoot>
+              </table>
+            </div>
+          </div>
+        </>);
+      }
+
+      case 'customer-ledger': {
+        const entries = reportData.entries || [];
+        return (<>
+          <div className="report-summary" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            <div>Customer: <strong>{reportData.customer || '-'}</strong></div>
+            <div>Total Invoiced: <strong>{fmt(reportData.total_invoiced)} OMR</strong></div>
+            <div>Total Paid: <strong className="positive">{fmt(reportData.total_paid)} OMR</strong></div>
+            <div>Balance: <strong className={reportData.balance > 0 ? 'negative' : 'positive'}>{fmt(reportData.balance)} OMR</strong></div>
+          </div>
+          <table className="data-table"><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Reference</th><th>Debit</th><th>Credit</th><th>Running Balance</th></tr></thead>
+            <tbody>{entries.map((r, i) => (
+              <tr key={i}><td>{i+1}</td><td>{r.date ? String(r.date).slice(0, 10) : '-'}</td>
+                <td><span className={`type-badge ${r.type}`}>{r.type}</span></td>
+                <td className="code">{r.reference || '-'}</td>
+                <td className="value">{r.debit ? fmt(r.debit) : '-'}</td>
+                <td className="value positive">{r.credit ? fmt(r.credit) : '-'}</td>
+                <td className={`value ${r.running_balance > 0 ? 'negative' : ''}`}>{fmt(r.running_balance)}</td></tr>
+            ))}</tbody>
+          </table>
+        </>);
+      }
+
       default: return null;
     }
   };
@@ -269,6 +348,12 @@ function ReportsPage() {
         <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="filter-input" />
         <label>To:</label>
         <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="filter-input" />
+        {activeReport === 'customer-ledger' && (
+          <select value={selectedCustomer} onChange={e => setSelectedCustomer(e.target.value)} className="filter-select" style={{ minWidth: 200 }}>
+            <option value="">-- Select Customer --</option>
+            {customers.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
+          </select>
+        )}
         {activeReport && <button className="action-btn primary" onClick={() => loadReport(activeReport)}>Refresh</button>}
       </div>
 

@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { purchaseAPI } from '../services/api';
 import './Purchasing.css';
@@ -12,6 +13,7 @@ function PurchaseInvoices() {
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: 'bank_transfer', payment_date: new Date().toISOString().slice(0, 10), bank_reference: '', notes: '' });
   const [message, setMessage] = useState({ text: '', type: '' });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); loadAging(); }, [filterStatus]);
 
   const load = async () => { setLoading(true); try { const params = {}; if (filterStatus) params.status = filterStatus; setInvoices(await purchaseAPI.listInvoices(params)); } catch(e) { console.error(e); } finally { setLoading(false); } };
@@ -117,7 +119,7 @@ function PurchaseInvoices() {
         </select>
       </div>
 
-      {loading ? <div className="loading-state">Loading...</div> : (
+      {loading ? <LoadingSpinner /> : (
         <div className="table-container">
           <table className="data-table">
             <thead><tr><th>Invoice #</th><th>Supplier</th><th>Date</th><th>Due Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Overdue</th><th>Status</th><th>Actions</th></tr></thead>

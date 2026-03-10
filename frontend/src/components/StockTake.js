@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { inventoryAPI, warehouseAPI } from '../services/api';
 import './StockTake.css';
@@ -75,7 +76,7 @@ function StockTake() {
       </div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
-      {loading && <div className="loading-state">Loading products...</div>}
+      {loading && <LoadingSpinner text="Loading products..." />}
 
       {products.length > 0 && !result && (
         <>

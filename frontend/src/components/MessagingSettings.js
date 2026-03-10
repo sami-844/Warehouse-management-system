@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { messagingAPI } from '../services/api';
 import './AdminPanel.css';
 import { MessageSquare } from 'lucide-react';
 
@@ -34,11 +35,20 @@ function MessagingSettings() {
 
   const updateConfig = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
 
-  const saveConfig = () => {
-    setMessage({ text: 'Settings saved locally. Backend API not connected yet.', type: 'success' });
+  useEffect(() => {
+    messagingAPI.getConfig().then(c => {
+      setConfig(prev => ({ ...prev, provider: c.provider || 'none', api_url: c.api_url || '', sender: c.sender || '' }));
+    }).catch(() => {});
+  }, []);
+
+  const saveConfig = async () => {
+    try {
+      await messagingAPI.updateConfig(config);
+      setMessage({ text: 'Messaging settings saved!', type: 'success' });
+    } catch(e) { setMessage({ text: e.response?.data?.detail || 'Failed to save', type: 'error' }); }
   };
 
-  const testConnection = () => {
+  const testConnection = async () => {
     if (config.provider === 'none') {
       setMessage({ text: 'Select a provider first.', type: 'error' });
       return;
@@ -47,7 +57,10 @@ function MessagingSettings() {
       setMessage({ text: 'API URL and API Key are required.', type: 'error' });
       return;
     }
-    setMessage({ text: 'Test connection not available yet — backend API pending.', type: 'info' });
+    try {
+      await messagingAPI.sendMessage({ to: 'test', message: 'Test connection', trigger: 'test' });
+      setMessage({ text: 'Connection test sent! Check provider dashboard.', type: 'success' });
+    } catch(e) { setMessage({ text: e.response?.data?.detail || 'Test failed', type: 'error' }); }
   };
 
   const toggleTemplate = (id) => {

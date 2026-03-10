@@ -64,6 +64,9 @@ const SECTIONS = [
     Icon: DollarSign,
     items: [
       { label: 'Financial Dashboard', page: 'financial' },
+      { label: 'Chart of Accounts',  page: 'chart-of-accounts' },
+      { label: 'Money Transfer',     page: 'money-transfer' },
+      { label: 'Cash Transactions',  page: 'cash-transactions' },
       { label: 'Multi-Currency',      page: 'multi-currency' },
       { label: 'Reports',             page: 'reports' },
     ],

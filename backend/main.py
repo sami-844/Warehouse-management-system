@@ -171,6 +171,22 @@ try:
 except ImportError as e:
     print(f"  ⚠️  Multi-currency module: {e}")
 
+# ── Phase 9: Accounting ──
+try:
+    from app.api.accounting import router as accounting_router
+    app.include_router(accounting_router, prefix="/api/accounting", tags=["Accounting"])
+    print("  ✅ Accounting module loaded")
+except ImportError as e:
+    print(f"  ⚠️  Accounting module: {e}")
+
+# ── Phase 12: Messaging ──
+try:
+    from app.api.messaging import router as messaging_router
+    app.include_router(messaging_router, prefix="/api/messaging", tags=["Messaging"])
+    print("  ✅ Messaging module loaded")
+except ImportError as e:
+    print(f"  ⚠️  Messaging module: {e}")
+
 # ── RBAC Navigation Helper ──
 @app.get("/api/rbac/nav-items")
 async def get_nav_items(role: str = "ADMIN"):

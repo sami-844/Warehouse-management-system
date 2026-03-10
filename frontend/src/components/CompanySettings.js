@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import './AdminPanel.css';
@@ -5,7 +6,7 @@ import { Settings } from 'lucide-react';
 
 function CompanySettings() {
   const [tab, setTab] = useState('company');
-  const [settings, setSettings] = useState({});
+  const [settings, setSettings] = useState({}); // eslint-disable-line no-unused-vars
   const [activityLog, setActivityLog] = useState([]);
   const [backups, setBackups] = useState([]);
   const [tables, setTables] = useState([]);
@@ -79,7 +80,7 @@ function CompanySettings() {
       {tab === 'company' && (
         <div className="tab-content">
           <h3>Company Information</h3>
-          {loading ? <div className="loading-state">Loading...</div> : (
+          {loading ? <LoadingSpinner /> : (
             <div className="settings-form">
               <div className="form-row-2">
                 <div className="form-group"><label>Company Name</label>

@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { salesAPI } from '../services/api';
 import './Sales.css';
@@ -8,6 +9,7 @@ function SalesOrderDetail({ soId, onBack }) {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [actionLoading, setActionLoading] = useState('');
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadSO(); }, [soId]);
 
   const loadSO = async () => { setLoading(true); try { setSo(await salesAPI.getOrder(soId)); } catch(e) { console.error(e); } finally { setLoading(false); } };
@@ -41,7 +43,7 @@ function SalesOrderDetail({ soId, onBack }) {
     finally { setActionLoading(''); }
   };
 
-  if (loading) return <div className="sales-container"><div className="loading-state">Loading...</div></div>;
+  if (loading) return <div className="sales-container"><LoadingSpinner /></div>;
   if (!so) return <div className="sales-container"><div className="no-data">Order not found</div></div>;
 
   const statusColor = (s) => ({ draft: '#6b7280', confirmed: '#2563eb', picking: '#7c3aed', shipped: '#d97706', delivered: '#16a34a', invoiced: '#059669' }[s] || '#6b7280');

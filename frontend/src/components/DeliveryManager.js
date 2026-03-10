@@ -1,5 +1,6 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
-import { salesAPI } from '../services/api';
+import { salesAPI, messagingAPI } from '../services/api';
 import './Sales.css';
 import { Truck } from 'lucide-react';
 
@@ -21,6 +22,13 @@ function DeliveryManager() {
       setMessage({ text: 'Delivery completed!', type: 'success' });
       loadToday(); loadAll();
     } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
+  };
+
+  const sendDeliveryMsg = async (d) => {
+    try {
+      const res = await messagingAPI.sendDeliveryNotification(d.id);
+      setMessage({ text: `Dispatch notification sent: ${res.message_preview || 'Queued'}`, type: 'success' });
+    } catch(e) { setMessage({ text: e.response?.data?.detail || 'Failed to send notification', type: 'error' }); }
   };
 
   const statusIcon = () => '';
@@ -59,9 +67,12 @@ function DeliveryManager() {
                         <span className="dc-driver">{d.driver || 'Unassigned'}</span>
                         <span className="dc-total">{(d.total || 0).toFixed(3)} OMR</span>
                       </div>
-                      {d.status !== 'delivered' && (
-                        <button className="complete-btn" onClick={() => completeDelivery(d.id)}>Mark Delivered</button>
-                      )}
+                      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                        {d.status !== 'delivered' && (
+                          <button className="complete-btn" onClick={() => completeDelivery(d.id)}>Mark Delivered</button>
+                        )}
+                        <button onClick={() => sendDeliveryMsg(d)} style={{ padding: '5px 10px', fontSize: 11, background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 4, cursor: 'pointer' }}>Notify</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -73,7 +84,7 @@ function DeliveryManager() {
 
       {view === 'all' && (
         <div className="tab-content">
-          {loading ? <div className="loading-state">Loading...</div> : (
+          {loading ? <LoadingSpinner /> : (
             <table className="data-table">
               <thead><tr><th>Order</th><th>Customer</th><th>Area</th><th>Driver</th><th>Vehicle</th><th>Scheduled</th><th>Delivered</th><th>Total</th><th>Status</th><th></th></tr></thead>
               <tbody>
@@ -86,7 +97,10 @@ function DeliveryManager() {
                       <td>{d.scheduled_date || '-'}</td><td>{d.actual_date || '-'}</td>
                       <td className="value">{(d.total || 0).toFixed(3)}</td>
                       <td><span className="status-pill" style={{ backgroundColor: statusColor(d.status) }}>{d.status}</span></td>
-                      <td>{d.status !== 'delivered' && <button className="complete-btn small" onClick={() => completeDelivery(d.id)}>Done</button>}</td>
+                      <td style={{ display: 'flex', gap: 4 }}>
+                        {d.status !== 'delivered' && <button className="complete-btn small" onClick={() => completeDelivery(d.id)}>Done</button>}
+                        <button onClick={() => sendDeliveryMsg(d)} style={{ padding: '3px 8px', fontSize: 11, background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 4, cursor: 'pointer' }}>Notify</button>
+                      </td>
                     </tr>
                   ))
                 }

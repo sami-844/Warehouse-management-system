@@ -20,7 +20,7 @@ function CustomerStatementPDF({ customerId: propCustomerId, onClose }) {
   // Auto-load if customerId prop provided
   useEffect(() => {
     if (propCustomerId) loadStatement(propCustomerId);
-  }, [propCustomerId]);
+  }, [propCustomerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadStatement = (custId) => {
     if (!custId) return;

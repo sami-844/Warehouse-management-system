@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect, useCallback } from 'react';
 import { fifoAPI, productAPI } from '../services/api';
 import './AdminPanel.css';
@@ -166,7 +167,7 @@ function FIFOStockManager() {
       {/* ── All Batches Tab ── */}
       {activeTab === 'batches' && (
         <div className="tab-content">
-          {loading ? <div className="loading-state">Loading batches...</div> : batches.length === 0 ? (
+          {loading ? <LoadingSpinner text="Loading batches..." /> : batches.length === 0 ? (
             <div className="no-data">No active batches. Receive stock to create batches.</div>
           ) : (
             <div className="table-container">

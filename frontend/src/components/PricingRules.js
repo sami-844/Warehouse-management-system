@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { salesAPI, productAPI, customerAPI } from '../services/api';
 import './Sales.css';
@@ -113,7 +114,7 @@ function PricingRules() {
 
       {/* Rules List */}
       <h3 style={{ margin: '20px 0 12px' }}>Active Rules</h3>
-      {loading ? <div className="loading-state">Loading...</div> : (
+      {loading ? <LoadingSpinner /> : (
         <div className="table-container"><table className="data-table">
           <thead><tr><th>Rule</th><th>Product</th><th>Customer</th><th>Min Qty</th><th>Discount</th><th>Special Price</th><th>Valid</th><th>Active</th><th></th></tr></thead>
           <tbody>

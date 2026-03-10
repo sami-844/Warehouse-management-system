@@ -1,5 +1,6 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
-import { salesAPI } from '../services/api';
+import { salesAPI, messagingAPI } from '../services/api';
 import './Sales.css';
 import { Receipt } from 'lucide-react';
 
@@ -13,6 +14,7 @@ function SalesInvoices() {
   const [payForm, setPayForm] = useState({ amount: '', payment_method: 'cash', payment_date: new Date().toISOString().slice(0, 10), bank_reference: '', notes: '' });
   const [message, setMessage] = useState({ text: '', type: '' });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); loadAging(); loadOverdue(); }, [filterStatus]);
 
   const load = async () => { setLoading(true); try { const p = {}; if (filterStatus) p.status = filterStatus; const di = await salesAPI.listInvoices(p); setInvoices(Array.isArray(di) ? di : (di?.items || [])); } catch(e) {} finally { setLoading(false); } };
@@ -29,6 +31,20 @@ function SalesInvoices() {
       setMessage({ text: `Payment recorded! Balance: ${result.new_balance} OMR`, type: 'success' });
       setPayingInvoice(null); load(); loadAging(); loadOverdue();
     } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
+  };
+
+  const sendInvoiceMsg = async (inv) => {
+    try {
+      const res = await messagingAPI.sendInvoiceNotification(inv.id);
+      setMessage({ text: `Message sent to ${inv.customer_name}: ${res.message_preview || 'Queued'}`, type: 'success' });
+    } catch(e) { setMessage({ text: e.response?.data?.detail || 'Failed to send message', type: 'error' }); }
+  };
+
+  const sendReminder = async (inv) => {
+    try {
+      const res = await messagingAPI.sendPaymentReminder(inv.id);
+      setMessage({ text: `Reminder sent to ${inv.customer_name}: ${res.message_preview || 'Queued'}`, type: 'success' });
+    } catch(e) { setMessage({ text: e.response?.data?.detail || 'Failed to send reminder', type: 'error' }); }
   };
 
   const statusColor = (s) => ({ pending: '#d97706', partial: '#2563eb', paid: '#16a34a' }[s] || '#6b7280');
@@ -134,7 +150,7 @@ function SalesInvoices() {
         </select>
       </div>
 
-      {loading ? <div className="loading-state">Loading...</div> : (
+      {loading ? <LoadingSpinner /> : (
         <div className="table-container"><table className="data-table">
           <thead><tr><th>Invoice #</th><th>Customer</th><th>Area</th><th>Date</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Overdue</th><th>Status</th><th></th></tr></thead>
           <tbody>
@@ -149,7 +165,11 @@ function SalesInvoices() {
                   <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(inv.balance) || 0).toFixed(3)}</td>
                   <td className={inv.days_overdue > 0 ? 'negative' : ''}>{inv.days_overdue > 0 ? `${inv.days_overdue}d` : '-'}</td>
                   <td><span className="status-pill" style={{ backgroundColor: statusColor(inv.status) }}>{inv.status}</span></td>
-                  <td>{inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPayForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>Pay</button>}</td>
+                  <td style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    {inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPayForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>Pay</button>}
+                    <button onClick={() => sendInvoiceMsg(inv)} title="Send invoice notification" style={{ padding: '4px 8px', fontSize: 11, background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}>Notify</button>
+                    {inv.days_overdue > 0 && <button onClick={() => sendReminder(inv)} title="Send payment reminder" style={{ padding: '4px 8px', fontSize: 11, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}>Remind</button>}
+                  </td>
                 </tr>
               ))
             }

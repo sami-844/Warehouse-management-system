@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoadingSpinner from './LoadingSpinner';
 import { financialAPI } from '../services/api';
 import './AdminPanel.css';
 import { TrendingUp } from 'lucide-react';
@@ -10,12 +11,12 @@ function FinancialDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { load(); }, []);
-  useEffect(() => { loadPnl(); }, [pnlPeriod]);
+  useEffect(() => { loadPnl(); }, [pnlPeriod]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = async () => { setLoading(true); try { setData(await financialAPI.dashboard()); } catch(e) { console.error(e); } finally { setLoading(false); } };
   const loadPnl = async () => { try { setPnl(await financialAPI.profitLoss({ period: pnlPeriod })); } catch(e) { console.error(e); } };
 
-  if (loading || !data) return <div className="admin-container"><div className="loading-state">Loading financial data...</div></div>;
+  if (loading || !data) return <div className="admin-container"><LoadingSpinner text="Loading financial data..." /></div>;
 
   // Safe number formatter — prevents .toFixed() crash on null/undefined
   const n = (v) => (Number(v) || 0).toFixed(3);

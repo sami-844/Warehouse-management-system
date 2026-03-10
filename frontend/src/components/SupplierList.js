@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { supplierAPI, csvImportAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
@@ -15,7 +16,7 @@ function SupplierList() {
   const [form, setForm] = useState({
     code: '', name: '', contact_person: '', email: '', phone: '', mobile: '',
     address_line1: '', city: '', country: '', payment_terms_days: 30,
-    credit_limit: '', tax_id: '', bank_name: '', bank_account: '', notes: ''
+    credit_limit: '', tax_id: '', bank_name: '', bank_account: '', notes: '', opening_balance: ''
   });
 
   useEffect(() => { load(); }, []);
@@ -28,6 +29,7 @@ function SupplierList() {
       const data = { ...form, payment_terms_days: parseInt(form.payment_terms_days) || 30 };
       if (data.credit_limit) data.credit_limit = parseFloat(data.credit_limit);
       else delete data.credit_limit;
+      if (data.opening_balance) data.opening_balance = parseFloat(data.opening_balance); else delete data.opening_balance;
       if (editingId) { await supplierAPI.update(editingId, data); setMessage({ text: 'Supplier updated!', type: 'success' }); }
       else { await supplierAPI.create(data); setMessage({ text: 'Supplier created!', type: 'success' }); }
       setShowForm(false); setEditingId(null); resetForm(); load();
@@ -39,7 +41,7 @@ function SupplierList() {
     setEditingId(s.id); setShowForm(true);
   };
 
-  const resetForm = () => setForm({ code: '', name: '', contact_person: '', email: '', phone: '', mobile: '', address_line1: '', city: '', country: '', payment_terms_days: 30, credit_limit: '', tax_id: '', bank_name: '', bank_account: '', notes: '' });
+  const resetForm = () => setForm({ code: '', name: '', contact_person: '', email: '', phone: '', mobile: '', address_line1: '', city: '', country: '', payment_terms_days: 30, credit_limit: '', tax_id: '', bank_name: '', bank_account: '', notes: '', opening_balance: '' });
 
   const filtered = suppliers.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.code.toLowerCase().includes(search.toLowerCase()));
 
@@ -90,8 +92,12 @@ function SupplierList() {
             <div className="form-row-3">
               <div className="form-group"><label>Payment Terms (days)</label><input type="number" value={form.payment_terms_days} onChange={e => setForm(p => ({...p, payment_terms_days: e.target.value}))} /></div>
               <div className="form-group"><label>Credit Limit (OMR)</label><input type="number" step="0.001" value={form.credit_limit} onChange={e => setForm(p => ({...p, credit_limit: e.target.value}))} /></div>
-              <div className="form-group"><label>Tax ID / VAT</label><input value={form.tax_id} onChange={e => setForm(p => ({...p, tax_id: e.target.value}))} /></div>
+              {!editingId ? <div className="form-group"><label>Opening Balance (OMR)</label><input type="number" step="0.001" value={form.opening_balance} onChange={e => setForm(p => ({...p, opening_balance: e.target.value}))} placeholder="0.000" /></div>
+              : <div className="form-group"><label>Tax ID / VAT</label><input value={form.tax_id} onChange={e => setForm(p => ({...p, tax_id: e.target.value}))} /></div>}
             </div>
+            {!editingId && <div className="form-row-3">
+              <div className="form-group"><label>Tax ID / VAT</label><input value={form.tax_id} onChange={e => setForm(p => ({...p, tax_id: e.target.value}))} /></div>
+            </div>}
             <div className="form-row-2">
               <div className="form-group"><label>Bank Name</label><input value={form.bank_name} onChange={e => setForm(p => ({...p, bank_name: e.target.value}))} /></div>
               <div className="form-group"><label>Bank Account</label><input value={form.bank_account} onChange={e => setForm(p => ({...p, bank_account: e.target.value}))} /></div>
@@ -104,7 +110,7 @@ function SupplierList() {
 
       <div className="filter-bar"><input type="text" placeholder="Search suppliers..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" /></div>
 
-      {loading ? <div className="loading-state">Loading suppliers...</div> : (
+      {loading ? <LoadingSpinner text="Loading suppliers..." /> : (
         <div className="table-container">
           <table className="data-table">
             <thead><tr><th>Code</th><th>Name</th><th>Contact</th><th>Phone</th><th>City / Country</th><th>Terms</th><th>Orders</th><th>Outstanding</th><th>Actions</th></tr></thead>

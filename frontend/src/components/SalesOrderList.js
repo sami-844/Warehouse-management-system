@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { salesAPI, customerAPI, productAPI, inventoryAPI } from '../services/api';
 import './Sales.css';
@@ -16,7 +17,7 @@ function SalesOrderList({ onViewOrder }) {
   const [lineItems, setLineItems] = useState([]);
   const [newItem, setNewItem] = useState({ product_id: '', quantity_ordered: '', unit_price: '', discount_percent: '0' });
 
-  useEffect(() => { load(); loadCustomers(); loadProducts(); loadStock(); }, [filterStatus]);
+  useEffect(() => { load(); loadCustomers(); loadProducts(); loadStock(); }, [filterStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = async () => { setLoading(true); try { const params = {}; if (filterStatus) params.status = filterStatus; const d = await salesAPI.listOrders(params); setOrders(Array.isArray(d) ? d : (d?.items || d?.orders || [])); } catch(e) { console.error(e); } finally { setLoading(false); } };
   const loadCustomers = async () => { try { const d = await customerAPI.list({ active_only: true }); setCustomers(Array.isArray(d) ? d : (d?.items || [])); } catch(e) {} };
@@ -151,7 +152,7 @@ function SalesOrderList({ onViewOrder }) {
         </select>
       </div>
 
-      {loading ? <div className="loading-state">Loading...</div> : (
+      {loading ? <LoadingSpinner /> : (
         <div className="table-container"><table className="data-table">
           <thead><tr><th>SO #</th><th>Customer</th><th>Area</th><th>Date</th><th>Driver</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>

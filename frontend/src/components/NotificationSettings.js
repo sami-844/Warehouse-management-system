@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LoadingSpinner from './LoadingSpinner'; // eslint-disable-line no-unused-vars
 import { notificationAPI } from '../services/api';
 import './AdminPanel.css';
 import { Bell } from 'lucide-react';
@@ -56,7 +57,7 @@ function NotificationSettings() {
     notificationAPI.getLog().then(res => setLog(res.log || [])).catch(() => {});
   };
 
-  if (loading) return <div className="admin-container"><div className="loading-state">Loading notification settings...</div></div>;
+  if (loading) return <div className="admin-container"><LoadingSpinner text="Loading notifications..." /></div>;
 
   return (
     <div className="admin-container">

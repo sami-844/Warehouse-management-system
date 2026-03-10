@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { warehouseAPI } from '../services/api';
 import './WarehouseManager.css';
@@ -68,7 +69,7 @@ function WarehouseManager() {
         </div>
       )}
 
-      {loading ? <div className="loading-state">Loading...</div> : (
+      {loading ? <LoadingSpinner /> : (
         <div className="warehouse-layout">
           <div className="warehouse-tree">
             {mainWarehouses.map(wh => (

@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { currencyAPI } from '../services/api';
 import './AdminPanel.css';
@@ -18,7 +19,7 @@ function MultiCurrencyDashboard() {
       .catch(() => { setError('Failed to load'); setLoading(false); });
   };
 
-  useEffect(() => { loadDashboard(); }, [currencies]);
+  useEffect(() => { loadDashboard(); }, [currencies]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleCurrency = (curr) => {
     setCurrencies(prev => {
@@ -52,7 +53,7 @@ function MultiCurrencyDashboard() {
     { key: 'open_credit_notes',label: 'Open Credits',     color: '#7f8c8d' },
   ];
 
-  if (loading) return <div className="admin-container"><div className="loading-state">Loading multi-currency data...</div></div>;
+  if (loading) return <div className="admin-container"><LoadingSpinner text="Loading currencies..." /></div>;
 
   return (
     <div className="admin-container">

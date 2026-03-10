@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import LoadingSpinner from './LoadingSpinner';
 import { driverAPI } from '../services/api';
 import './AdminPanel.css';
 import { Navigation } from 'lucide-react';
@@ -102,7 +103,7 @@ function RouteOptimizer() {
 
   useEffect(() => {
     if (mapsApiKey && deliveries.length > 0) buildMapUrl();
-  }, [deliveries, mapsApiKey]);
+  }, [deliveries, mapsApiKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveApiKey = () => {
     localStorage.setItem('google_maps_key', mapsApiKey);
@@ -191,7 +192,7 @@ function RouteOptimizer() {
 
       {/* Delivery List (draggable) */}
       {loading ? (
-        <div className="loading-state">Loading deliveries...</div>
+        <LoadingSpinner text="Loading deliveries..." />
       ) : deliveries.length === 0 ? (
         <div className="no-data">No deliveries today</div>
       ) : (

@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { inventoryAPI } from '../services/api';
 import './ExpiryTracker.css';
@@ -9,7 +10,7 @@ function ExpiryTracker() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => { loadData(); }, [days]);
+  useEffect(() => { loadData(); }, [days]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     setLoading(true);
@@ -51,7 +52,7 @@ function ExpiryTracker() {
         <span className="filter-label">Showing: {filter === 'all' ? 'All' : filter} ({filtered.length} items)</span>
       </div>
 
-      {loading ? <div className="loading-state">Loading expiry data...</div> : (
+      {loading ? <LoadingSpinner text="Loading expiry data..." /> : (
         <div className="expiry-table-container">
           {filtered.length === 0 ? <div className="no-data-message">No expiry alerts for the selected period. Your stock is fresh!</div> : (
             <table className="expiry-table">

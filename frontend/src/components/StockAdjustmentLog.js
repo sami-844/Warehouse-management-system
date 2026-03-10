@@ -11,7 +11,7 @@ function StockAdjustmentLog() {
   const [toDate, setToDate] = useState(new Date().toISOString().slice(0, 10));
   const [typeFilter, setTypeFilter] = useState('adjustment');
 
-  useEffect(() => { load(); }, [fromDate, toDate, typeFilter]);
+  useEffect(() => { load(); }, [fromDate, toDate, typeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = async () => {
     setLoading(true);

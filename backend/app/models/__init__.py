@@ -14,6 +14,10 @@ try:
     from app.models.purchase import PurchaseOrder, PurchaseOrderItem, PurchaseReceipt, PurchaseReceiptItem, LandedCost, PurchaseInvoice
 except ImportError:
     pass
+try:
+    from app.models.accounts import Account, MoneyTransfer
+except ImportError:
+    pass
 
 __all__ = [
     "Base", "User", "UserRole", "Product", "ProductCategory",

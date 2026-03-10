@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { purchaseAPI, warehouseAPI } from '../services/api';
 import './Purchasing.css';
@@ -21,6 +22,7 @@ function PurchaseOrderDetail({ poId, onBack }) {
   // Invoice form
   const [invoiceForm, setInvoiceForm] = useState({ invoice_number: '', invoice_date: new Date().toISOString().slice(0, 10), due_date: '', subtotal: '', tax_amount: '0', total_amount: '', notes: '' });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadPO(); loadWarehouses(); }, [poId]);
 
   const loadPO = async () => {
@@ -87,7 +89,7 @@ function PurchaseOrderDetail({ poId, onBack }) {
     } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
-  if (loading) return <div className="purchasing-container"><div className="loading-state">Loading PO...</div></div>;
+  if (loading) return <div className="purchasing-container"><LoadingSpinner text="Loading purchase order..." /></div>;
   if (!po) return <div className="purchasing-container"><div className="no-data">PO not found</div></div>;
 
   const statusColor = (s) => ({ draft: '#6b7280', sent: '#2563eb', partially_received: '#d97706', fully_received: '#16a34a', closed: '#9ca3af' }[s] || '#6b7280');

@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { customerAPI, csvImportAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
@@ -20,7 +21,7 @@ function CustomerList() {
     payment_terms_days: 7, credit_limit: '', opening_balance: '', preferred_delivery_day: '', delivery_instructions: '', notes: ''
   });
 
-  useEffect(() => { load(); loadAreas(); }, [filterArea]);
+  useEffect(() => { load(); loadAreas(); }, [filterArea]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = async () => { setLoading(true); try { const params = {}; if (filterArea) params.area = filterArea; const dc = await customerAPI.list(params); setCustomers(Array.isArray(dc) ? dc : (dc?.items || [])); } catch(e) { console.error(e); } finally { setLoading(false); } };
   const loadAreas = async () => { try { setAreas(await customerAPI.getAreas()); } catch(e) {} };
@@ -123,7 +124,7 @@ function CustomerList() {
         </select>
       </div>
 
-      {loading ? <div className="loading-state">Loading...</div> : (
+      {loading ? <LoadingSpinner /> : (
         <div className="table-container"><table className="data-table">
           <thead><tr><th>Code</th><th>Shop Name</th><th>Type</th><th>Area</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>Balance</th><th>Orders</th><th>Outstanding</th><th></th></tr></thead>
           <tbody>

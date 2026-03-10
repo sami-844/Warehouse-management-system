@@ -12,7 +12,9 @@ function StockIssue() {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [recentIssues, setRecentIssues] = useState([]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadProducts(); loadWarehouses(); loadRecent(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (formData.product_id && formData.warehouse_id) checkStock(); else setCurrentStock(null); }, [formData.product_id, formData.warehouse_id]);
 
   const loadProducts = async () => { try { const res = await productAPI.getAll(); setProducts((res.data || []).filter(p => p.is_active)); } catch(e) { console.error(e); } };

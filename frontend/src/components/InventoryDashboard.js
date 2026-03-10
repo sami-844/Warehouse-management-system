@@ -1,3 +1,4 @@
+import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { inventoryAPI } from '../services/api';
 import './InventoryDashboard.css';
@@ -35,7 +36,7 @@ function InventoryDashboard() {
   if (loading) {
     return (
       <div className="inventory-dashboard-container">
-        <div className="loading-state">Loading dashboard...</div>
+        <LoadingSpinner text="Loading dashboard..." />
       </div>
     );
   }

@@ -139,6 +139,18 @@ export const financialAPI = {
   profitLoss: async (params = {}) => (await api.get('/api/financial/profit-loss', { params })).data,
 };
 
+export const accountingAPI = {
+  listAccounts: async (params = {}) => (await api.get('/api/accounting/accounts', { params })).data,
+  createAccount: async (data) => (await api.post('/api/accounting/accounts', data)).data,
+  updateAccount: async (id, data) => (await api.put(`/api/accounting/accounts/${id}`, data)).data,
+  seedAccounts: async () => (await api.post('/api/accounting/accounts/seed')).data,
+  listTransfers: async (params = {}) => (await api.get('/api/accounting/transfers', { params })).data,
+  createTransfer: async (data) => (await api.post('/api/accounting/transfers', data)).data,
+  cashTransactions: async (params = {}) => (await api.get('/api/accounting/cash-transactions', { params })).data,
+  profitLossDetailed: async (params = {}) => (await api.get('/api/accounting/profit-loss-detailed', { params })).data,
+  customerLedger: async (params = {}) => (await api.get('/api/accounting/customer-ledger', { params })).data,
+};
+
 export const reportsAPI2 = {
   salesByItem: async (params = {}) => (await api.get('/api/reports/sales-by-item', { params })).data,
   returnItems: async (params = {}) => (await api.get('/api/reports/return-items', { params })).data,
@@ -245,6 +257,16 @@ export const currencyAPI = {
   getRates: async () => (await api.get('/api/currency/rates')).data,
   updateRate: async (currency, rate) => (await api.put(`/api/currency/rates/${currency}`, null, { params: { rate } })).data,
   dashboard: async (currencies = 'OMR,USD') => (await api.get('/api/currency/dashboard', { params: { currencies } })).data,
+};
+
+// ━━ Phase 12: Messaging (WhatsApp/SMS) ━━
+export const messagingAPI = {
+  getConfig: async () => (await api.get('/api/messaging/config')).data,
+  updateConfig: async (data) => (await api.put('/api/messaging/config', data)).data,
+  sendMessage: async (data) => (await api.post('/api/messaging/send', data)).data,
+  sendInvoiceNotification: async (invoiceId) => (await api.post('/api/messaging/send-invoice-notification', null, { params: { invoice_id: invoiceId } })).data,
+  sendDeliveryNotification: async (deliveryId) => (await api.post('/api/messaging/send-delivery-notification', null, { params: { delivery_id: deliveryId } })).data,
+  sendPaymentReminder: async (invoiceId) => (await api.post('/api/messaging/send-payment-reminder', null, { params: { invoice_id: invoiceId } })).data,
 };
 
 export default api;

@@ -30,6 +30,7 @@ class SupplierCreate(BaseModel):
     bank_name: Optional[str] = None
     bank_account: Optional[str] = None
     notes: Optional[str] = None
+    opening_balance: Optional[float] = None
 
 class SupplierUpdate(BaseModel):
     name: Optional[str] = None
@@ -102,11 +103,16 @@ async def get_supplier(supplier_id: int, db: Session = Depends(get_db), current_
 async def create_supplier(data: SupplierCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if db.query(Supplier).filter(Supplier.code == data.code).first():
         raise HTTPException(status_code=400, detail="Supplier code already exists")
-    s = Supplier(**data.dict(), created_by=current_user.id)
+    opening_bal = float(data.opening_balance or 0)
+    fields = data.dict(exclude={'opening_balance'})
+    if opening_bal > 0:
+        existing_notes = fields.get('notes') or ''
+        fields['notes'] = f"[Opening Balance: {opening_bal:.3f} OMR]\n{existing_notes}".strip()
+    s = Supplier(**fields, created_by=current_user.id)
     db.add(s)
     db.commit()
     db.refresh(s)
-    return {"id": s.id, "code": s.code, "name": s.name, "message": "Supplier created"}
+    return {"id": s.id, "code": s.code, "name": s.name, "opening_balance": opening_bal, "message": "Supplier created"}
 
 @router.put("/{supplier_id}")
 async def update_supplier(supplier_id: int, data: SupplierUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

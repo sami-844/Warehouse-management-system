@@ -42,8 +42,12 @@ import RouteOptimizer from './components/RouteOptimizer';
 import BarcodeLabelPrinter from './components/BarcodeLabelPrinter';
 import MultiCurrencyDashboard from './components/MultiCurrencyDashboard';
 import ReturnsManager from './components/ReturnsManager';
+import ChartOfAccounts from './components/ChartOfAccounts';
+import MoneyTransfer from './components/MoneyTransfer';
+import CashTransactions from './components/CashTransactions';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
+import Breadcrumb from './components/Breadcrumb';
 import SettingsPages from './components/SettingsPages';
 import StockAdjustmentLog from './components/StockAdjustmentLog';
 import ToastContainer from './components/Toast';
@@ -108,6 +112,9 @@ const PAGE_ROLE_MAP = {
   'driver-app':         ['ADMIN','DELIVERY_DRIVER'],
   'route-optimizer':    ['ADMIN','DELIVERY_DRIVER','WAREHOUSE_MANAGER'],
   'financial':          ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
+  'chart-of-accounts':  ['ADMIN','ACCOUNTANT'],
+  'money-transfer':     ['ADMIN','ACCOUNTANT'],
+  'cash-transactions':  ['ADMIN','ACCOUNTANT'],
   'multi-currency':     ['ADMIN','ACCOUNTANT','SALES_STAFF'],
   'reports':            ['ADMIN','WAREHOUSE_MANAGER','SALES_STAFF','ACCOUNTANT'],
   'users':              ['ADMIN'],
@@ -211,6 +218,7 @@ function App() {
   const viewPurchaseOrder = (id) => { setViewPOId(id); setCurrentPage('purchase-order-detail'); };
   const viewSalesOrder = (id) => { setViewSOId(id); setCurrentPage('sales-order-detail'); };
   const printInvoice = (orderId) => { setPrintInvoiceOrderId(orderId); setCurrentPage('print-invoice'); };
+  // eslint-disable-next-line no-unused-vars
   const printDeliveryNote = (deliveryId) => { setPrintDeliveryNoteId(deliveryId); setCurrentPage('print-delivery-note'); };
   const closePDF = () => { setPrintInvoiceOrderId(null); setPrintDeliveryNoteId(null); setCurrentPage('dashboard'); };
 
@@ -303,6 +311,9 @@ function App() {
 
       // ── Finance ──
       case 'financial':            return <FinancialDashboard />;
+      case 'chart-of-accounts':    return <ChartOfAccounts />;
+      case 'money-transfer':       return <MoneyTransfer />;
+      case 'cash-transactions':    return <CashTransactions />;
       case 'multi-currency':       return <MultiCurrencyDashboard />;
       case 'reports':              return <ReportsPage />;
 
@@ -338,6 +349,7 @@ function App() {
         onWidthChange={setSidebarWidth}
       />
       <div style={{ marginLeft: sidebarWidth, paddingTop: isMobile ? 56 : 0, transition: 'margin-left 0.2s ease', minHeight: '100vh' }}>
+        <Breadcrumb currentPage={currentPage} onNavigate={navigate} />
         <ErrorBoundary key={currentPage} onReset={() => setCurrentPage('dashboard')}>
           {renderPage()}
         </ErrorBoundary>
