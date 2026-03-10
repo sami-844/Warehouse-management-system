@@ -90,6 +90,19 @@ class LandedCost(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
+class LandedCostAllocation(Base):
+    __tablename__ = "landed_cost_allocations"
+    __table_args__ = {'extend_existing': True}
+    id = Column(Integer, primary_key=True, index=True)
+    landed_cost_id = Column(Integer, ForeignKey('landed_costs.id'), nullable=False)
+    purchase_order_id = Column(Integer, ForeignKey('purchase_orders.id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
+    allocated_amount = Column(Numeric(12, 3), default=0)
+    original_unit_cost = Column(Numeric(12, 3), default=0)
+    adjusted_unit_cost = Column(Numeric(12, 3), default=0)
+    created_at = Column(DateTime, server_default=func.now())
+
+
 class PurchaseInvoice(Base):
     __tablename__ = "purchase_invoices"
     __table_args__ = {'extend_existing': True}

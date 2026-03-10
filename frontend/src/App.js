@@ -47,6 +47,7 @@ import MoneyTransfer from './components/MoneyTransfer';
 import JournalEntries from './components/JournalEntries';
 import VATReturn from './components/VATReturn';
 import BankReconciliation from './components/BankReconciliation';
+import LandedCosts from './components/LandedCosts';
 import CashTransactions from './components/CashTransactions';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
@@ -104,6 +105,7 @@ const PAGE_ROLE_MAP = {
   'purchase-orders':    ['ADMIN','WAREHOUSE_MANAGER'],
   'purchase-order-detail': ['ADMIN','WAREHOUSE_MANAGER'],
   'purchase-invoices':  ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
+  'landed-costs':       ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
   'customers':          ['ADMIN','SALES_STAFF','ACCOUNTANT'],
   'sales-orders':       ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],
   'sales-order-detail': ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],
@@ -300,6 +302,7 @@ function App() {
       case 'purchase-orders':      return <PurchaseOrderList onViewOrder={viewPurchaseOrder} />;
       case 'purchase-order-detail': return <PurchaseOrderDetail poId={viewPOId} onBack={() => navigate('purchase-orders')} />;
       case 'purchase-invoices':    return <PurchaseInvoices />;
+      case 'landed-costs':         return <LandedCosts />;
 
       // ── Sales ──
       case 'customers':            return <CustomerList />;

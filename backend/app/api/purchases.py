@@ -13,7 +13,7 @@ from app.models.business_partner import Supplier
 from app.models.inventory import Warehouse, InventoryTransaction, StockLevel, TransactionType
 from app.models.purchase import (
     PurchaseOrder, PurchaseOrderItem, PurchaseReceipt, PurchaseReceiptItem,
-    LandedCost, PurchaseInvoice, Payment
+    LandedCost, LandedCostAllocation, PurchaseInvoice, Payment
 )
 
 router = APIRouter()
@@ -355,6 +355,47 @@ async def get_landed_costs(po_id: int, db: Session = Depends(get_db), current_us
         "total_landed": round(subtotal + total_additional, 3),
         "allocation": allocation
     }
+
+@router.post("/orders/{po_id}/landed-cost/apply")
+async def apply_landed_costs(po_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Apply landed cost allocations to product standard_cost."""
+    po = db.query(PurchaseOrder).filter(PurchaseOrder.id == po_id).first()
+    if not po: raise HTTPException(status_code=404, detail="PO not found")
+
+    costs = db.query(LandedCost).filter(LandedCost.purchase_order_id == po_id).all()
+    if not costs: raise HTTPException(status_code=400, detail="No landed costs to apply")
+
+    items = db.query(PurchaseOrderItem, Product
+    ).join(Product, PurchaseOrderItem.product_id == Product.id
+    ).filter(PurchaseOrderItem.purchase_order_id == po_id).all()
+
+    total_additional = sum(float(lc.amount) for lc in costs)
+    subtotal = float(po.subtotal or 0)
+    updated = 0
+
+    for item, product in items:
+        item_value = float(item.total_price or 0)
+        ratio = item_value / subtotal if subtotal > 0 else 1 / max(len(items), 1)
+        allocated = total_additional * ratio
+        landed_unit = (item_value + allocated) / item.quantity if item.quantity > 0 else 0
+        original_unit = float(item.unit_price or 0)
+
+        # Save allocation record
+        for lc in costs:
+            lc_ratio = float(lc.amount) / total_additional if total_additional > 0 else 1 / len(costs)
+            db.add(LandedCostAllocation(
+                landed_cost_id=lc.id, purchase_order_id=po_id, product_id=product.id,
+                allocated_amount=round(float(lc.amount) * ratio, 3),
+                original_unit_cost=round(original_unit, 3),
+                adjusted_unit_cost=round(landed_unit, 3),
+            ))
+
+        # Update product standard_cost
+        product.standard_cost = round(landed_unit, 3)
+        updated += 1
+
+    db.commit()
+    return {"message": f"Landed costs applied to {updated} products", "updated_products": updated}
 
 # ===== PURCHASE INVOICES =====
 @router.get("/invoices")

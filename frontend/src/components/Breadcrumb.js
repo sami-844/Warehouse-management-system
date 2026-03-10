@@ -21,6 +21,7 @@ const PAGE_HIERARCHY = {
   'purchase-orders':      { section: 'Purchasing', label: 'Purchase Orders' },
   'purchase-order-detail':{ section: 'Purchasing', label: 'PO Detail', parent: 'purchase-orders' },
   'purchase-invoices':    { section: 'Purchasing', label: 'PO Invoices' },
+  'landed-costs':         { section: 'Purchasing', label: 'Landed Costs' },
   // Sales
   'customers':            { section: 'Sales', label: 'Customers' },
   'sales-orders':         { section: 'Sales', label: 'Sales Orders' },

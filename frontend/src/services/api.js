@@ -77,6 +77,7 @@ export const purchaseAPI = {
   receiveGoods: async (poId, data) => (await api.post(`/api/purchases/orders/${poId}/receive`, data)).data,
   addLandedCosts: async (poId, data) => (await api.post(`/api/purchases/orders/${poId}/landed-cost`, data)).data,
   getLandedCosts: async (poId) => (await api.get(`/api/purchases/orders/${poId}/landed-cost`)).data,
+  applyLandedCosts: async (poId) => (await api.post(`/api/purchases/orders/${poId}/landed-cost/apply`)).data,
   listInvoices: async (params = {}) => (await api.get('/api/purchases/invoices', { params })).data,
   createInvoice: async (data) => (await api.post('/api/purchases/invoices', data)).data,
   recordPayment: async (invoiceId, data) => (await api.post(`/api/purchases/invoices/${invoiceId}/payment`, data)).data,

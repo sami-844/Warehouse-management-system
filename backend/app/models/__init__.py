@@ -11,7 +11,7 @@ try:
 except ImportError:
     pass
 try:
-    from app.models.purchase import PurchaseOrder, PurchaseOrderItem, PurchaseReceipt, PurchaseReceiptItem, LandedCost, PurchaseInvoice
+    from app.models.purchase import PurchaseOrder, PurchaseOrderItem, PurchaseReceipt, PurchaseReceiptItem, LandedCost, LandedCostAllocation, PurchaseInvoice
 except ImportError:
     pass
 try:

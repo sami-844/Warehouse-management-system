@@ -34,6 +34,7 @@ const SECTIONS = [
       { label: 'Suppliers',       page: 'suppliers' },
       { label: 'Purchase Orders', page: 'purchase-orders' },
       { label: 'PO Invoices',     page: 'purchase-invoices' },
+      { label: 'Landed Costs',    page: 'landed-costs' },
     ],
   },
   {
