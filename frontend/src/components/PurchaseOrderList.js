@@ -44,9 +44,9 @@ function PurchaseOrderList({ onViewOrder }) {
         tax_rate: parseFloat(form.tax_rate) || 0, notes: form.notes || null,
         items: lineItems.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_price: i.unit_price }))
       });
-      setMessage({ text: `✅ ${result.po_number} created! Total: ${result.total_amount} OMR`, type: 'success' });
+      setMessage({ text: `${result.po_number} created! Total: ${result.total_amount} OMR`, type: 'success' });
       setShowCreate(false); setLineItems([]); load();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const sendPO = async (id) => { try { await purchaseAPI.sendOrder(id); load(); } catch(e) { alert(e.response?.data?.detail || e.message); } };
@@ -56,7 +56,7 @@ function PurchaseOrderList({ onViewOrder }) {
   return (
     <div className="purchasing-container">
       <div className="page-header">
-        <div className="header-content"><div className="header-icon po">📋</div><div><h1>Purchase Orders</h1><p>Create and track supplier orders</p></div></div>
+        <div className="header-content"><div className="header-icon po"></div><div><h1>Purchase Orders</h1><p>Create and track supplier orders</p></div></div>
         <button className="action-btn primary" onClick={() => setShowCreate(!showCreate)}>{showCreate ? '✕ Cancel' : '+ New PO'}</button>
       </div>
 
@@ -112,7 +112,7 @@ function PurchaseOrderList({ onViewOrder }) {
               )}
             </div>
             <div className="form-group"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows="2" /></div>
-            <button type="submit" className="submit-btn" disabled={lineItems.length === 0}>📋 Create Purchase Order</button>
+            <button type="submit" className="submit-btn" disabled={lineItems.length === 0}>Create Purchase Order</button>
           </form>
         </div>
       )}
@@ -138,8 +138,8 @@ function PurchaseOrderList({ onViewOrder }) {
                     <td className="value">{(Number(o.total_amount) || 0).toFixed(3)} {o.currency}</td>
                     <td><span className="status-pill" style={{ backgroundColor: statusColor(o.status) }}>{(o.status || '').replace('_', ' ')}</span></td>
                     <td className="actions">
-                      <button className="view-btn" onClick={() => onViewOrder(o.id)}>👁️</button>
-                      {o.status === 'draft' && <button className="send-btn" onClick={() => sendPO(o.id)}>📤 Send</button>}
+                      <button className="view-btn" onClick={() => onViewOrder(o.id)}>View</button>
+                      {o.status === 'draft' && <button className="send-btn" onClick={() => sendPO(o.id)}>Send</button>}
                     </td>
                   </tr>
                 ))

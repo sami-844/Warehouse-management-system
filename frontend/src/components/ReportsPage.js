@@ -3,16 +3,16 @@ import { reportsAPI } from '../services/api';
 import './AdminPanel.css';
 
 const REPORTS = [
-  { id: 'sales-customer', name: 'Sales by Customer', icon: '🏪', desc: 'Revenue breakdown by customer' },
-  { id: 'sales-product', name: 'Sales by Product', icon: '📦', desc: 'Product performance and margins' },
-  { id: 'purchase-supplier', name: 'Purchases by Supplier', icon: '🏢', desc: 'Supplier order history' },
-  { id: 'receivables', name: 'Receivables Aging', icon: '📥', desc: 'Who owes you, how overdue' },
-  { id: 'payables', name: 'Payables Aging', icon: '📤', desc: 'What you owe suppliers' },
-  { id: 'stock-valuation', name: 'Stock Valuation', icon: '💎', desc: 'Total inventory value at cost & retail' },
-  { id: 'inventory-movements', name: 'Inventory Movements', icon: '🔄', desc: 'All stock in/out transactions' },
-  { id: 'dead-stock', name: 'Dead Stock', icon: '💀', desc: 'Products not sold in 90+ days' },
-  { id: 'expiry', name: 'Expiry Report', icon: '⏰', desc: 'Expired and expiring products' },
-  { id: 'delivery', name: 'Delivery Performance', icon: '🚚', desc: 'Driver completion rates' },
+  { id: 'sales-customer', name: 'Sales by Customer', icon: '', desc: 'Revenue breakdown by customer' },
+  { id: 'sales-product', name: 'Sales by Product', icon: '', desc: 'Product performance and margins' },
+  { id: 'purchase-supplier', name: 'Purchases by Supplier', icon: '', desc: 'Supplier order history' },
+  { id: 'receivables', name: 'Receivables Aging', icon: '', desc: 'Who owes you, how overdue' },
+  { id: 'payables', name: 'Payables Aging', icon: '', desc: 'What you owe suppliers' },
+  { id: 'stock-valuation', name: 'Stock Valuation', icon: '', desc: 'Total inventory value at cost & retail' },
+  { id: 'inventory-movements', name: 'Inventory Movements', icon: '', desc: 'All stock in/out transactions' },
+  { id: 'dead-stock', name: 'Dead Stock', icon: '', desc: 'Products not sold in 90+ days' },
+  { id: 'expiry', name: 'Expiry Report', icon: '', desc: 'Expired and expiring products' },
+  { id: 'delivery', name: 'Delivery Performance', icon: '', desc: 'Driver completion rates' },
 ];
 
 function ReportsPage() {
@@ -70,7 +70,7 @@ function ReportsPage() {
 
   const renderReport = () => {
     if (!reportData) return null;
-    if (reportData.error) return <div className="message error">❌ {reportData.error}</div>;
+    if (reportData.error) return <div className="message error">{reportData.error}</div>;
 
     switch (activeReport) {
       case 'sales-customer':
@@ -150,7 +150,7 @@ function ReportsPage() {
 
       case 'dead-stock':
         return (<>
-          <div className="report-summary">⚠️ {reportData.count || 0} products not sold in {reportData.threshold_days || 90}+ days — Value at risk: <strong className="negative">{fmt(reportData.total_dead_stock_value)} OMR</strong></div>
+          <div className="report-summary">{reportData.count || 0} products not sold in {reportData.threshold_days || 90}+ days — Value at risk: <strong className="negative">{fmt(reportData.total_dead_stock_value)} OMR</strong></div>
           <table className="data-table"><thead><tr><th>SKU</th><th>Product</th><th>Qty</th><th>Value</th><th>Last Sold</th></tr></thead>
             <tbody>{(reportData.data || []).map((r, i) => (
               <tr key={i}><td className="code">{r.sku}</td><td>{r.name}</td><td className="center">{r.qty}</td>
@@ -160,9 +160,9 @@ function ReportsPage() {
 
       case 'expiry':
         return (<>
-          <div className="report-summary">❌ {reportData.expired_count || 0} expired (value: {fmt(reportData.expired_value)} OMR) — ⚠️ {reportData.expiring_count || 0} expiring within {reportData.threshold_days || 90} days</div>
+          <div className="report-summary">{reportData.expired_count || 0} expired (value: {fmt(reportData.expired_value)} OMR) — {reportData.expiring_count || 0} expiring within {reportData.threshold_days || 90} days</div>
           {(reportData.expired || []).length > 0 && (<>
-            <h4>❌ Expired Products</h4>
+            <h4>Expired Products</h4>
             <table className="data-table"><thead><tr><th>SKU</th><th>Product</th><th>Batch</th><th>Expiry</th><th>Qty</th><th>Value</th><th>Warehouse</th></tr></thead>
               <tbody>{(reportData.expired || []).map((r, i) => (
                 <tr key={i} className="overdue-row"><td className="code">{r.sku}</td><td>{r.name}</td><td>{r.batch || '-'}</td>
@@ -170,7 +170,7 @@ function ReportsPage() {
               ))}</tbody></table>
           </>)}
           {(reportData.expiring_soon || []).length > 0 && (<>
-            <h4 style={{marginTop:16}}>⚠️ Expiring Soon</h4>
+            <h4 style={{marginTop:16}}>Expiring Soon</h4>
             <table className="data-table"><thead><tr><th>SKU</th><th>Product</th><th>Batch</th><th>Expiry</th><th>Qty</th><th>Value</th><th>Warehouse</th></tr></thead>
               <tbody>{(reportData.expiring_soon || []).map((r, i) => (
                 <tr key={i}><td className="code">{r.sku}</td><td>{r.name}</td><td>{r.batch || '-'}</td>
@@ -195,7 +195,7 @@ function ReportsPage() {
 
   return (
     <div className="admin-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon reports">📊</div><div><h1>Reports</h1><p>Business intelligence and analytics</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon reports"></div><div><h1>Reports</h1><p>Business intelligence and analytics</p></div></div></div>
 
       {/* Date Filters */}
       <div className="filter-bar">
@@ -203,7 +203,7 @@ function ReportsPage() {
         <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="filter-input" />
         <label>To:</label>
         <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="filter-input" />
-        {activeReport && <button className="action-btn primary" onClick={() => loadReport(activeReport)}>🔄 Refresh</button>}
+        {activeReport && <button className="action-btn primary" onClick={() => loadReport(activeReport)}>Refresh</button>}
       </div>
 
       {/* Report Selector */}
@@ -219,7 +219,7 @@ function ReportsPage() {
       {/* Report Output */}
       {activeReport && (
         <div className="report-output">
-          <h3>{REPORTS.find(r => r.id === activeReport)?.icon} {REPORTS.find(r => r.id === activeReport)?.name}</h3>
+          <h3>{REPORTS.find(r => r.id === activeReport)?.name}</h3>
           {loading ? <div className="loading-state">Generating report...</div> : (
             <div className="table-container">{renderReport()}</div>
           )}

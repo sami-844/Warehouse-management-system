@@ -51,9 +51,9 @@ function PurchaseOrderDetail({ poId, onBack }) {
           quality_status: i.quality_status
         }))
       });
-      setMessage({ text: `✅ ${result.receipt_number} created! ${result.fully_received ? 'PO fully received.' : 'Partial receipt recorded.'}`, type: 'success' });
+      setMessage({ text: `${result.receipt_number} created! ${result.fully_received ? 'PO fully received.' : 'Partial receipt recorded.'}`, type: 'success' });
       loadPO();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   // === LANDED COSTS ===
@@ -67,9 +67,9 @@ function PurchaseOrderDetail({ poId, onBack }) {
     if (landedCosts.length === 0) return;
     try {
       const result = await purchaseAPI.addLandedCosts(poId, { costs: landedCosts });
-      setMessage({ text: `✅ Landed costs added! Total: ${result.total_landed_cost} OMR`, type: 'success' });
+      setMessage({ text: `Landed costs added! Total: ${result.total_landed_cost} OMR`, type: 'success' });
       setLandedCosts([]); loadPO();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   // === INVOICE ===
@@ -82,9 +82,9 @@ function PurchaseOrderDetail({ poId, onBack }) {
         tax_amount: parseFloat(invoiceForm.tax_amount) || 0,
         total_amount: parseFloat(invoiceForm.total_amount), notes: invoiceForm.notes || null
       });
-      setMessage({ text: `✅ Invoice ${result.invoice_number} recorded!`, type: 'success' });
+      setMessage({ text: `Invoice ${result.invoice_number} recorded!`, type: 'success' });
       loadPO();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   if (loading) return <div className="purchasing-container"><div className="loading-state">Loading PO...</div></div>;
@@ -115,7 +115,7 @@ function PurchaseOrderDetail({ poId, onBack }) {
       <div className="tab-bar">
         {['details', 'receive', 'landed-cost', 'invoice'].map(t => (
           <button key={t} className={`tab-btn ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
-            {{ details: '📋 Items', receive: '📦 Receive', 'landed-cost': '💰 Landed Cost', invoice: '🧾 Invoice' }[t]}
+            {{ details: 'Items', receive: 'Receive', 'landed-cost': 'Landed Cost', invoice: 'Invoice' }[t]}
           </button>
         ))}
       </div>
@@ -138,7 +138,7 @@ function PurchaseOrderDetail({ poId, onBack }) {
           </table>
           {(po.receipts || []).length > 0 && (
             <div className="receipts-list"><h4>Goods Received Notes</h4>
-              {(po.receipts || []).map(r => <div key={r.id} className="receipt-tag">📦 {r.number} — {r.date}</div>)}
+              {(po.receipts || []).map(r => <div key={r.id} className="receipt-tag">{r.number} — {r.date}</div>)}
             </div>
           )}
         </div>
@@ -169,13 +169,13 @@ function PurchaseOrderDetail({ poId, onBack }) {
                       <td><input type="text" className="inline-input" value={item.batch_number} onChange={e => { const v = [...receiptItems]; v[idx].batch_number = e.target.value; setReceiptItems(v); }} placeholder="BATCH" /></td>
                       <td><input type="date" className="inline-input" value={item.expiry_date} onChange={e => { const v = [...receiptItems]; v[idx].expiry_date = e.target.value; setReceiptItems(v); }} /></td>
                       <td><select className="inline-input" value={item.quality_status} onChange={e => { const v = [...receiptItems]; v[idx].quality_status = e.target.value; setReceiptItems(v); }}>
-                        <option value="accepted">✅ Accepted</option><option value="rejected">❌ Rejected</option><option value="damaged">⚠️ Damaged</option>
+                        <option value="accepted">Accepted</option><option value="rejected">Rejected</option><option value="damaged">Damaged</option>
                       </select></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <button className="submit-btn" onClick={submitReceipt}>📦 Record Receipt</button>
+              <button className="submit-btn" onClick={submitReceipt}>Record Receipt</button>
             </>
           )}
         </div>
@@ -228,7 +228,7 @@ function PurchaseOrderDetail({ poId, onBack }) {
                   <tr className="totals-row"><td colSpan="2">Total</td><td>{landedCosts.reduce((s, c) => s + (Number(c.amount) || 0), 0).toFixed(3)} OMR</td><td></td></tr>
                 </tbody>
               </table>
-              <button className="submit-btn" onClick={submitLandedCosts}>💰 Save Landed Costs</button>
+              <button className="submit-btn" onClick={submitLandedCosts}>Save Landed Costs</button>
             </>
           )}
         </div>
@@ -240,7 +240,7 @@ function PurchaseOrderDetail({ poId, onBack }) {
           {(po.invoices || []).length > 0 && (
             <div className="existing-invoices"><h4>Existing Invoices</h4>
               {(po.invoices || []).map(inv => (
-                <div key={inv.id} className="invoice-tag">🧾 {inv.number} — {(Number(inv.total) || 0).toFixed(3)} OMR — Paid: {(Number(inv.paid) || 0).toFixed(3)} — <span className={`status-${inv.status}`}>{inv.status}</span></div>
+                <div key={inv.id} className="invoice-tag">{inv.number} — {(Number(inv.total) || 0).toFixed(3)} OMR — Paid: {(Number(inv.paid) || 0).toFixed(3)} — <span className={`status-${inv.status}`}>{inv.status}</span></div>
               ))}
             </div>
           )}
@@ -255,7 +255,7 @@ function PurchaseOrderDetail({ poId, onBack }) {
             <div className="form-group"><label>Tax</label><input type="number" step="0.001" value={invoiceForm.tax_amount} onChange={e => setInvoiceForm(p => ({...p, tax_amount: e.target.value, total_amount: (parseFloat(p.subtotal || 0) + parseFloat(e.target.value)).toFixed(3)}))} /></div>
             <div className="form-group"><label>Total *</label><input type="number" step="0.001" value={invoiceForm.total_amount} onChange={e => setInvoiceForm(p => ({...p, total_amount: e.target.value}))} /></div>
           </div>
-          <button className="submit-btn" onClick={submitInvoice} disabled={!invoiceForm.invoice_number || !invoiceForm.due_date}>🧾 Record Invoice</button>
+          <button className="submit-btn" onClick={submitInvoice} disabled={!invoiceForm.invoice_number || !invoiceForm.due_date}>Record Invoice</button>
         </div>
       )}
     </div>
