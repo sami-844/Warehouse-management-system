@@ -709,3 +709,38 @@ body {
 .admin-container {
   background: var(--ds-bg) !important;
 }
+
+/* ═══════════════════════════════════════════════
+   GLOBAL MOBILE — shared responsive rules
+═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .sales-container,
+  .purchasing-container,
+  .warehouse-container,
+  .admin-container {
+    padding: var(--ds-sp-3) !important;
+  }
+
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--ds-sp-3) !important;
+  }
+
+  .filter-bar {
+    flex-wrap: wrap !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .ds-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .action-btn {
+    font-size: var(--ds-text-xs) !important;
+    padding: 7px 12px !important;
+  }
+}
