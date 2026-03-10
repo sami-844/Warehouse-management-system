@@ -31,8 +31,8 @@ function ExpiryTracker() {
 
   return (
     <div className="expiry-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon expiry">⏰</div><div><h1>Expiry Tracker</h1><p>Monitor product shelf life — FIFO enforcement</p></div></div>
-        <div className="header-actions"><button className="action-btn" onClick={exportCSV}>📥 Export</button><button className="action-btn refresh" onClick={loadData}>🔄 Refresh</button></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon expiry"></div><div><h1>Expiry Tracker</h1><p>Monitor product shelf life — FIFO enforcement</p></div></div>
+        <div className="header-actions"><button className="action-btn" onClick={exportCSV}>Export</button><button className="action-btn refresh" onClick={loadData}>Refresh</button></div>
       </div>
 
       <div className="expiry-summary-cards">
@@ -52,7 +52,7 @@ function ExpiryTracker() {
 
       {loading ? <div className="loading-state">Loading expiry data...</div> : (
         <div className="expiry-table-container">
-          {filtered.length === 0 ? <div className="no-data-message">✅ No expiry alerts for the selected period. Your stock is fresh!</div> : (
+          {filtered.length === 0 ? <div className="no-data-message">No expiry alerts for the selected period. Your stock is fresh!</div> : (
             <table className="expiry-table">
               <thead><tr><th>Status</th><th>Product</th><th>Batch</th><th>Expiry Date</th><th>Days Left</th><th>Quantity</th><th>Warehouse</th></tr></thead>
               <tbody>

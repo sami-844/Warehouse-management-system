@@ -72,7 +72,7 @@ function DriverApp({ user, onClose }) {
       latitude: gps?.lat || null,
       longitude: gps?.lng || null,
     }).then(() => {
-      setSuccess('✅ Delivery completed!');
+      setSuccess('Delivery completed!');
       setCompleting(false);
       setCustSignature(''); setDriverSig(''); setNotes(''); setGps(null);
       setSelectedDelivery(null); setDetailData(null);
@@ -101,10 +101,10 @@ function DriverApp({ user, onClose }) {
         <div style={S.card}>
           <div style={S.cardLabel}>Customer</div>
           <div style={S.cardTitle}>{d.customer_name}</div>
-          {d.customer_phone && <a href={`tel:${d.customer_phone}`} style={S.phoneLink}>📞 {d.customer_phone}</a>}
+          {d.customer_phone && <a href={`tel:${d.customer_phone}`} style={S.phoneLink}>{d.customer_phone}</a>}
           <div style={S.address}>{d.delivery_address || d.address_line1 || ''}{d.area ? ` — ${d.area}` : ''}</div>
           {d.contact_person && <div style={S.meta}>Contact: {d.contact_person}</div>}
-          {d.order_notes && <div style={{ ...S.meta, marginTop: 8, fontStyle: 'italic' }}>📝 {d.order_notes}</div>}
+          {d.order_notes && <div style={{ ...S.meta, marginTop: 8, fontStyle: 'italic' }}>{d.order_notes}</div>}
         </div>
 
         {/* Items */}
@@ -137,19 +137,19 @@ function DriverApp({ user, onClose }) {
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
               <button onClick={captureGPS} style={S.gpsBtn}>
-                📍 {gps ? `GPS: ${gps.lat.toFixed(4)}, ${gps.lng.toFixed(4)}` : 'Capture GPS'}
+                {gps ? `GPS: ${gps.lat.toFixed(4)}, ${gps.lng.toFixed(4)}` : 'Capture GPS'}
               </button>
             </div>
 
             <button onClick={completeDelivery} disabled={completing || !custSignature}
               style={{ ...S.completeBtn, opacity: (custSignature && !completing) ? 1 : 0.5 }}>
-              {completing ? '⏳ Processing...' : '✅ Complete Delivery'}
+              {completing ? 'Processing...' : 'Complete Delivery'}
             </button>
           </div>
         ) : (
           <div style={S.card}>
             <div style={{ textAlign: 'center', padding: 16, color: '#0d7a3e', fontSize: 18, fontWeight: 700 }}>
-              ✅ Delivery Completed
+              Delivery Completed
             </div>
           </div>
         )}
@@ -164,10 +164,10 @@ function DriverApp({ user, onClose }) {
     <div style={S.app}>
       <div style={S.header}>
         <div>
-          <div style={S.headerTitle}>🚚 Deliveries</div>
+          <div style={S.headerTitle}>Deliveries</div>
           <div style={S.headerSub}>{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
         </div>
-        <button onClick={loadDeliveries} style={S.refreshBtn}>🔄</button>
+        <button onClick={loadDeliveries} style={S.refreshBtn}>↺</button>
       </div>
 
       {/* Stats */}
@@ -199,7 +199,7 @@ function DriverApp({ user, onClose }) {
         <div style={S.center}>Loading deliveries...</div>
       ) : deliveries.length === 0 ? (
         <div style={S.center}>
-          <div style={{ fontSize: 48 }}>📭</div>
+          <div style={{ fontSize: 48 }}></div>
           <div style={{ color: '#888', marginTop: 8 }}>No deliveries today</div>
         </div>
       ) : (
@@ -223,7 +223,7 @@ function DriverApp({ user, onClose }) {
                 background: d.status === 'delivered' ? '#e8f8e8' : d.status === 'in_transit' ? '#e8f0f8' : '#fff3e0',
                 color: d.status === 'delivered' ? '#27ae60' : d.status === 'in_transit' ? '#3498db' : '#e67e22',
               }}>
-                {d.status === 'delivered' ? '✅' : d.status === 'in_transit' ? '🚚' : '⏳'}
+                {d.status === 'delivered' ? '' : d.status === 'in_transit' ? '' : ''}
                 <span style={{ fontSize: 10 }}>{d.status}</span>
               </div>
             </div>
