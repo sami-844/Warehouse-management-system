@@ -44,6 +44,7 @@ import MultiCurrencyDashboard from './components/MultiCurrencyDashboard';
 import ReturnsManager from './components/ReturnsManager';
 import ChartOfAccounts from './components/ChartOfAccounts';
 import MoneyTransfer from './components/MoneyTransfer';
+import JournalEntries from './components/JournalEntries';
 import CashTransactions from './components/CashTransactions';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
@@ -114,6 +115,7 @@ const PAGE_ROLE_MAP = {
   'financial':          ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
   'chart-of-accounts':  ['ADMIN','ACCOUNTANT'],
   'money-transfer':     ['ADMIN','ACCOUNTANT'],
+  'journal-entries':    ['ADMIN','ACCOUNTANT'],
   'cash-transactions':  ['ADMIN','ACCOUNTANT'],
   'multi-currency':     ['ADMIN','ACCOUNTANT','SALES_STAFF'],
   'reports':            ['ADMIN','WAREHOUSE_MANAGER','SALES_STAFF','ACCOUNTANT'],
@@ -313,6 +315,7 @@ function App() {
       case 'financial':            return <FinancialDashboard />;
       case 'chart-of-accounts':    return <ChartOfAccounts />;
       case 'money-transfer':       return <MoneyTransfer />;
+      case 'journal-entries':      return <JournalEntries />;
       case 'cash-transactions':    return <CashTransactions />;
       case 'multi-currency':       return <MultiCurrencyDashboard />;
       case 'reports':              return <ReportsPage />;

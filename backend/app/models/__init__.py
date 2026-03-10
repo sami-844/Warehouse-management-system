@@ -15,7 +15,7 @@ try:
 except ImportError:
     pass
 try:
-    from app.models.accounts import Account, MoneyTransfer
+    from app.models.accounts import Account, MoneyTransfer, JournalEntry, JournalEntryLine
 except ImportError:
     pass
 

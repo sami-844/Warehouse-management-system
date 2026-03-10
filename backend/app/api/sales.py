@@ -340,6 +340,14 @@ async def invoice_order(so_id: int, db: Session = Depends(get_db), current_user:
     so.status = 'invoiced'
     db.commit()
     db.refresh(inv)
+    # Auto-post journal entry
+    try:
+        from app.services.journal import post_sales_invoice
+        post_sales_invoice(db, inv.id, customer.name if customer else "Unknown",
+                           float(inv.subtotal or 0), float(inv.tax_amount or 0),
+                           float(inv.total_amount or 0), current_user.id)
+    except Exception:
+        pass  # Don't block invoice creation if journal posting fails
     return {"invoice_id": inv.id, "invoice_number": inv.invoice_number, "total": float(inv.total_amount), "due_date": str(inv.due_date)}
 
 # ===== DELIVERIES =====
@@ -468,6 +476,14 @@ async def record_payment(invoice_id: int, data: PaymentCreate,
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Failed to record payment")
+    # Auto-post journal entry
+    try:
+        from app.services.journal import post_sales_payment
+        cust_name = customer.name if customer else "Unknown"
+        post_sales_payment(db, invoice_id, cust_name, float(data.amount),
+                           data.payment_method or "bank", current_user.id)
+    except Exception:
+        pass
     return {"invoice_number": inv.invoice_number, "payment": data.amount, "new_balance": round(float(inv.total_amount) - float(inv.amount_paid), 3), "status": inv.status}
 
 # ===== SALES AGING =====

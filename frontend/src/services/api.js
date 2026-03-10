@@ -156,6 +156,9 @@ export const accountingAPI = {
   cashTransactions: async (params = {}) => (await api.get('/api/accounting/cash-transactions', { params })).data,
   profitLossDetailed: async (params = {}) => (await api.get('/api/accounting/profit-loss-detailed', { params })).data,
   customerLedger: async (params = {}) => (await api.get('/api/accounting/customer-ledger', { params })).data,
+  journalEntries: async (params = {}) => (await api.get('/api/accounting/journal-entries', { params })).data,
+  journalEntryLines: async (entryId) => (await api.get(`/api/accounting/journal-entries/${entryId}/lines`)).data,
+  recalculateBalances: async () => (await api.post('/api/accounting/accounts/recalculate-balances')).data,
 };
 
 export const reportsAPI2 = {

@@ -387,6 +387,15 @@ async def create_invoice(data: InvoiceCreate, db: Session = Depends(get_db), cur
     db.add(inv)
     db.commit()
     db.refresh(inv)
+    # Auto-post journal entry
+    try:
+        from app.services.journal import post_purchase_invoice
+        supplier = db.query(Supplier).filter(Supplier.id == data.supplier_id).first()
+        post_purchase_invoice(db, inv.id, supplier.name if supplier else "Unknown",
+                              float(data.subtotal or 0), float(data.tax_amount or 0),
+                              float(data.total_amount or 0), current_user.id)
+    except Exception:
+        pass
     return {"id": inv.id, "invoice_number": inv.invoice_number, "total": float(inv.total_amount)}
 
 @router.post("/invoices/{invoice_id}/payment")
@@ -404,6 +413,14 @@ async def record_payment(invoice_id: int, data: PaymentCreate, db: Session = Dep
     inv.amount_paid = float(inv.amount_paid) + data.amount
     inv.status = 'paid' if abs(float(inv.total_amount) - float(inv.amount_paid)) < 0.01 else 'partial'
     db.commit()
+    # Auto-post journal entry
+    try:
+        from app.services.journal import post_purchase_payment
+        supplier = db.query(Supplier).filter(Supplier.id == inv.supplier_id).first()
+        post_purchase_payment(db, invoice_id, supplier.name if supplier else "Unknown",
+                              float(data.amount), data.payment_method or "bank", current_user.id)
+    except Exception:
+        pass
     return {"invoice_number": inv.invoice_number, "payment": data.amount, "new_balance": round(float(inv.total_amount) - float(inv.amount_paid), 3), "status": inv.status}
 
 # ===== AGING REPORT =====

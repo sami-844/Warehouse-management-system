@@ -66,6 +66,7 @@ const SECTIONS = [
       { label: 'Financial Dashboard', page: 'financial' },
       { label: 'Chart of Accounts',  page: 'chart-of-accounts' },
       { label: 'Money Transfer',     page: 'money-transfer' },
+      { label: 'Journal Entries',    page: 'journal-entries' },
       { label: 'Cash Transactions',  page: 'cash-transactions' },
       { label: 'Multi-Currency',      page: 'multi-currency' },
       { label: 'Reports',             page: 'reports' },

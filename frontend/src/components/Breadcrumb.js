@@ -37,6 +37,7 @@ const PAGE_HIERARCHY = {
   'financial':            { section: 'Finance', label: 'Dashboard' },
   'chart-of-accounts':    { section: 'Finance', label: 'Chart of Accounts' },
   'money-transfer':       { section: 'Finance', label: 'Money Transfer' },
+  'journal-entries':      { section: 'Finance', label: 'Journal Entries' },
   'cash-transactions':    { section: 'Finance', label: 'Cash Transactions' },
   'multi-currency':       { section: 'Finance', label: 'Multi-Currency' },
   'reports':              { section: 'Finance', label: 'Reports' },

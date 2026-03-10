@@ -37,3 +37,33 @@ class MoneyTransfer(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     created_by = Column(Integer, nullable=True)
+
+
+class JournalEntry(Base):
+    """Double-entry journal entries — auto-created by transactions"""
+    __tablename__ = 'journal_entries'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    entry_number = Column(String(50), unique=True)
+    entry_date = Column(DateTime(timezone=True), nullable=False)
+    description = Column(Text)
+    reference_type = Column(String(50))
+    reference_id = Column(Integer)
+    created_by = Column(Integer, ForeignKey('users.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_posted = Column(String(10), default='posted')
+
+
+class JournalEntryLine(Base):
+    """Individual debit/credit lines within a journal entry"""
+    __tablename__ = 'journal_entry_lines'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    journal_entry_id = Column(Integer, ForeignKey('journal_entries.id'), nullable=False)
+    account_code = Column(String(10), nullable=False)
+    account_name = Column(String(200))
+    debit_amount = Column(Numeric(14, 3), default=0)
+    credit_amount = Column(Numeric(14, 3), default=0)
+    description = Column(Text)

@@ -465,3 +465,99 @@ async def customer_ledger(customer_id: int = Query(...),
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to load ledger: {str(e)}")
+
+
+# ── Journal Entries ──
+
+@router.get("/journal-entries")
+async def list_journal_entries(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                                reference_type: Optional[str] = None, search: Optional[str] = None,
+                                current_user: User = Depends(get_current_user)):
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    where = ["je.entry_date::date BETWEEN :start AND :end"]
+    params: dict = {"start": start, "end": end}
+    if reference_type:
+        where.append("je.reference_type = :rtype")
+        params["rtype"] = reference_type
+    if search:
+        where.append("(je.entry_number ILIKE :q OR je.description ILIKE :q)")
+        params["q"] = f"%{search}%"
+    try:
+        rows = run_q(f"""
+            SELECT je.id, je.entry_number, je.entry_date, je.description,
+                   je.reference_type, je.reference_id, je.is_posted, je.created_at,
+                   COALESCE(SUM(jel.debit_amount), 0) as total_debit,
+                   COALESCE(SUM(jel.credit_amount), 0) as total_credit
+            FROM journal_entries je
+            LEFT JOIN journal_entry_lines jel ON jel.journal_entry_id = je.id
+            WHERE {" AND ".join(where)}
+            GROUP BY je.id, je.entry_number, je.entry_date, je.description,
+                     je.reference_type, je.reference_id, je.is_posted, je.created_at
+            ORDER BY je.entry_date DESC, je.id DESC
+        """, params)
+        return [{
+            "id": r["id"], "entry_number": r["entry_number"],
+            "entry_date": str(r["entry_date"])[:10],
+            "description": r["description"] or "",
+            "reference_type": r["reference_type"] or "",
+            "reference_id": r["reference_id"],
+            "is_posted": r["is_posted"] or "posted",
+            "total_debit": round(float(r["total_debit"] or 0), 3),
+            "total_credit": round(float(r["total_credit"] or 0), 3),
+        } for r in rows]
+    except Exception:
+        return []
+
+
+@router.get("/journal-entries/{entry_id}/lines")
+async def journal_entry_lines(entry_id: int,
+                               current_user: User = Depends(get_current_user)):
+    try:
+        rows = run_q("""
+            SELECT id, account_code, account_name, debit_amount, credit_amount, description
+            FROM journal_entry_lines
+            WHERE journal_entry_id = :eid
+            ORDER BY id
+        """, {"eid": entry_id})
+        return [{
+            "id": r["id"], "account_code": r["account_code"],
+            "account_name": r["account_name"] or "",
+            "debit": round(float(r["debit_amount"] or 0), 3),
+            "credit": round(float(r["credit_amount"] or 0), 3),
+            "description": r["description"] or "",
+        } for r in rows]
+    except Exception:
+        return []
+
+
+@router.post("/accounts/recalculate-balances")
+async def recalculate_account_balances(current_user: User = Depends(get_current_user)):
+    """Recalculate every account balance from journal entry lines"""
+    try:
+        with engine.begin() as conn:
+            # Get all accounts
+            accounts = conn.execute(text("SELECT id, code, account_type FROM accounts")).fetchall()
+            updated = 0
+            for acct in accounts:
+                aid, code, atype = acct[0], acct[1], acct[2]
+                row = conn.execute(text("""
+                    SELECT COALESCE(SUM(debit_amount), 0) as debits,
+                           COALESCE(SUM(credit_amount), 0) as credits
+                    FROM journal_entry_lines WHERE account_code = :code
+                """), {"code": code}).fetchone()
+                debits = float(row[0])
+                credits = float(row[1])
+                # Assets and expenses: balance = debits - credits
+                # Liabilities, equity, income: balance = credits - debits
+                if atype in ("Asset", "Expense", "COGS"):
+                    balance = debits - credits
+                else:
+                    balance = credits - debits
+                conn.execute(text("UPDATE accounts SET balance = :bal, updated_at = CURRENT_TIMESTAMP WHERE id = :id"),
+                             {"bal": round(balance, 3), "id": aid})
+                updated += 1
+        return {"message": f"Recalculated balances for {updated} accounts"}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to recalculate: {str(e)}")
