@@ -16,7 +16,7 @@ const CategoryBarChart = ({ data = [] }) => {
           <p className="chart-tooltip-name">{d.category}</p>
           <p className="chart-tooltip-value">Products: {d.product_count}</p>
           <p className="chart-tooltip-value">Value: {Number(d.total_value).toLocaleString('en-US', { minimumFractionDigits: 2 })} OMR</p>
-          {d.low_stock > 0 && <p className="chart-tooltip-value" style={{ color: '#F59E0B' }}>⚠ {d.low_stock} low stock</p>}
+          {d.low_stock > 0 && <p className="chart-tooltip-value" style={{ color: '#F59E0B' }}>{d.low_stock} low stock</p>}
           {d.out_of_stock > 0 && <p className="chart-tooltip-value" style={{ color: '#EF4444' }}>{d.out_of_stock} out of stock</p>}
         </div>
       );

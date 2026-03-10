@@ -5,6 +5,7 @@
  *           CSV + PDF export
  */
 import React, { useState, useEffect, useCallback } from 'react';
+import api from '../services/api';
 
 import KPICard            from './KPICard';
 import DonutChart         from './DonutChart';
@@ -55,18 +56,17 @@ const AnalyticsDashboard = () => {
     setIsRefreshing(true);
     setError(null);
 
-    const catParam = selectedCategory ? `&category_id=${selectedCategory}` : '';
-    const base     = '/api/analytics';
-    const token    = localStorage.getItem('token');
-    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const catParams = selectedCategory
+      ? { days: selectedPeriod, category_id: selectedCategory }
+      : { days: selectedPeriod };
 
     try {
       const results = await Promise.allSettled([
-        fetch(`${base}/dashboard?days=${selectedPeriod}${catParam}`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
-        fetch(`${base}/trends?days=${selectedPeriod}${catParam}`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
-        fetch(`${base}/category-breakdown?days=${selectedPeriod}`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
-        fetch(`${base}/alerts`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
-        fetch(`${base}/categories`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
+        api.get('/api/analytics/dashboard',        { params: catParams }).then(r => r.data),
+        api.get('/api/analytics/trends',           { params: catParams }).then(r => r.data),
+        api.get('/api/analytics/category-breakdown', { params: { days: selectedPeriod } }).then(r => r.data),
+        api.get('/api/analytics/alerts').then(r => r.data),
+        api.get('/api/analytics/categories').then(r => r.data),
       ]);
 
       const val = (i) => results[i]?.status === 'fulfilled' ? results[i].value : null;

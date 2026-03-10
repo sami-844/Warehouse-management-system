@@ -17,7 +17,7 @@ const AlertsPanel = ({ alerts = {}, expanded, onToggle }) => {
       {/* header row — always visible */}
       <button className="alerts-header" onClick={onToggle} aria-expanded={expanded}>
         <div className="alerts-header-left">
-          <span className="alerts-bell">🔔</span>
+          <span className="alerts-bell">!</span>
           <span className="alerts-title">Alerts</span>
           {criticalCount > 0        && <span className="alerts-badge critical">{criticalCount} Critical</span>}
           {summary.low_stock > 0    && <span className="alerts-badge warning">{summary.low_stock} Low Stock</span>}

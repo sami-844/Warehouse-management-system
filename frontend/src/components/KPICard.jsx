@@ -6,6 +6,7 @@ import React from 'react';
 
 const KPICard = ({ title, value, unit = '', icon, accent = 'green' }) => {
   const formatValue = (val) => {
+    if (val === null || val === undefined) return '—';
     if (typeof val !== 'number') return val;
     if (val >= 1_000_000) return (val / 1_000_000).toFixed(2) + 'M';
     if (val >= 1000)      return val.toLocaleString('en-US', { maximumFractionDigits: 0 });

@@ -21,9 +21,10 @@ function InventoryDashboard() {
         inventoryAPI.getMovements({ limit: 10 })
       ]);
 
-      setSummary(summaryData);
-      setLowStock(lowStockData.items || []);
-      setRecentMovements(movementsData);
+      setSummary(summaryData || {});
+      setLowStock(Array.isArray(lowStockData) ? lowStockData : (lowStockData?.items || []));
+      const movements = Array.isArray(movementsData) ? movementsData : (movementsData?.data || movementsData?.items || []);
+      setRecentMovements(movements);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -76,7 +77,7 @@ function InventoryDashboard() {
         </div>
 
         <div className="stat-card danger">
-          <div className="stat-icon">🚫</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <div className="stat-value">{summary?.out_of_stock_items || 0}</div>
             <div className="stat-label">Out of Stock</div>
@@ -136,8 +137,8 @@ function InventoryDashboard() {
         <div className="movements-list">
           {recentMovements.slice(0, 8).map((movement, idx) => (
             <div key={idx} className="movement-item">
-              <div className={`movement-type ${movement.transaction_type.toLowerCase()}`}>
-                {movement.transaction_type === 'RECEIPT' ? 'IN' : 'OUT'}
+              <div className={`movement-type ${(movement.transaction_type || '').toLowerCase()}`}>
+                {(movement.transaction_type || '').toUpperCase() === 'RECEIPT' ? 'IN' : 'OUT'}
               </div>
               <div className="movement-content">
                 <div className="movement-product">{movement.product_name}</div>

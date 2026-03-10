@@ -28,8 +28,10 @@ function Dashboard({ user }) {
         categoryAPI.getAll(),
       ]);
 
-      const products = productsRes.data;
-      const categories = categoriesRes.data;
+      const productsRaw = productsRes.data;
+      const categoriesRaw = categoriesRes.data;
+      const products = Array.isArray(productsRaw) ? productsRaw : (productsRaw?.data || productsRaw?.items || []);
+      const categories = Array.isArray(categoriesRaw) ? categoriesRaw : (categoriesRaw?.data || categoriesRaw?.items || []);
 
       // Calculate statistics
       setStats({
