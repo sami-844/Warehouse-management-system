@@ -57,14 +57,16 @@ const AnalyticsDashboard = () => {
 
     const catParam = selectedCategory ? `&category_id=${selectedCategory}` : '';
     const base     = '/api/analytics';
+    const token    = localStorage.getItem('token');
+    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
 
     try {
       const results = await Promise.allSettled([
-        fetch(`${base}/dashboard?days=${selectedPeriod}${catParam}`).then(r => r.ok ? r.json() : null),
-        fetch(`${base}/trends?days=${selectedPeriod}${catParam}`).then(r => r.ok ? r.json() : null),
-        fetch(`${base}/category-breakdown?days=${selectedPeriod}`).then(r => r.ok ? r.json() : null),
-        fetch(`${base}/alerts`).then(r => r.ok ? r.json() : null),
-        fetch(`${base}/categories`).then(r => r.ok ? r.json() : null),
+        fetch(`${base}/dashboard?days=${selectedPeriod}${catParam}`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
+        fetch(`${base}/trends?days=${selectedPeriod}${catParam}`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
+        fetch(`${base}/category-breakdown?days=${selectedPeriod}`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
+        fetch(`${base}/alerts`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
+        fetch(`${base}/categories`, { headers: authHeaders }).then(r => r.ok ? r.json() : null),
       ]);
 
       const val = (i) => results[i]?.status === 'fulfilled' ? results[i].value : null;

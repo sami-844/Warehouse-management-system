@@ -1,0 +1,708 @@
+/*
+ * DesignSystem.css — AK Al Momaiza WMS Enterprise Design System
+ * Aesthetic: Industrial Precision — dense data, military clarity
+ * Font: Figtree (UI) + IBM Plex Mono (numbers/codes)
+ * Import this FIRST via index.js before all other CSS
+ */
+
+/* ─── Google Fonts ─── */
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  /* ── Brand ── */
+  --ds-navy:           #0f172a;
+  --ds-navy-mid:       #1e293b;
+  --ds-navy-light:     #334155;
+  --ds-green:          #16a34a;
+  --ds-green-dark:     #15803d;
+  --ds-green-deeper:   #14532d;
+  --ds-green-tint:     #f0fdf4;
+  --ds-green-light:    #dcfce7;
+  --ds-gold:           #d97706;
+  --ds-gold-dark:      #b45309;
+  --ds-gold-tint:      #fffbeb;
+  --ds-gold-light:     #fef3c7;
+
+  /* ── Surfaces ── */
+  --ds-bg:             #f1f5f9;
+  --ds-surface:        #ffffff;
+  --ds-surface-raised: #f8fafc;
+  --ds-surface-sunken: #e8eef4;
+
+  /* ── Borders ── */
+  --ds-border:         #e2e8f0;
+  --ds-border-mid:     #cbd5e1;
+  --ds-border-strong:  #94a3b8;
+
+  /* ── Text ── */
+  --ds-text:           #0f172a;
+  --ds-text-mid:       #334155;
+  --ds-text-sub:       #475569;
+  --ds-text-muted:     #94a3b8;
+  --ds-text-inverse:   #ffffff;
+  --ds-text-link:      #16a34a;
+
+  /* ── Status ── */
+  --ds-success:        #16a34a;
+  --ds-success-bg:     #f0fdf4;
+  --ds-success-border: #86efac;
+  --ds-warning:        #d97706;
+  --ds-warning-bg:     #fffbeb;
+  --ds-warning-border: #fcd34d;
+  --ds-danger:         #dc2626;
+  --ds-danger-bg:      #fef2f2;
+  --ds-danger-border:  #fca5a5;
+  --ds-info:           #2563eb;
+  --ds-info-bg:        #eff6ff;
+  --ds-info-border:    #93c5fd;
+  --ds-neutral:        #64748b;
+  --ds-neutral-bg:     #f8fafc;
+  --ds-neutral-border: #e2e8f0;
+
+  /* ── Typography ── */
+  --ds-font-ui:        'Figtree', 'Segoe UI', system-ui, sans-serif;
+  --ds-font-mono:      'IBM Plex Mono', 'Consolas', 'Courier New', monospace;
+
+  --ds-text-xs:     11px;
+  --ds-text-sm:     12px;
+  --ds-text-base:   13px;
+  --ds-text-md:     14px;
+  --ds-text-lg:     16px;
+  --ds-text-xl:     20px;
+  --ds-text-2xl:    24px;
+  --ds-text-3xl:    30px;
+
+  /* ── Spacing (4px grid) ── */
+  --ds-sp-1:   4px;
+  --ds-sp-2:   8px;
+  --ds-sp-3:   12px;
+  --ds-sp-4:   16px;
+  --ds-sp-5:   20px;
+  --ds-sp-6:   24px;
+  --ds-sp-8:   32px;
+  --ds-sp-10:  40px;
+  --ds-sp-12:  48px;
+
+  /* ── Radii ── */
+  --ds-r-xs:   2px;
+  --ds-r-sm:   4px;
+  --ds-r-md:   8px;
+  --ds-r-lg:   12px;
+  --ds-r-xl:   16px;
+  --ds-r-pill: 999px;
+
+  /* ── Shadows ── */
+  --ds-shadow-xs:   0 1px 2px rgba(15,23,42,0.04);
+  --ds-shadow-sm:   0 1px 3px rgba(15,23,42,0.08);
+  --ds-shadow-md:   0 4px 12px rgba(15,23,42,0.10);
+  --ds-shadow-lg:   0 8px 24px rgba(15,23,42,0.12);
+  --ds-shadow-card: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+
+  /* ── Transitions ── */
+  --ds-t-fast:  0.1s ease;
+  --ds-t-base:  0.15s ease;
+  --ds-t-slow:  0.25s ease;
+}
+
+/* ═══════════════════════════════════════════════
+   GLOBAL BASE OVERRIDE
+═══════════════════════════════════════════════ */
+body {
+  font-family: var(--ds-font-ui) !important;
+  font-size: var(--ds-text-base);
+  color: var(--ds-text);
+  background: var(--ds-bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════════
+   ENTERPRISE TABLE — .ds-table
+   Usage: <table className="data-table ds-table">
+═══════════════════════════════════════════════ */
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ds-text-base);
+  font-family: var(--ds-font-ui);
+}
+
+.ds-table thead th {
+  background: var(--ds-navy) !important;
+  color: var(--ds-text-inverse) !important;
+  font-size: var(--ds-text-xs) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  padding: 10px 14px !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  border: none !important;
+}
+
+.ds-table thead th.num { text-align: right !important; }
+
+.ds-table tbody tr {
+  border-bottom: 1px solid var(--ds-border) !important;
+  transition: background var(--ds-t-fast) !important;
+}
+
+.ds-table tbody tr:nth-child(even) {
+  background: var(--ds-surface-raised) !important;
+}
+
+.ds-table tbody tr:hover {
+  background: var(--ds-green-tint) !important;
+}
+
+.ds-table td {
+  padding: 9px 14px !important;
+  vertical-align: middle !important;
+  font-size: var(--ds-text-base) !important;
+  color: var(--ds-text) !important;
+  border-bottom: 1px solid var(--ds-border) !important;
+}
+
+.ds-table td.num {
+  text-align: right !important;
+  font-family: var(--ds-font-mono) !important;
+  font-size: var(--ds-text-sm) !important;
+  letter-spacing: -0.02em !important;
+}
+
+.ds-table td.code {
+  font-family: var(--ds-font-mono) !important;
+  font-size: var(--ds-text-sm) !important;
+  color: var(--ds-info) !important;
+  font-weight: 500 !important;
+}
+
+/* ═══════════════════════════════════════════════
+   PAGE HEADER UPGRADE — .ds-page-header
+═══════════════════════════════════════════════ */
+.ds-page-header {
+  background: var(--ds-surface);
+  border-bottom: 1px solid var(--ds-border);
+  padding: var(--ds-sp-4) var(--ds-sp-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-sp-4);
+  flex-wrap: wrap;
+}
+
+.ds-page-title {
+  font-size: var(--ds-text-xl);
+  font-weight: 800;
+  color: var(--ds-text);
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+}
+
+.ds-page-sub {
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-muted);
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════
+   STATS GRID — .ds-stats-row
+═══════════════════════════════════════════════ */
+.ds-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--ds-sp-4);
+  margin-bottom: var(--ds-sp-5);
+}
+
+.ds-stat-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  box-shadow: var(--ds-shadow-card);
+  padding: var(--ds-sp-4) var(--ds-sp-5);
+  position: relative;
+  overflow: hidden;
+}
+
+.ds-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--ds-navy);
+}
+
+.ds-stat-card.green::before  { background: var(--ds-green); }
+.ds-stat-card.gold::before   { background: var(--ds-gold); }
+.ds-stat-card.danger::before { background: var(--ds-danger); }
+.ds-stat-card.blue::before   { background: var(--ds-info); }
+
+.ds-stat-label {
+  font-size: var(--ds-text-xs);
+  font-weight: 700;
+  color: var(--ds-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: var(--ds-sp-2);
+}
+
+.ds-stat-value {
+  font-size: var(--ds-text-2xl);
+  font-weight: 800;
+  color: var(--ds-text);
+  font-family: var(--ds-font-mono);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.ds-stat-sub {
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-sub);
+  margin-top: var(--ds-sp-1);
+}
+
+/* ═══════════════════════════════════════════════
+   CARD — .ds-card
+═══════════════════════════════════════════════ */
+.ds-card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  box-shadow: var(--ds-shadow-card);
+  overflow: hidden;
+}
+
+.ds-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ds-sp-4) var(--ds-sp-5);
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-surface-raised);
+}
+
+.ds-card-title {
+  font-size: var(--ds-text-md);
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+.ds-card-body {
+  padding: var(--ds-sp-5);
+}
+
+/* ═══════════════════════════════════════════════
+   BUTTONS — .ds-btn
+═══════════════════════════════════════════════ */
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  padding: 7px 14px;
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  border-radius: var(--ds-r-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--ds-t-base);
+  text-decoration: none;
+  line-height: 1;
+}
+
+.ds-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.ds-btn-primary {
+  background: var(--ds-green);
+  color: white;
+  border-color: var(--ds-green);
+}
+.ds-btn-primary:hover:not(:disabled) { background: var(--ds-green-dark); border-color: var(--ds-green-dark); }
+
+.ds-btn-secondary {
+  background: var(--ds-surface);
+  color: var(--ds-text-sub);
+  border-color: var(--ds-border-mid);
+}
+.ds-btn-secondary:hover:not(:disabled) { background: var(--ds-surface-raised); color: var(--ds-text); border-color: var(--ds-border-strong); }
+
+.ds-btn-danger {
+  background: var(--ds-surface);
+  color: var(--ds-danger);
+  border-color: var(--ds-danger-border);
+}
+.ds-btn-danger:hover:not(:disabled) { background: var(--ds-danger-bg); border-color: var(--ds-danger); }
+
+.ds-btn-ghost {
+  background: transparent;
+  color: var(--ds-text-sub);
+  border-color: transparent;
+}
+.ds-btn-ghost:hover:not(:disabled) { background: var(--ds-surface-raised); color: var(--ds-text); }
+
+.ds-btn-sm { padding: 5px 10px; font-size: var(--ds-text-xs); }
+.ds-btn-lg { padding: 10px 20px; font-size: var(--ds-text-md); }
+
+/* ═══════════════════════════════════════════════
+   STATUS BADGES — .ds-badge
+═══════════════════════════════════════════════ */
+.ds-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: var(--ds-text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--ds-r-sm);
+  white-space: nowrap;
+  font-family: var(--ds-font-ui);
+  border: 1px solid transparent;
+}
+
+.ds-badge-green   { background: var(--ds-green-light);   color: var(--ds-green-deeper);  border-color: var(--ds-success-border); }
+.ds-badge-gold    { background: var(--ds-gold-light);    color: var(--ds-gold-dark);     border-color: var(--ds-warning-border); }
+.ds-badge-red     { background: var(--ds-danger-bg);     color: var(--ds-danger);         border-color: var(--ds-danger-border); }
+.ds-badge-blue    { background: var(--ds-info-bg);       color: var(--ds-info);           border-color: var(--ds-info-border); }
+.ds-badge-gray    { background: var(--ds-neutral-bg);    color: var(--ds-neutral);        border-color: var(--ds-neutral-border); }
+.ds-badge-navy    { background: var(--ds-navy);          color: white;                    border-color: var(--ds-navy); }
+
+/* ═══════════════════════════════════════════════
+   FORM ELEMENTS — .ds-input, .ds-label
+═══════════════════════════════════════════════ */
+.ds-label {
+  display: block;
+  font-size: var(--ds-text-xs);
+  font-weight: 700;
+  color: var(--ds-text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--ds-sp-1);
+}
+
+.ds-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-base);
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border-mid);
+  border-radius: var(--ds-r-sm);
+  outline: none;
+  transition: border-color var(--ds-t-base), box-shadow var(--ds-t-base);
+}
+
+.ds-input:focus {
+  border-color: var(--ds-green);
+  box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+}
+
+/* ═══════════════════════════════════════════════
+   MESSAGES / ALERTS — .ds-alert
+═══════════════════════════════════════════════ */
+.ds-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-sp-3);
+  padding: 10px 14px;
+  border-radius: var(--ds-r-sm);
+  font-size: var(--ds-text-sm);
+  font-weight: 500;
+  border-left: 3px solid;
+  margin-bottom: var(--ds-sp-4);
+}
+
+.ds-alert-success { background: var(--ds-success-bg); color: var(--ds-green-deeper); border-color: var(--ds-green); }
+.ds-alert-error   { background: var(--ds-danger-bg);  color: #7f1d1d;               border-color: var(--ds-danger); }
+.ds-alert-warning { background: var(--ds-warning-bg); color: #78350f;               border-color: var(--ds-gold); }
+.ds-alert-info    { background: var(--ds-info-bg);    color: #1e3a8a;               border-color: var(--ds-info); }
+
+/* ═══════════════════════════════════════════════
+   FILTER BAR — .ds-filter-bar
+═══════════════════════════════════════════════ */
+.ds-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-3);
+  padding: var(--ds-sp-4) var(--ds-sp-5);
+  background: var(--ds-surface-raised);
+  border-bottom: 1px solid var(--ds-border);
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════
+   LOADING / EMPTY STATES
+═══════════════════════════════════════════════ */
+.ds-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ds-sp-12);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-text-base);
+  gap: var(--ds-sp-3);
+}
+
+.ds-empty {
+  text-align: center;
+  padding: var(--ds-sp-12) var(--ds-sp-6);
+  color: var(--ds-text-muted);
+}
+
+.ds-empty-title {
+  font-size: var(--ds-text-lg);
+  font-weight: 700;
+  color: var(--ds-text-sub);
+  margin-bottom: var(--ds-sp-2);
+}
+
+/* ═══════════════════════════════════════════════
+   UTILITY CLASSES
+═══════════════════════════════════════════════ */
+
+/* Monospace for numbers, codes */
+.ds-mono     { font-family: var(--ds-font-mono) !important; font-size: var(--ds-text-sm) !important; }
+.ds-code     { font-family: var(--ds-font-mono) !important; font-size: var(--ds-text-sm) !important; color: var(--ds-info) !important; font-weight: 500 !important; }
+.ds-num      { font-family: var(--ds-font-mono) !important; font-size: var(--ds-text-sm) !important; text-align: right !important; }
+
+/* Text colors */
+.ds-positive { color: var(--ds-green) !important;  font-weight: 600 !important; }
+.ds-negative { color: var(--ds-danger) !important; font-weight: 600 !important; }
+.ds-muted    { color: var(--ds-text-muted) !important; }
+.ds-bold     { font-weight: 700 !important; }
+
+/* Divider */
+.ds-divider {
+  height: 1px;
+  background: var(--ds-border);
+  border: none;
+  margin: var(--ds-sp-5) 0;
+}
+
+/* Section title inside a card */
+.ds-section-title {
+  font-size: var(--ds-text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ds-text-muted);
+  margin-bottom: var(--ds-sp-4);
+  padding-bottom: var(--ds-sp-2);
+  border-bottom: 1px solid var(--ds-border);
+}
+
+/* ═══════════════════════════════════════════════
+   UPGRADE EXISTING SHARED CLASSES
+   These selectors improve the current CSS without
+   breaking component structure.
+═══════════════════════════════════════════════ */
+
+/* Global code/monospace upgrade */
+.code {
+  font-family: var(--ds-font-mono) !important;
+  font-size: var(--ds-text-sm) !important;
+  color: var(--ds-info) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Global value (currency/amounts) upgrade */
+.value {
+  font-family: var(--ds-font-mono) !important;
+  font-size: var(--ds-text-sm) !important;
+  font-weight: 600 !important;
+  color: var(--ds-green-dark) !important;
+  text-align: right !important;
+}
+
+/* Global positive/negative */
+.positive { color: var(--ds-green) !important;  font-weight: 600 !important; font-family: var(--ds-font-mono) !important; }
+.negative { color: var(--ds-danger) !important; font-weight: 600 !important; font-family: var(--ds-font-mono) !important; }
+
+/* Upgrade existing data-table to enterprise look */
+.data-table thead th {
+  background: var(--ds-navy) !important;
+  font-family: var(--ds-font-ui) !important;
+  font-size: var(--ds-text-xs) !important;
+  letter-spacing: 0.07em !important;
+  padding: 10px 14px !important;
+}
+
+.data-table td {
+  font-family: var(--ds-font-ui) !important;
+  font-size: var(--ds-text-base) !important;
+}
+
+.data-table tbody tr:hover {
+  background: var(--ds-green-tint) !important;
+}
+
+/* Upgrade existing status pills */
+.status-pill {
+  font-family: var(--ds-font-ui) !important;
+  font-size: var(--ds-text-xs) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  padding: 3px 8px !important;
+  border-radius: var(--ds-r-sm) !important;
+}
+
+/* Upgrade existing page headers */
+.page-header h1 {
+  font-family: var(--ds-font-ui) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.4px !important;
+}
+
+/* Upgrade form labels */
+.form-group label {
+  font-family: var(--ds-font-ui) !important;
+  font-size: var(--ds-text-xs) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  color: var(--ds-text-sub) !important;
+}
+
+/* Upgrade inputs */
+.form-group input,
+.form-group select,
+.form-group textarea,
+.search-input,
+.filter-select {
+  font-family: var(--ds-font-ui) !important;
+  font-size: var(--ds-text-base) !important;
+  border-color: var(--ds-border-mid) !important;
+  border-radius: var(--ds-r-sm) !important;
+  color: var(--ds-text) !important;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.search-input:focus,
+.filter-select:focus {
+  border-color: var(--ds-green) !important;
+  box-shadow: 0 0 0 3px rgba(22,163,74,0.12) !important;
+  outline: none !important;
+}
+
+/* Upgrade action buttons */
+.action-btn.primary {
+  background: var(--ds-green) !important;
+  border-color: var(--ds-green) !important;
+  border-radius: var(--ds-r-sm) !important;
+  font-family: var(--ds-font-ui) !important;
+  font-weight: 600 !important;
+  transition: background var(--ds-t-base) !important;
+}
+
+.action-btn.primary:hover {
+  background: var(--ds-green-dark) !important;
+  border-color: var(--ds-green-dark) !important;
+}
+
+.action-btn {
+  font-family: var(--ds-font-ui) !important;
+  font-weight: 600 !important;
+  border-radius: var(--ds-r-sm) !important;
+}
+
+/* Upgrade submit button (remove gradient → solid) */
+.submit-btn {
+  background: var(--ds-green) !important;
+  font-family: var(--ds-font-ui) !important;
+  font-weight: 700 !important;
+  border-radius: var(--ds-r-sm) !important;
+  letter-spacing: 0.02em !important;
+  transition: background var(--ds-t-base) !important;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--ds-green-dark) !important;
+}
+
+/* Remove gradient from header icons — use flat color */
+.header-icon {
+  border-radius: var(--ds-r-md) !important;
+  box-shadow: none !important;
+  font-size: 24px !important;
+  width: 44px !important;
+  height: 44px !important;
+}
+
+/* Loading states */
+.loading-state {
+  font-family: var(--ds-font-ui) !important;
+  color: var(--ds-text-muted) !important;
+  font-size: var(--ds-text-base) !important;
+}
+
+/* No-data rows */
+.no-data {
+  font-family: var(--ds-font-ui) !important;
+  color: var(--ds-text-muted) !important;
+  font-size: var(--ds-text-base) !important;
+  text-align: center !important;
+  padding: var(--ds-sp-8) !important;
+}
+
+/* Upgrade back button */
+.back-btn {
+  font-family: var(--ds-font-ui) !important;
+  font-weight: 600 !important;
+  font-size: var(--ds-text-sm) !important;
+  border-radius: var(--ds-r-sm) !important;
+  background: var(--ds-surface-raised) !important;
+  border: 1px solid var(--ds-border-mid) !important;
+  color: var(--ds-text-sub) !important;
+}
+
+.back-btn:hover {
+  background: var(--ds-surface-sunken) !important;
+  color: var(--ds-text) !important;
+}
+
+/* Message boxes */
+.message.success {
+  background: var(--ds-success-bg) !important;
+  color: var(--ds-green-deeper) !important;
+  border-left-color: var(--ds-green) !important;
+  font-family: var(--ds-font-ui) !important;
+  border-radius: var(--ds-r-sm) !important;
+}
+
+.message.error {
+  background: var(--ds-danger-bg) !important;
+  color: #7f1d1d !important;
+  border-left-color: var(--ds-danger) !important;
+  font-family: var(--ds-font-ui) !important;
+  border-radius: var(--ds-r-sm) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   CSS HOVER DROPDOWN UPGRADE
+   Ensures dropdowns use the new font
+═══════════════════════════════════════════════ */
+.css-dropdown-menu button,
+.dropdown-menu button {
+  font-family: var(--ds-font-ui) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE CONTENT PADDING
+═══════════════════════════════════════════════ */
+.sales-container,
+.purchasing-container,
+.stock-levels-container,
+.warehouse-container,
+.admin-container {
+  background: var(--ds-bg) !important;
+}

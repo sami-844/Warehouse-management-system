@@ -1,241 +1,250 @@
+/* ===== INVENTORY DASHBOARD — Enterprise Edition ===== */
 .inventory-dashboard-container {
-  padding: 30px;
-  background: var(--warehouse-gray);
+  padding: var(--ds-sp-6);
+  background: var(--ds-bg);
   min-height: 100vh;
 }
 
+/* Header */
 .dashboard-header {
-  margin-bottom: 30px;
+  margin-bottom: var(--ds-sp-8);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .dashboard-header h1 {
-  font-size: 36px;
+  font-size: var(--ds-text-3xl);
   font-weight: 800;
-  color: var(--warehouse-navy);
+  color: var(--ds-text);
+  letter-spacing: -0.5px;
   margin: 0;
 }
 
 .dashboard-header p {
-  color: var(--warehouse-text-light);
+  color: var(--ds-text-muted);
   margin: 5px 0 0 0;
+  font-size: var(--ds-text-sm);
 }
 
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 24px;
-  margin-bottom: 40px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--ds-sp-4);
+  margin-bottom: var(--ds-sp-8);
 }
 
 .stat-card {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  padding: var(--ds-sp-5) var(--ds-sp-6);
   display: flex;
   align-items: center;
-  gap: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border-top: 4px solid;
-  transition: transform 0.2s;
+  gap: var(--ds-sp-4);
+  box-shadow: var(--ds-shadow-card);
+  border-top: 3px solid var(--ds-navy);
+  transition: box-shadow var(--ds-t-base);
 }
 
-.stat-card:hover {
-  transform: translateY(-4px);
-}
+.stat-card:hover { box-shadow: var(--ds-shadow-md); }
 
-.stat-card.primary { border-top-color: #3498db; }
-.stat-card.success { border-top-color: #27ae60; }
-.stat-card.warning { border-top-color: #f39c12; }
-.stat-card.danger { border-top-color: #e74c3c; }
+.stat-card.primary { border-top-color: var(--ds-info); }
+.stat-card.success { border-top-color: var(--ds-green); }
+.stat-card.warning { border-top-color: var(--ds-gold); }
+.stat-card.danger  { border-top-color: var(--ds-danger); }
 
 .stat-icon {
-  font-size: 48px;
-  opacity: 0.9;
+  font-size: 36px;
+  opacity: 0.85;
+  flex-shrink: 0;
 }
 
 .stat-value {
-  font-size: 32px;
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-text-3xl);
   font-weight: 800;
-  color: var(--warehouse-navy);
-  margin-bottom: 4px;
+  color: var(--ds-text);
+  letter-spacing: -0.04em;
+  margin-bottom: 2px;
 }
 
 .stat-label {
-  font-size: 14px;
-  color: var(--warehouse-text-light);
-  font-weight: 600;
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-muted);
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.07em;
 }
 
 /* Dashboard Sections */
 .dashboard-section {
-  background: white;
-  padding: 30px;
-  border-radius: 16px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  padding: var(--ds-sp-6);
+  margin-bottom: var(--ds-sp-5);
+  box-shadow: var(--ds-shadow-card);
 }
 
 .dashboard-section h2 {
-  margin: 0 0 24px 0;
-  font-size: 24px;
+  margin: 0 0 var(--ds-sp-6) 0;
+  font-size: var(--ds-text-xl);
   font-weight: 800;
-  color: var(--warehouse-navy);
+  color: var(--ds-text);
+  letter-spacing: -0.3px;
 }
 
 /* Warehouse Grid */
 .warehouse-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--ds-sp-4);
 }
 
 .warehouse-card {
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border-left: 4px solid var(--warehouse-blue);
+  padding: var(--ds-sp-4) var(--ds-sp-5);
+  background: var(--ds-surface-raised);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  border-left: 3px solid var(--ds-navy-mid);
 }
 
 .warehouse-name {
-  font-size: 18px;
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-md);
   font-weight: 700;
-  color: var(--warehouse-navy);
-  margin-bottom: 16px;
+  color: var(--ds-text);
+  margin-bottom: var(--ds-sp-4);
 }
 
 .warehouse-stats {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-sp-2);
 }
 
 .wh-stat {
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .wh-label {
-  color: var(--warehouse-text-light);
-  font-size: 14px;
+  font-family: var(--ds-font-ui);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-text-sm);
 }
 
 .wh-value {
+  font-family: var(--ds-font-mono);
   font-weight: 700;
-  color: var(--warehouse-text);
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
 }
 
 /* Alerts */
 .alerts-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ds-sp-3);
 }
 
 .alert-item {
-  padding: 16px;
-  border-radius: 10px;
-  border-left: 4px solid;
+  padding: var(--ds-sp-4);
+  border-radius: var(--ds-r-sm);
+  border-left: 3px solid;
 }
 
-.alert-item.warning {
-  background: #fff3cd;
-  border-left-color: #f39c12;
-}
-
-.alert-item.critical {
-  background: #f8d7da;
-  border-left-color: #e74c3c;
-}
+.alert-item.warning  { background: var(--ds-warning-bg); border-left-color: var(--ds-gold); }
+.alert-item.critical { background: var(--ds-danger-bg);  border-left-color: var(--ds-danger); }
 
 .alert-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-sp-2);
 }
 
 .alert-product {
+  font-family: var(--ds-font-ui);
   font-weight: 700;
-  color: var(--warehouse-text);
+  color: var(--ds-text);
 }
 
 .urgency-badge {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--ds-r-sm);
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-xs);
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.urgency-badge.warning {
-  background: #f39c12;
-  color: white;
-}
-
-.urgency-badge.critical {
-  background: #e74c3c;
-  color: white;
-}
+.urgency-badge.warning  { background: var(--ds-gold);   color: #fff; }
+.urgency-badge.critical { background: var(--ds-danger); color: #fff; }
 
 .alert-details {
   display: flex;
-  gap: 16px;
-  font-size: 13px;
-  color: var(--warehouse-text-light);
+  gap: var(--ds-sp-4);
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-muted);
 }
 
 /* Movements List */
 .movements-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ds-sp-3);
 }
 
 .movement-item {
   display: grid;
-  grid-template-columns: 50px 1fr 100px 120px;
+  grid-template-columns: 44px 1fr 100px 120px;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 10px;
-  transition: background 0.2s;
+  gap: var(--ds-sp-4);
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: var(--ds-surface-raised);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-sm);
+  transition: background var(--ds-t-base);
 }
 
-.movement-item:hover {
-  background: #e9ecef;
-}
+.movement-item:hover { background: var(--ds-green-tint); }
 
 .movement-type {
-  font-size: 24px;
+  font-size: var(--ds-text-xl);
   text-align: center;
 }
 
 .movement-product {
+  font-family: var(--ds-font-ui);
   font-weight: 700;
-  color: var(--warehouse-text);
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
 }
 
 .movement-details {
-  font-size: 13px;
-  color: var(--warehouse-text-light);
-  margin-top: 4px;
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-muted);
+  margin-top: 2px;
 }
 
 .movement-quantity {
+  font-family: var(--ds-font-mono);
   font-weight: 800;
-  font-size: 18px;
+  font-size: var(--ds-text-lg);
   text-align: right;
+  letter-spacing: -0.03em;
 }
 
 .movement-date {
-  font-size: 13px;
-  color: var(--warehouse-text-light);
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-muted);
   text-align: right;
 }

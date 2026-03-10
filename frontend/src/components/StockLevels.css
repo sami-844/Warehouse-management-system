@@ -1,31 +1,51 @@
-.stock-levels-container { padding: 24px; background: #f0f2f5; min-height: 100vh; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-.header-content { display: flex; align-items: center; gap: 16px; }
-.header-icon.levels { font-size: 40px; background: linear-gradient(135deg, #1a7b5b, #2ea87b); width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-.page-header h1 { font-size: 28px; font-weight: 800; margin: 0; color: #1a2332; }
-.page-header p { font-size: 14px; color: #888; margin: 2px 0 0; }
-.header-actions { display: flex; gap: 8px; }
-.action-btn { padding: 8px 16px; border: 2px solid #e5e7eb; border-radius: 8px; background: white; font-weight: 600; cursor: pointer; font-size: 13px; }
-.action-btn:hover { background: #f8f9fa; }
-.action-btn.refresh { border-color: #1a7b5b; color: #1a7b5b; }
-.summary-stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.stat-card { flex: 1; min-width: 130px; background: white; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-top: 3px solid #1a7b5b; }
-.stat-card.gold { border-top-color: #d4a017; } .stat-card.alert { border-top-color: #ea580c; } .stat-card.danger { border-top-color: #dc2626; }
-.stat-value { font-size: 28px; font-weight: 800; color: #1a2332; }
-.stat-label { font-size: 12px; color: #888; text-transform: uppercase; margin-top: 4px; }
-.filters-section { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; background: white; padding: 12px 16px; border-radius: 10px; }
-.filter-group { display: flex; align-items: center; gap: 8px; }
-.filter-group label { font-size: 13px; font-weight: 600; color: #555; }
-.filter-group select, .filter-group input { padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 13px; }
-.filter-checkbox label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
-.stock-table-container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+/* ===== STOCK LEVELS — Enterprise Edition ===== */
+.stock-levels-container { padding: var(--ds-sp-6); background: var(--ds-bg); min-height: 100vh; }
+
+/* Page Header */
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--ds-sp-5); flex-wrap: wrap; gap: var(--ds-sp-3); }
+.header-content { display: flex; align-items: center; gap: var(--ds-sp-4); }
+.header-icon.levels { font-size: 24px; background: var(--ds-green); color: #fff; width: 44px; height: 44px; border-radius: var(--ds-r-md); display: flex; align-items: center; justify-content: center; box-shadow: none; }
+.page-header h1 { font-size: var(--ds-text-2xl); font-weight: 800; margin: 0; color: var(--ds-text); letter-spacing: -0.4px; }
+.page-header p  { font-size: var(--ds-text-sm); color: var(--ds-text-muted); margin: 2px 0 0; }
+.header-actions { display: flex; gap: var(--ds-sp-2); }
+.action-btn { padding: 7px var(--ds-sp-4); border: 1px solid var(--ds-border-mid); border-radius: var(--ds-r-sm); background: var(--ds-surface); font-family: var(--ds-font-ui); font-weight: 600; cursor: pointer; font-size: var(--ds-text-sm); transition: all var(--ds-t-base); }
+.action-btn:hover { background: var(--ds-surface-raised); border-color: var(--ds-border-strong); }
+.action-btn.refresh { border-color: var(--ds-green); color: var(--ds-green); }
+.action-btn.refresh:hover { background: var(--ds-green-tint); }
+
+/* Summary Stats */
+.summary-stats { display: flex; gap: var(--ds-sp-3); margin-bottom: var(--ds-sp-5); flex-wrap: wrap; }
+.stat-card { flex: 1; min-width: 130px; background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-r-md); padding: var(--ds-sp-4); text-align: center; box-shadow: var(--ds-shadow-card); position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--ds-green); }
+.stat-card.gold::before   { background: var(--ds-gold); }
+.stat-card.alert::before  { background: #ea580c; }
+.stat-card.danger::before { background: var(--ds-danger); }
+.stat-value { font-family: var(--ds-font-mono); font-size: 26px; font-weight: 800; color: var(--ds-text); letter-spacing: -0.03em; }
+.stat-label { font-family: var(--ds-font-ui); font-size: var(--ds-text-xs); color: var(--ds-text-muted); text-transform: uppercase; letter-spacing: 0.07em; margin-top: var(--ds-sp-1); }
+
+/* Filters */
+.filters-section { display: flex; gap: var(--ds-sp-4); margin-bottom: var(--ds-sp-4); flex-wrap: wrap; align-items: center; background: var(--ds-surface); border: 1px solid var(--ds-border); padding: var(--ds-sp-3) var(--ds-sp-4); border-radius: var(--ds-r-md); }
+.filter-group { display: flex; align-items: center; gap: var(--ds-sp-2); }
+.filter-group label { font-family: var(--ds-font-ui); font-size: var(--ds-text-sm); font-weight: 600; color: var(--ds-text-sub); }
+.filter-group select, .filter-group input { padding: 7px 10px; border: 1px solid var(--ds-border-mid); border-radius: var(--ds-r-sm); font-family: var(--ds-font-ui); font-size: var(--ds-text-base); color: var(--ds-text); }
+.filter-group select:focus, .filter-group input:focus { border-color: var(--ds-green); box-shadow: 0 0 0 3px rgba(22,163,74,0.12); outline: none; }
+.filter-checkbox label { display: flex; align-items: center; gap: var(--ds-sp-2); font-family: var(--ds-font-ui); font-size: var(--ds-text-sm); cursor: pointer; color: var(--ds-text-sub); }
+
+/* Stock Table */
+.stock-table-container { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-r-md); overflow: hidden; box-shadow: var(--ds-shadow-card); }
 .stock-table { width: 100%; border-collapse: collapse; }
-.stock-table th { background: #1a2332; color: white; padding: 12px 14px; text-align: left; font-size: 12px; text-transform: uppercase; }
-.stock-table td { padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 14px; }
-.stock-row.in-stock:hover { background: #f0fff0; } .stock-row.low-stock { background: #fffbeb; } .stock-row.out-of-stock { background: #fef2f2; }
-.product-name { font-weight: 600; } .sku { font-family: monospace; color: #888; font-size: 12px; }
-.quantity { font-weight: 700; font-size: 16px; } .value { font-weight: 600; color: #1a7b5b; }
-.status-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; }
-.status-badge.in-stock { background: #e8f5e9; color: #2e7d32; } .status-badge.low-stock { background: #fff3e0; color: #e65100; } .status-badge.out-of-stock { background: #ffebee; color: #c62828; }
-.no-data { text-align: center; padding: 30px; color: #aaa; }
-.loading-state { text-align: center; padding: 40px; color: #888; }
+.stock-table th { background: var(--ds-navy); color: #fff; padding: 10px 14px; text-align: left; font-family: var(--ds-font-ui); font-size: var(--ds-text-xs); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
+.stock-table td { padding: 9px 14px; border-bottom: 1px solid var(--ds-border); font-size: var(--ds-text-base); }
+.stock-row.in-stock:hover { background: var(--ds-green-tint); }
+.stock-row.low-stock   { background: var(--ds-warning-bg); }
+.stock-row.out-of-stock { background: var(--ds-danger-bg); }
+.product-name { font-weight: 600; color: var(--ds-text); }
+.sku { font-family: var(--ds-font-mono); color: var(--ds-text-muted); font-size: var(--ds-text-xs); }
+.quantity { font-family: var(--ds-font-mono); font-weight: 700; font-size: var(--ds-text-md); color: var(--ds-text); }
+.value { font-family: var(--ds-font-mono); font-weight: 600; color: var(--ds-green-dark); font-size: var(--ds-text-sm); }
+.status-badge { padding: 3px 8px; border-radius: var(--ds-r-sm); font-family: var(--ds-font-ui); font-size: var(--ds-text-xs); font-weight: 700; }
+.status-badge.in-stock    { background: var(--ds-success-bg); color: var(--ds-green-deeper); border: 1px solid var(--ds-success-border); }
+.status-badge.low-stock   { background: var(--ds-warning-bg); color: #92400e; border: 1px solid var(--ds-warning-border); }
+.status-badge.out-of-stock { background: var(--ds-danger-bg); color: #7f1d1d; border: 1px solid var(--ds-danger-border); }
+.no-data { text-align: center; padding: var(--ds-sp-8); color: var(--ds-text-muted); font-style: italic; }
+.loading-state { text-align: center; padding: var(--ds-sp-10); color: var(--ds-text-muted); font-size: var(--ds-text-base); }

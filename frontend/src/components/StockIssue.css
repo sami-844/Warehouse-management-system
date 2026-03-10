@@ -1,16 +1,35 @@
-.stock-issue-container { padding: 24px; background: #f0f2f5; min-height: 100vh; }
-.header-icon.issue { background: linear-gradient(135deg, #ea580c, #f97316); }
-.section-badge.issue { background: #fff3e0; color: #e65100; }
-.issue-content { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-.issue-form-section { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-.stock-indicator { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; font-weight: 600; }
-.stock-indicator.ok { background: #e8f5e9; } .stock-indicator.warning { background: #fff3e0; } .stock-indicator.danger { background: #ffebee; }
-.stock-label { color: #555; } .stock-value { font-size: 18px; font-weight: 800; color: #1a2332; }
-.submit-btn.issue { background: linear-gradient(135deg, #ea580c, #f97316); }
-.recent-issues-sidebar { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); height: fit-content; }
-.recent-issues-sidebar h3 { margin-bottom: 16px; color: #1a2332; }
-.issue-item { padding: 12px; border-bottom: 1px solid #f0f0f0; }
+/* ===== STOCK ISSUE — Enterprise Edition ===== */
+.stock-issue-container { padding: var(--ds-sp-6); background: var(--ds-bg); min-height: 100vh; }
+
+/* Header icon variant */
+.header-icon.issue { background: #ea580c; color: #fff; }
+
+/* Section badge variant */
+.section-badge.issue { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+
+/* Layout */
+.issue-content { display: grid; grid-template-columns: 2fr 1fr; gap: var(--ds-sp-5); }
+.issue-form-section { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-r-md); padding: var(--ds-sp-6); box-shadow: var(--ds-shadow-card); }
+
+/* Stock Indicator */
+.stock-indicator { display: flex; align-items: center; gap: var(--ds-sp-3); padding: 10px var(--ds-sp-4); border: 1px solid; border-radius: var(--ds-r-sm); margin-bottom: var(--ds-sp-3); font-weight: 600; }
+.stock-indicator.ok      { background: var(--ds-success-bg); border-color: var(--ds-success-border); }
+.stock-indicator.warning { background: var(--ds-warning-bg); border-color: var(--ds-warning-border); }
+.stock-indicator.danger  { background: var(--ds-danger-bg);  border-color: var(--ds-danger-border); }
+.stock-label { font-family: var(--ds-font-ui); color: var(--ds-text-sub); font-size: var(--ds-text-sm); }
+.stock-value { font-family: var(--ds-font-mono); font-size: 20px; font-weight: 800; color: var(--ds-text); letter-spacing: -0.03em; }
+
+/* Issue submit button variant */
+.submit-btn.issue { background: #ea580c; }
+.submit-btn.issue:hover:not(:disabled) { background: #c2410c; }
+
+/* Recent Issues Sidebar */
+.recent-issues-sidebar { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-r-md); padding: var(--ds-sp-5); box-shadow: var(--ds-shadow-card); height: fit-content; }
+.recent-issues-sidebar h3 { margin-bottom: var(--ds-sp-4); color: var(--ds-text); font-size: var(--ds-text-md); font-weight: 700; }
+.issue-item { padding: var(--ds-sp-3); border-bottom: 1px solid var(--ds-border); }
 .issue-header { display: flex; justify-content: space-between; }
-.issue-product { font-weight: 600; } .issue-qty { color: #dc2626; font-weight: 700; }
-.issue-details { display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 4px; }
+.issue-product { font-family: var(--ds-font-ui); font-weight: 600; font-size: var(--ds-text-sm); color: var(--ds-text); }
+.issue-qty { font-family: var(--ds-font-mono); color: var(--ds-danger); font-weight: 700; font-size: var(--ds-text-sm); }
+.issue-details { display: flex; justify-content: space-between; font-size: var(--ds-text-xs); color: var(--ds-text-muted); margin-top: var(--ds-sp-1); }
+
 @media (max-width: 768px) { .issue-content { grid-template-columns: 1fr; } }
