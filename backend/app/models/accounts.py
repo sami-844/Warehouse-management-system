@@ -1,5 +1,5 @@
-"""Chart of Accounts and Journal Entries"""
-from sqlalchemy import Column, Integer, String, Numeric, Boolean, DateTime, ForeignKey, Text
+"""Chart of Accounts, Journal Entries, and Bank Reconciliation"""
+from sqlalchemy import Column, Integer, String, Numeric, Boolean, DateTime, Date, ForeignKey, Text
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -67,3 +67,19 @@ class JournalEntryLine(Base):
     debit_amount = Column(Numeric(14, 3), default=0)
     credit_amount = Column(Numeric(14, 3), default=0)
     description = Column(Text)
+
+
+class BankReconciliation(Base):
+    """Bank reconciliation sessions"""
+    __tablename__ = 'bank_reconciliations'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    reconciliation_date = Column(Date)
+    bank_statement_date = Column(Date)
+    opening_balance = Column(Numeric(14, 3), default=0)
+    closing_balance = Column(Numeric(14, 3), default=0)
+    status = Column(String(20), default='in_progress')
+    notes = Column(Text)
+    created_by = Column(Integer, ForeignKey('users.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

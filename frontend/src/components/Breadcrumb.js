@@ -42,6 +42,7 @@ const PAGE_HIERARCHY = {
   'multi-currency':       { section: 'Finance', label: 'Multi-Currency' },
   'reports':              { section: 'Finance', label: 'Reports' },
   'vat-return':           { section: 'Finance', label: 'VAT Return' },
+  'bank-recon':           { section: 'Finance', label: 'Bank Reconciliation' },
   // Admin
   'users':                { section: 'Admin', label: 'Users' },
   'settings':             { section: 'Admin', label: 'Settings' },

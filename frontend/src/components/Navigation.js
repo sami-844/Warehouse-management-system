@@ -71,6 +71,7 @@ const SECTIONS = [
       { label: 'Multi-Currency',      page: 'multi-currency' },
       { label: 'Reports',             page: 'reports' },
       { label: 'VAT Return',          page: 'vat-return' },
+      { label: 'Bank Reconciliation', page: 'bank-recon' },
     ],
   },
   {

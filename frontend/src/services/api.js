@@ -159,6 +159,9 @@ export const accountingAPI = {
   journalEntries: async (params = {}) => (await api.get('/api/accounting/journal-entries', { params })).data,
   journalEntryLines: async (entryId) => (await api.get(`/api/accounting/journal-entries/${entryId}/lines`)).data,
   recalculateBalances: async () => (await api.post('/api/accounting/accounts/recalculate-balances')).data,
+  bankReconSystemRecords: async (params = {}) => (await api.get('/api/accounting/bank-recon/system-records', { params })).data,
+  bankReconSave: async (data) => (await api.post('/api/accounting/bank-recon/save', data)).data,
+  bankReconHistory: async () => (await api.get('/api/accounting/bank-recon/history')).data,
 };
 
 export const reportsAPI2 = {

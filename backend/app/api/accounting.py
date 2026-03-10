@@ -1,4 +1,4 @@
-"""Accounting API — Chart of Accounts, Money Transfers, Cash Transactions"""
+"""Accounting API — Chart of Accounts, Money Transfers, Cash Transactions, Bank Reconciliation"""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -561,3 +561,118 @@ async def recalculate_account_balances(current_user: User = Depends(get_current_
         return {"message": f"Recalculated balances for {updated} accounts"}
     except Exception as e:
         raise HTTPException(500, f"Failed to recalculate: {str(e)}")
+
+
+# ── Bank Reconciliation ──
+
+@router.get("/bank-recon/system-records")
+async def bank_recon_system_records(from_date: str, to_date: str,
+                                     current_user: User = Depends(get_current_user)):
+    """Get all payments from the system for bank reconciliation matching."""
+    records = []
+
+    # Sales payments received
+    try:
+        rows = run_q("""
+            SELECT p.id, p.payment_date as date, 'SALES_PAYMENT' as type,
+                   COALESCE(si.invoice_number, 'SI-' || p.reference_id) as reference,
+                   'Payment from ' || COALESCE(c.name, 'Customer') as description,
+                   p.amount, p.bank_reference, p.payment_method
+            FROM payments p
+            LEFT JOIN sales_invoices si ON p.reference_id = si.id AND p.reference_type = 'sales_invoice'
+            LEFT JOIN customers c ON si.customer_id = c.id
+            WHERE p.reference_type = 'sales_invoice'
+              AND p.payment_date BETWEEN :s AND :e
+            ORDER BY p.payment_date DESC
+        """, {"s": from_date, "e": to_date})
+        records.extend(rows)
+    except Exception:
+        pass
+
+    # Purchase payments made
+    try:
+        rows = run_q("""
+            SELECT p.id, p.payment_date as date, 'PURCHASE_PAYMENT' as type,
+                   COALESCE(pi.invoice_number, 'PI-' || p.reference_id) as reference,
+                   'Payment to ' || COALESCE(s.name, 'Supplier') as description,
+                   p.amount, p.bank_reference, p.payment_method
+            FROM payments p
+            LEFT JOIN purchase_invoices pi ON p.reference_id = pi.id AND p.reference_type = 'purchase_invoice'
+            LEFT JOIN suppliers s ON pi.supplier_id = s.id
+            WHERE p.reference_type = 'purchase_invoice'
+              AND p.payment_date BETWEEN :s AND :e
+            ORDER BY p.payment_date DESC
+        """, {"s": from_date, "e": to_date})
+        records.extend(rows)
+    except Exception:
+        pass
+
+    # Money transfers
+    try:
+        rows = run_q("""
+            SELECT mt.id, mt.transfer_date::date as date, 'TRANSFER' as type,
+                   COALESCE(mt.reference, 'MT-' || mt.id) as reference,
+                   COALESCE(fa.name, 'Account') || ' -> ' || COALESCE(ta.name, 'Account') as description,
+                   mt.amount, mt.reference as bank_reference, 'transfer' as payment_method
+            FROM money_transfers mt
+            LEFT JOIN accounts fa ON mt.from_account_id = fa.id
+            LEFT JOIN accounts ta ON mt.to_account_id = ta.id
+            WHERE mt.transfer_date::date BETWEEN :s AND :e
+            ORDER BY mt.transfer_date DESC
+        """, {"s": from_date, "e": to_date})
+        records.extend(rows)
+    except Exception:
+        pass
+
+    return records
+
+
+class ReconSaveRequest(BaseModel):
+    reconciliation_date: str
+    opening_balance: float = 0
+    closing_balance: float = 0
+    matched_pairs: list = []
+    notes: Optional[str] = None
+
+@router.post("/bank-recon/save")
+async def save_bank_reconciliation(data: ReconSaveRequest,
+                                    current_user: User = Depends(get_current_user)):
+    """Save a bank reconciliation session."""
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                INSERT INTO bank_reconciliations
+                (reconciliation_date, bank_statement_date, opening_balance, closing_balance, status, notes, created_by)
+                VALUES (:rd, :bsd, :ob, :cb, :status, :notes, :uid)
+                RETURNING id
+            """), {
+                "rd": data.reconciliation_date,
+                "bsd": data.reconciliation_date,
+                "ob": data.opening_balance,
+                "cb": data.closing_balance,
+                "status": "completed",
+                "notes": data.notes or f"Matched {len(data.matched_pairs)} transactions",
+                "uid": current_user.id,
+            })
+            recon_id = result.fetchone()[0]
+            conn.commit()
+        return {"id": recon_id, "message": f"Reconciliation saved with {len(data.matched_pairs)} matched pairs"}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to save reconciliation: {str(e)}")
+
+@router.get("/bank-recon/history")
+async def bank_recon_history(current_user: User = Depends(get_current_user)):
+    """List past reconciliation sessions."""
+    try:
+        rows = run_q("""
+            SELECT br.id, br.reconciliation_date, br.opening_balance, br.closing_balance,
+                   br.status, br.notes, br.created_at,
+                   u.username as created_by_name
+            FROM bank_reconciliations br
+            LEFT JOIN users u ON br.created_by = u.id
+            ORDER BY br.created_at DESC
+            LIMIT 50
+        """)
+        return rows
+    except Exception:
+        return []

@@ -46,6 +46,7 @@ import ChartOfAccounts from './components/ChartOfAccounts';
 import MoneyTransfer from './components/MoneyTransfer';
 import JournalEntries from './components/JournalEntries';
 import VATReturn from './components/VATReturn';
+import BankReconciliation from './components/BankReconciliation';
 import CashTransactions from './components/CashTransactions';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
@@ -121,6 +122,7 @@ const PAGE_ROLE_MAP = {
   'multi-currency':     ['ADMIN','ACCOUNTANT','SALES_STAFF'],
   'reports':            ['ADMIN','WAREHOUSE_MANAGER','SALES_STAFF','ACCOUNTANT'],
   'vat-return':         ['ADMIN','ACCOUNTANT'],
+  'bank-recon':         ['ADMIN','ACCOUNTANT'],
   'users':              ['ADMIN'],
   'settings':           ['ADMIN'],
   'notifications':      ['ADMIN','ACCOUNTANT','WAREHOUSE_MANAGER'],
@@ -322,6 +324,7 @@ function App() {
       case 'multi-currency':       return <MultiCurrencyDashboard />;
       case 'reports':              return <ReportsPage />;
       case 'vat-return':           return <VATReturn />;
+      case 'bank-recon':           return <BankReconciliation />;
 
       // ── Admin ──
       case 'users':                return <UserManagement />;
