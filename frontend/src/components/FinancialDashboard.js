@@ -142,6 +142,7 @@ function FinancialDashboard() {
         </div>
       </div>
     </div>
+    </div>
   );
 }
 export default FinancialDashboard;
