@@ -50,7 +50,7 @@ function PurchaseOrderList({ onViewOrder }) {
     } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
-  const sendPO = async (id) => { try { await purchaseAPI.sendOrder(id); load(); } catch(e) { alert(e.response?.data?.detail || e.message); } };
+  const sendPO = async (id) => { try { await purchaseAPI.sendOrder(id); load(); } catch(e) { setMessage({ text: e.response?.data?.detail || e.message, type: 'error' }); } };
 
   const statusColor = (s) => ({ draft: '#6b7280', sent: '#2563eb', partially_received: '#d97706', fully_received: '#16a34a', closed: '#9ca3af' }[s] || '#6b7280');
 

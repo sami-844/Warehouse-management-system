@@ -71,3 +71,7 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+@media (max-width: 480px) {
+  .sig-canvas-wrapper { max-height: 180px; }
+}

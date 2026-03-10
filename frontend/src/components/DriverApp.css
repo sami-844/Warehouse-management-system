@@ -285,3 +285,9 @@
   padding: 40px;
   color: #888;
 }
+
+/* ── Mobile ── */
+@media (max-width: 400px) {
+  .driver-stats { grid-template-columns: repeat(2, 1fr); }
+  .driver-stat-num { font-size: 18px; }
+}

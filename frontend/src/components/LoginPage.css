@@ -134,3 +134,7 @@
   border-radius: 3px;
   display: inline-block;
 }
+
+@media (max-width: 480px) {
+  .login-box { padding: 24px 20px; }
+}

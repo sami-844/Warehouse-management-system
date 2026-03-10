@@ -12,7 +12,7 @@
 .count-summary .has-diff { color: #ea580c; }
 
 /* Main Table */
-.stocktake-table-container { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-r-md); overflow: hidden; box-shadow: var(--ds-shadow-card); }
+.stocktake-table-container { background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-r-md); overflow-x: auto; box-shadow: var(--ds-shadow-card); }
 .stocktake-table { width: 100%; border-collapse: collapse; }
 .stocktake-table th { background: var(--ds-navy); color: #fff; padding: 10px var(--ds-sp-4); text-align: left; font-family: var(--ds-font-ui); font-size: var(--ds-text-xs); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
 .stocktake-table td { padding: 9px var(--ds-sp-4); border-bottom: 1px solid var(--ds-border); font-size: var(--ds-text-base); }
@@ -40,3 +40,12 @@
 .result-table td { padding: 9px 14px; border-bottom: 1px solid var(--ds-border); font-size: var(--ds-text-base); }
 .result-table tr.adjusted { background: var(--ds-warning-bg); }
 .result-table tr.match    { background: var(--ds-green-tint); }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .stocktake-container { padding: var(--ds-sp-3); }
+  .stocktake-controls { gap: var(--ds-sp-3); }
+  .stocktake-controls .form-group { min-width: unset; width: 100%; }
+  .count-summary { flex-direction: column; gap: var(--ds-sp-1); }
+  .result-stats { flex-direction: column; gap: var(--ds-sp-2); }
+}
