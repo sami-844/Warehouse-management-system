@@ -40,11 +40,11 @@ function StockReceipt() {
         expiry_date: formData.expiry_date || null, unit_cost: formData.unit_cost ? parseFloat(formData.unit_cost) : null,
         reference_number: formData.reference_number || null, notes: formData.notes || null
       });
-      setMessage({ text: `✅ Received ${result.quantity} × ${result.product_name}. New stock: ${result.new_stock_level}`, type: 'success' });
+      setMessage({ text: `Received ${result.quantity} × ${result.product_name}. New stock: ${result.new_stock_level}`, type: 'success' });
       setFormData(p => ({ ...p, product_id: '', quantity: '', batch_number: '', expiry_date: '', unit_cost: '', notes: '' }));
       loadRecent();
     } catch (error) {
-      setMessage({ text: `❌ ${error.response?.data?.detail || error.message}`, type: 'error' });
+      setMessage({ text: `${error.response?.data?.detail || error.message}`, type: 'error' });
     } finally { setLoading(false); }
   };
 
@@ -72,10 +72,10 @@ function StockReceipt() {
         container_reference: batchRef.container_reference || null,
         items: batchItems.map(i => ({ product_id: i.product_id, quantity: i.quantity, batch_number: i.batch_number, expiry_date: i.expiry_date, unit_cost: i.unit_cost }))
       });
-      setMessage({ text: `✅ Container received! ${result.total_items_received} products, ${result.total_quantity} total units.`, type: 'success' });
+      setMessage({ text: `Container received! ${result.total_items_received} products, ${result.total_quantity} total units.`, type: 'success' });
       setBatchItems([]); loadRecent();
     } catch (error) {
-      setMessage({ text: `❌ ${error.response?.data?.detail || error.message}`, type: 'error' });
+      setMessage({ text: `${error.response?.data?.detail || error.message}`, type: 'error' });
     } finally { setLoading(false); }
   };
 
@@ -83,12 +83,12 @@ function StockReceipt() {
     <div className="stock-receipt-container">
       <div className="page-header">
         <div className="header-content">
-          <div className="header-icon">📦</div>
+          <div className="header-icon"></div>
           <div><h1>Stock Receipt</h1><p>Record goods received from suppliers</p></div>
         </div>
         <div className="mode-toggle">
           <button className={`toggle-btn ${mode === 'single' ? 'active' : ''}`} onClick={() => setMode('single')}>Single Item</button>
-          <button className={`toggle-btn ${mode === 'batch' ? 'active' : ''}`} onClick={() => setMode('batch')}>📦 Container / Batch</button>
+          <button className={`toggle-btn ${mode === 'batch' ? 'active' : ''}`} onClick={() => setMode('batch')}>Container / Batch</button>
         </div>
       </div>
 
@@ -96,7 +96,7 @@ function StockReceipt() {
 
       <div className="receipt-content">
         <div className="receipt-form-section">
-          <div className="section-badge">{mode === 'batch' ? '📦 Container Receiving' : 'Goods In'}</div>
+          <div className="section-badge">{mode === 'batch' ? 'Container Receiving' : 'Goods In'}</div>
 
           {mode === 'batch' && (
             <div className="batch-header-fields">
@@ -149,10 +149,10 @@ function StockReceipt() {
               <>
                 <div className="form-group full-width"><label>Reference (Container/PO)</label><input type="text" name="reference_number" value={formData.reference_number} onChange={handleChange} placeholder="CONTAINER-FEB-2026" /></div>
                 <div className="form-group full-width"><label>Notes</label><textarea name="notes" value={formData.notes} onChange={handleChange} rows="2" placeholder="Notes..." /></div>
-                <button type="submit" className="submit-btn" disabled={loading}>{loading ? '⏳ Recording...' : '✅ Record Receipt'}</button>
+                <button type="submit" className="submit-btn" disabled={loading}>{loading ? 'Recording...' : 'Record Receipt'}</button>
               </>
             )}
-            {mode === 'batch' && <button type="submit" className="submit-btn add-btn">➕ Add to Batch</button>}
+            {mode === 'batch' && <button type="submit" className="submit-btn add-btn">Add to Batch</button>}
           </form>
 
           {mode === 'batch' && batchItems.length > 0 && (
@@ -172,7 +172,7 @@ function StockReceipt() {
               </table>
               <div className="batch-summary">
                 <span>Total: {batchItems.reduce((s, i) => s + i.quantity, 0)} units</span>
-                <button className="submit-btn" onClick={submitBatch} disabled={loading}>{loading ? '⏳ Submitting...' : '📦 Receive Entire Batch'}</button>
+                <button className="submit-btn" onClick={submitBatch} disabled={loading}>{loading ? 'Submitting...' : 'Receive Entire Batch'}</button>
               </div>
             </div>
           )}

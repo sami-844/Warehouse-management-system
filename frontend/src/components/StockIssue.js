@@ -30,7 +30,7 @@ function StockIssue() {
     e.preventDefault(); setLoading(true); setMessage({ text: '', type: '' });
     const qty = parseFloat(formData.quantity);
     if (currentStock !== null && qty > currentStock) {
-      setMessage({ text: `❌ Insufficient stock! Available: ${currentStock}, Requested: ${qty}`, type: 'error' }); setLoading(false); return;
+      setMessage({ text: `Insufficient stock! Available: ${currentStock}, Requested: ${qty}`, type: 'error' }); setLoading(false); return;
     }
     try {
       const result = await inventoryAPI.recordIssue({
@@ -38,16 +38,16 @@ function StockIssue() {
         quantity: qty, customer_name: formData.customer_name || null,
         reference_number: formData.reference_number || null, notes: formData.notes || null
       });
-      setMessage({ text: `✅ Issued ${result.quantity_issued} × ${result.product_name}. Remaining: ${result.remaining_stock}`, type: 'success' });
+      setMessage({ text: `Issued ${result.quantity_issued} × ${result.product_name}. Remaining: ${result.remaining_stock}`, type: 'success' });
       setFormData(p => ({ ...p, product_id: '', quantity: '', customer_name: '', reference_number: '', notes: '' }));
       setCurrentStock(null); loadRecent();
-    } catch (error) { setMessage({ text: `❌ ${error.response?.data?.detail || error.message}`, type: 'error' }); }
+    } catch (error) { setMessage({ text: `${error.response?.data?.detail || error.message}`, type: 'error' }); }
     finally { setLoading(false); }
   };
 
   return (
     <div className="stock-issue-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon issue">📤</div><div><h1>Stock Issue</h1><p>Process deliveries and stock out</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon issue"></div><div><h1>Stock Issue</h1><p>Process deliveries and stock out</p></div></div></div>
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
       <div className="issue-content">
         <div className="issue-form-section">
@@ -80,7 +80,7 @@ function StockIssue() {
               <div className="form-group"><label>Reference (SO / Delivery)</label><input type="text" name="reference_number" value={formData.reference_number} onChange={handleChange} placeholder="SO-2026-001" /></div>
               <div className="form-group"><label>Notes</label><input type="text" name="notes" value={formData.notes} onChange={handleChange} placeholder="Van 1, Driver Ali..." /></div>
             </div>
-            <button type="submit" className="submit-btn issue" disabled={loading || !formData.product_id}>{loading ? '⏳ Processing...' : '📤 Issue Stock'}</button>
+            <button type="submit" className="submit-btn issue" disabled={loading || !formData.product_id}>{loading ? 'Processing...' : 'Issue Stock'}</button>
           </form>
         </div>
         <div className="recent-issues-sidebar">

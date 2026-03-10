@@ -32,7 +32,7 @@ function StockLevels() {
   );
 
   const getStatus = (item) => item.quantity_on_hand === 0 ? 'out-of-stock' : item.needs_reorder ? 'low-stock' : 'in-stock';
-  const getStatusText = (item) => item.quantity_on_hand === 0 ? '🔴 Out of Stock' : item.needs_reorder ? '🟡 Low Stock' : '🟢 In Stock';
+  const getStatusText = (item) => item.quantity_on_hand === 0 ? 'Out of Stock' : item.needs_reorder ? 'Low Stock' : 'In Stock';
 
   const exportCSV = () => {
     const headers = ['Product', 'SKU', 'Warehouse', 'Quantity', 'Reorder Level', 'Unit', 'Stock Value (OMR)', 'Status'];
@@ -49,10 +49,10 @@ function StockLevels() {
   return (
     <div className="stock-levels-container">
       <div className="page-header">
-        <div className="header-content"><div className="header-icon levels">📊</div><div><h1>Stock Levels</h1><p>Real-time inventory across all locations</p></div></div>
+        <div className="header-content"><div className="header-icon levels"></div><div><h1>Stock Levels</h1><p>Real-time inventory across all locations</p></div></div>
         <div className="header-actions">
-          <button className="action-btn" onClick={exportCSV}>📥 Export CSV</button>
-          <button className="action-btn refresh" onClick={loadStockLevels}>🔄 Refresh</button>
+          <button className="action-btn" onClick={exportCSV}>Export CSV</button>
+          <button className="action-btn refresh" onClick={loadStockLevels}>Refresh</button>
         </div>
       </div>
 
