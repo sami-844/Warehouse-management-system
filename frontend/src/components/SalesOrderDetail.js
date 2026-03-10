@@ -19,25 +19,25 @@ function SalesOrderDetail({ soId, onBack }) {
       switch (action) {
         case 'confirm':
           result = await salesAPI.confirmOrder(soId);
-          setMessage({ text: `✅ Order confirmed! ${result.stock_warnings?.length ? 'Warnings: ' + result.stock_warnings.join('; ') : ''}`, type: result.stock_warnings?.length ? 'error' : 'success' });
+          setMessage({ text: `Order confirmed! ${result.stock_warnings?.length ? 'Warnings: ' + result.stock_warnings.join('; ') : ''}`, type: result.stock_warnings?.length ? 'error' : 'success' });
           break;
         case 'ship':
           result = await salesAPI.shipOrder(soId);
           const shorts = result.items?.filter(i => i.short > 0) || [];
-          setMessage({ text: `✅ Order shipped! ${shorts.length ? 'Short: ' + shorts.map(s => `${s.product}: ${s.short} short`).join('; ') : 'All items shipped.'}`, type: shorts.length ? 'error' : 'success' });
+          setMessage({ text: `Order shipped! ${shorts.length ? 'Short: ' + shorts.map(s => `${s.product}: ${s.short} short`).join('; ') : 'All items shipped.'}`, type: shorts.length ? 'error' : 'success' });
           break;
         case 'deliver':
           result = await salesAPI.deliverOrder(soId, { actual_delivery_date: new Date().toISOString().slice(0, 10) });
-          setMessage({ text: '✅ Delivery recorded!', type: 'success' });
+          setMessage({ text: 'Delivery recorded!', type: 'success' });
           break;
         case 'invoice':
           result = await salesAPI.invoiceOrder(soId);
-          setMessage({ text: `✅ Invoice ${result.invoice_number} created! Due: ${result.due_date}`, type: 'success' });
+          setMessage({ text: `Invoice ${result.invoice_number} created! Due: ${result.due_date}`, type: 'success' });
           break;
         default: break;
       }
       loadSO();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
     finally { setActionLoading(''); }
   };
 
@@ -47,11 +47,11 @@ function SalesOrderDetail({ soId, onBack }) {
   const statusColor = (s) => ({ draft: '#6b7280', confirmed: '#2563eb', picking: '#7c3aed', shipped: '#d97706', delivered: '#16a34a', invoiced: '#059669' }[s] || '#6b7280');
 
   const workflow = [
-    { status: 'draft', label: 'Draft', icon: '📝' },
-    { status: 'confirmed', label: 'Confirmed', icon: '✅' },
-    { status: 'shipped', label: 'Shipped', icon: '🚚' },
-    { status: 'delivered', label: 'Delivered', icon: '📦' },
-    { status: 'invoiced', label: 'Invoiced', icon: '🧾' },
+    { status: 'draft', label: 'Draft', icon: '' },
+    { status: 'confirmed', label: 'Confirmed', icon: '' },
+    { status: 'shipped', label: 'Shipped', icon: '' },
+    { status: 'delivered', label: 'Delivered', icon: '' },
+    { status: 'invoiced', label: 'Invoiced', icon: '' },
   ];
   const currentIdx = workflow.findIndex(w => w.status === so.status);
 
@@ -77,10 +77,10 @@ function SalesOrderDetail({ soId, onBack }) {
 
       {/* Action Buttons */}
       <div className="action-bar">
-        {so.status === 'draft' && <button className="workflow-btn confirm" onClick={() => doAction('confirm', 'Confirming...')} disabled={!!actionLoading}>{actionLoading === 'confirm' ? '...' : '✅ Confirm Order'}</button>}
-        {so.status === 'confirmed' && <button className="workflow-btn ship" onClick={() => doAction('ship', 'Shipping...')} disabled={!!actionLoading}>{actionLoading === 'ship' ? '...' : '🚚 Ship / Pick & Pack'}</button>}
-        {so.status === 'shipped' && <button className="workflow-btn deliver" onClick={() => doAction('deliver', 'Delivering...')} disabled={!!actionLoading}>{actionLoading === 'deliver' ? '...' : '📦 Mark Delivered'}</button>}
-        {(so.status === 'delivered' || so.status === 'shipped') && !so.invoice && <button className="workflow-btn invoice" onClick={() => doAction('invoice', 'Invoicing...')} disabled={!!actionLoading}>{actionLoading === 'invoice' ? '...' : '🧾 Generate Invoice'}</button>}
+        {so.status === 'draft' && <button className="workflow-btn confirm" onClick={() => doAction('confirm', 'Confirming...')} disabled={!!actionLoading}>{actionLoading === 'confirm' ? '...' : 'Confirm Order'}</button>}
+        {so.status === 'confirmed' && <button className="workflow-btn ship" onClick={() => doAction('ship', 'Shipping...')} disabled={!!actionLoading}>{actionLoading === 'ship' ? '...' : 'Ship / Pick & Pack'}</button>}
+        {so.status === 'shipped' && <button className="workflow-btn deliver" onClick={() => doAction('deliver', 'Delivering...')} disabled={!!actionLoading}>{actionLoading === 'deliver' ? '...' : 'Mark Delivered'}</button>}
+        {(so.status === 'delivered' || so.status === 'shipped') && !so.invoice && <button className="workflow-btn invoice" onClick={() => doAction('invoice', 'Invoicing...')} disabled={!!actionLoading}>{actionLoading === 'invoice' ? '...' : 'Generate Invoice'}</button>}
       </div>
 
       {/* Summary Cards */}
@@ -120,7 +120,7 @@ function SalesOrderDetail({ soId, onBack }) {
 
       {/* Delivery Info */}
       {so.delivery && (
-        <div className="info-card"><h4>📦 Delivery</h4>
+        <div className="info-card"><h4>Delivery</h4>
           <div className="info-grid">
             <div><span className="label">Status:</span> <span className="status-pill" style={{ backgroundColor: statusColor(so.delivery.status === 'delivered' ? 'delivered' : 'confirmed') }}>{so.delivery.status}</span></div>
             <div><span className="label">Driver:</span> {so.delivery.driver || '-'}</div>
@@ -132,7 +132,7 @@ function SalesOrderDetail({ soId, onBack }) {
 
       {/* Invoice Info */}
       {so.invoice && (
-        <div className="info-card"><h4>🧾 Invoice</h4>
+        <div className="info-card"><h4>Invoice</h4>
           <div className="info-grid">
             <div><span className="label">Invoice:</span> <strong>{so.invoice.number}</strong></div>
             <div><span className="label">Total:</span> {(Number(so.invoice.total) || 0).toFixed(3)} OMR</div>

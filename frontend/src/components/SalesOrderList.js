@@ -63,9 +63,9 @@ function SalesOrderList({ onViewOrder }) {
         tax_rate: parseFloat(form.tax_rate) || 5, notes: form.notes || null,
         items: lineItems.map(i => ({ product_id: i.product_id, quantity_ordered: i.quantity_ordered, unit_price: i.unit_price, discount_percent: i.discount_percent }))
       });
-      setMessage({ text: `✅ ${result.order_number} created! Total: ${(Number(result.total_amount) || 0).toFixed(3)} OMR`, type: 'success' });
+      setMessage({ text: `${result.order_number} created! Total: ${(Number(result.total_amount) || 0).toFixed(3)} OMR`, type: 'success' });
       setShowCreate(false); setLineItems([]); load();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const onCustomerSelect = (customerId) => {
@@ -77,7 +77,7 @@ function SalesOrderList({ onViewOrder }) {
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon so">📝</div><div><h1>Sales Orders</h1><p>Create and manage customer orders</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon so"></div><div><h1>Sales Orders</h1><p>Create and manage customer orders</p></div></div>
         <button className="action-btn primary" onClick={() => setShowCreate(!showCreate)}>{showCreate ? '✕ Cancel' : '+ New Order'}</button></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
@@ -138,7 +138,7 @@ function SalesOrderList({ onViewOrder }) {
               )}
             </div>
             <div className="form-group"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows="2" /></div>
-            <button type="submit" className="submit-btn" disabled={lineItems.length === 0}>📝 Create Sales Order</button>
+            <button type="submit" className="submit-btn" disabled={lineItems.length === 0}>Create Sales Order</button>
           </form>
         </div>
       )}
@@ -160,7 +160,7 @@ function SalesOrderList({ onViewOrder }) {
                   <td>{o.order_date}</td><td>{o.driver_name || '-'}</td>
                   <td className="value">{(Number(o.total_amount) || 0).toFixed(3)} OMR</td>
                   <td><span className="status-pill" style={{ backgroundColor: statusColor(o.status) }}>{o.status}</span></td>
-                  <td><button className="view-btn" onClick={() => onViewOrder(o.id)}>👁️</button></td></tr>
+                  <td><button className="view-btn" onClick={() => onViewOrder(o.id)}>View</button></td></tr>
               ))
             }
           </tbody>

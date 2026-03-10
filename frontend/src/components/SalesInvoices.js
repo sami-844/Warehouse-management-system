@@ -25,16 +25,16 @@ function SalesInvoices() {
         amount: parseFloat(payForm.amount), payment_method: payForm.payment_method,
         payment_date: payForm.payment_date, bank_reference: payForm.bank_reference || null, notes: payForm.notes || null
       });
-      setMessage({ text: `✅ Payment recorded! Balance: ${result.new_balance} OMR`, type: 'success' });
+      setMessage({ text: `Payment recorded! Balance: ${result.new_balance} OMR`, type: 'success' });
       setPayingInvoice(null); load(); loadAging(); loadOverdue();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const statusColor = (s) => ({ pending: '#d97706', partial: '#2563eb', paid: '#16a34a' }[s] || '#6b7280');
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon sinvoice">🧾</div><div><h1>Sales Invoices</h1><p>Track customer invoices and collections</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon sinvoice"></div><div><h1>Sales Invoices</h1><p>Track customer invoices and collections</p></div></div></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 
@@ -61,7 +61,7 @@ function SalesInvoices() {
       {/* Overdue Alert */}
       {overdue && overdue.count > 0 && (
         <div className="overdue-alert">
-          <div className="overdue-header">⚠️ {overdue.count} overdue invoices — {(Number(overdue.total_overdue) || 0).toFixed(3)} OMR</div>
+          <div className="overdue-header">{overdue.count} overdue invoices — {(Number(overdue.total_overdue) || 0).toFixed(3)} OMR</div>
           <div className="overdue-list">
             {(overdue.invoices || []).slice(0, 5).map(inv => (
               <div key={inv.id} className="overdue-item">
@@ -94,7 +94,7 @@ function SalesInvoices() {
               <div className="form-group"><label>Reference</label><input value={payForm.bank_reference} onChange={e => setPayForm(p => ({...p, bank_reference: e.target.value}))} placeholder="Cheque # or bank ref" /></div>
             </div>
             <div className="modal-actions">
-              <button className="submit-btn" onClick={submitPayment}>💰 Record Payment</button>
+              <button className="submit-btn" onClick={submitPayment}>Record Payment</button>
               <button className="cancel-btn" onClick={() => setPayingInvoice(null)}>Cancel</button>
             </div>
           </div>
@@ -122,7 +122,7 @@ function SalesInvoices() {
                   <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(inv.balance) || 0).toFixed(3)}</td>
                   <td className={inv.days_overdue > 0 ? 'negative' : ''}>{inv.days_overdue > 0 ? `${inv.days_overdue}d` : '-'}</td>
                   <td><span className="status-pill" style={{ backgroundColor: statusColor(inv.status) }}>{inv.status}</span></td>
-                  <td>{inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPayForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>💰</button>}</td>
+                  <td>{inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPayForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>Pay</button>}</td>
                 </tr>
               ))
             }
