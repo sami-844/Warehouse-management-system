@@ -11,7 +11,7 @@ from app.core.security import get_password_hash
 from app.api.auth import get_current_user
 from app.models.user import User, UserRole
 from app.models.admin import ActivityLog, CompanySettings
-import os, csv, io
+import os, csv, io, json
 
 router = APIRouter()
 
@@ -256,3 +256,29 @@ async def export_all_tables(current_user: User = Depends(get_current_user)):
         except Exception:
             pass
     return {"tables": result}
+
+
+@router.get("/export-json")
+async def export_json_backup(current_user: User = Depends(get_current_user)):
+    """Export key tables as JSON for backup/download"""
+    tables = ["products", "customers", "suppliers", "stock_levels", "warehouses",
+              "sales_orders", "purchase_orders"]
+    backup = {"exported_at": datetime.now().isoformat(), "tables": {}}
+    for t in tables:
+        try:
+            with engine.connect() as conn:
+                result = conn.execute(text(f"SELECT * FROM {t} LIMIT 5000"))
+                keys = list(result.keys())
+                rows = [dict(zip(keys, [str(v) if v is not None else None for v in row])) for row in result.fetchall()]
+                backup["tables"][t] = {"count": len(rows), "data": rows}
+        except Exception as e:
+            backup["tables"][t] = {"count": 0, "data": [], "error": str(e)}
+    output = io.StringIO()
+    json.dump(backup, output, indent=2, default=str)
+    output.seek(0)
+    filename = f"wms_backup_{date.today().isoformat()}.json"
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode()),
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

@@ -139,6 +139,13 @@ export const financialAPI = {
   profitLoss: async (params = {}) => (await api.get('/api/financial/profit-loss', { params })).data,
 };
 
+export const reportsAPI2 = {
+  salesByItem: async (params = {}) => (await api.get('/api/reports/sales-by-item', { params })).data,
+  purchasePayments: async (params = {}) => (await api.get('/api/reports/purchase-payments', { params })).data,
+  salesPayments: async (params = {}) => (await api.get('/api/reports/sales-payments', { params })).data,
+  customerOrders: async (params = {}) => (await api.get('/api/reports/customer-orders', { params })).data,
+};
+
 export const reportsAPI = {
   salesByCustomer: async (params = {}) => (await api.get('/api/reports/sales-by-customer', { params })).data,
   salesByProduct: async (params = {}) => (await api.get('/api/reports/sales-by-product', { params })).data,
@@ -150,6 +157,12 @@ export const reportsAPI = {
   receivablesAging: async () => (await api.get('/api/reports/receivables-aging')).data,
   payablesAging: async () => (await api.get('/api/reports/payables-aging')).data,
   expiryReport: async (days = 90) => (await api.get('/api/reports/expiry-report', { params: { days } })).data,
+};
+
+export const csvImportAPI = {
+  importProducts: async (rows) => (await api.post('/api/products/import', rows)).data,
+  importCustomers: async (rows) => (await api.post('/api/customers/import', rows)).data,
+  importSuppliers: async (rows) => (await api.post('/api/suppliers/import', rows)).data,
 };
 
 export const adminAPI = {
@@ -167,6 +180,7 @@ export const adminAPI = {
   listBackups: async () => (await api.get('/api/admin/backup/list')).data,
   exportTable: (table) => `${API_BASE_URL}/api/admin/export/${table}`,
   exportableList: async () => (await api.get('/api/admin/export-all')).data,
+  exportJSON: async () => (await api.get('/api/admin/export-json')).data,
 };
 
 // ━━ Phase 5b: PDF, FIFO, RBAC ━━

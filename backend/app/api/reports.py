@@ -359,3 +359,90 @@ async def expiry_report(days: int = 90, current_user: User = Depends(get_current
         "expired": [fmt(r) for r in expired],
         "expiring_soon": [fmt(r) for r in expiring],
     }
+
+
+@router.get("/sales-payments")
+async def sales_payments(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                         current_user: User = Depends(get_current_user)):
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    try:
+        rows = run_q("""
+            SELECT p.payment_date as date, c.name as customer,
+                   si.invoice_number as invoice, p.payment_method as method,
+                   p.bank_reference as reference, p.amount
+            FROM payments p
+            JOIN sales_invoices si ON p.reference_id = si.id AND p.reference_type = 'sales_invoice'
+            JOIN customers c ON si.customer_id = c.id
+            WHERE p.payment_date BETWEEN :start AND :end
+            ORDER BY p.payment_date DESC
+        """, {"start": start, "end": end})
+    except Exception:
+        rows = []
+    total = sum(float(r['amount'] or 0) for r in rows)
+    data = [{
+        "date": str(r['date']), "customer": r['customer'], "invoice": r['invoice'],
+        "method": r['method'], "reference": r['reference'] or '',
+        "amount": round(float(r['amount'] or 0), 3),
+    } for r in rows]
+    return {"data": data, "total": round(total, 3), "count": len(data),
+            "period": {"from": start, "to": end}}
+
+
+@router.get("/purchase-payments")
+async def purchase_payments(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                            current_user: User = Depends(get_current_user)):
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    try:
+        rows = run_q("""
+            SELECT p.payment_date as date, s.name as supplier,
+                   pi.invoice_number as invoice, p.payment_method as method,
+                   p.bank_reference as reference, p.amount
+            FROM payments p
+            JOIN purchase_invoices pi ON p.reference_id = pi.id AND p.reference_type = 'purchase_invoice'
+            JOIN suppliers s ON pi.supplier_id = s.id
+            WHERE p.payment_date BETWEEN :start AND :end
+            ORDER BY p.payment_date DESC
+        """, {"start": start, "end": end})
+    except Exception:
+        rows = []
+    total = sum(float(r['amount'] or 0) for r in rows)
+    data = [{
+        "date": str(r['date']), "supplier": r['supplier'], "invoice": r['invoice'],
+        "method": r['method'], "reference": r['reference'] or '',
+        "amount": round(float(r['amount'] or 0), 3),
+    } for r in rows]
+    return {"data": data, "total": round(total, 3), "count": len(data),
+            "period": {"from": start, "to": end}}
+
+
+@router.get("/customer-orders")
+async def customer_orders_report(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                                 current_user: User = Depends(get_current_user)):
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    try:
+        rows = run_q("""
+            SELECT c.code, c.name, c.area,
+                   COUNT(so.id) as orders,
+                   COALESCE(SUM(so.total_amount), 0) as total,
+                   MAX(so.order_date) as last_order
+            FROM customers c
+            LEFT JOIN sales_orders so ON so.customer_id = c.id
+                AND so.order_date BETWEEN :start AND :end
+            GROUP BY c.id, c.code, c.name, c.area
+            HAVING COUNT(so.id) > 0
+            ORDER BY total DESC
+        """, {"start": start, "end": end})
+    except Exception:
+        rows = []
+    data = [{
+        "code": r['code'], "name": r['name'], "area": r['area'] or '',
+        "orders": r['orders'], "total": round(float(r['total'] or 0), 3),
+        "last_order": str(r['last_order'])[:10] if r['last_order'] else '-',
+    } for r in rows]
+    return {"data": data, "count": len(data), "period": {"from": start, "to": end}}

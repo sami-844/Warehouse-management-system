@@ -43,6 +43,9 @@ import BarcodeLabelPrinter from './components/BarcodeLabelPrinter';
 import MultiCurrencyDashboard from './components/MultiCurrencyDashboard';
 import ReturnsManager from './components/ReturnsManager';
 import NotificationSettings from './components/NotificationSettings';
+import SettingsPages from './components/SettingsPages';
+import StockAdjustmentLog from './components/StockAdjustmentLog';
+import ToastContainer from './components/Toast';
 
 // ── Error Boundary ──
 class ErrorBoundary extends React.Component {
@@ -110,6 +113,8 @@ const PAGE_ROLE_MAP = {
   'settings':           ['ADMIN'],
   'notifications':      ['ADMIN','ACCOUNTANT','WAREHOUSE_MANAGER'],
   'activity-log':       ['ADMIN'],
+  'settings-lookup':    ['ADMIN'],
+  'stock-log':          ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
 };
 
 function canAccessPage(page, role) {
@@ -302,8 +307,10 @@ function App() {
       // ── Admin ──
       case 'users':                return <UserManagement />;
       case 'settings':             return <CompanySettings />;
+      case 'settings-lookup':      return <SettingsPages />;
       case 'notifications':        return <NotificationSettings />;
       case 'activity-log':         return <UserManagement />;
+      case 'stock-log':            return <StockAdjustmentLog />;
 
       // ── PDF Print (hidden pages, accessed via buttons) ──
       case 'print-invoice':        return <InvoicePDF orderId={printInvoiceOrderId} onClose={closePDF} />;
@@ -321,6 +328,7 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
+      <ToastContainer />
       <Navigation
         currentPage={currentPage} onNavigate={navigate}
         user={user} onLogout={handleLogout}

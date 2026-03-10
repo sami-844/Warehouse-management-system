@@ -39,6 +39,32 @@ function SalesInvoices() {
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 
+      {/* KPI Summary Cards */}
+      {!loading && invoices.length > 0 && (() => {
+        const total = invoices.length;
+        const billed = invoices.reduce((s, i) => s + (Number(i.total_amount) || 0), 0);
+        const collected = invoices.reduce((s, i) => s + (Number(i.amount_paid) || 0), 0);
+        const outstanding = billed - collected;
+        const kpis = [
+          { label: 'Total Invoices', value: total, unit: '', color: '#1a2332' },
+          { label: 'Total Billed', value: billed.toFixed(3), unit: 'OMR', color: '#2563eb' },
+          { label: 'Collected', value: collected.toFixed(3), unit: 'OMR', color: '#16a34a' },
+          { label: 'Outstanding', value: outstanding.toFixed(3), unit: 'OMR', color: outstanding > 0 ? '#dc2626' : '#16a34a' },
+        ];
+        return (
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+            {kpis.map(k => (
+              <div key={k.label} style={{ flex: 1, minWidth: 140, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{k.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: k.color, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+                  {k.value}{k.unit && <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, color: '#94a3b8' }}>{k.unit}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Aging Summary */}
       {aging && (() => {
         const b = aging.buckets || {};

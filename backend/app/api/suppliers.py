@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 from app.core.database import get_db
 from app.api.auth import get_current_user
@@ -118,3 +118,40 @@ async def update_supplier(supplier_id: int, data: SupplierUpdate, db: Session = 
     s.updated_by = current_user.id
     db.commit()
     return {"id": s.id, "name": s.name, "message": "Supplier updated"}
+
+
+@router.post("/import", status_code=201)
+async def import_suppliers(rows: List[dict], db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Bulk import suppliers from CSV rows. Skips rows with duplicate code."""
+    from sqlalchemy.exc import IntegrityError
+    created, skipped, errors = 0, 0, []
+    for i, row in enumerate(rows):
+        try:
+            code = str(row.get('code', '') or '').strip()
+            name = str(row.get('name', '') or '').strip()
+            if not code or not name:
+                skipped += 1
+                continue
+            if db.query(Supplier).filter(Supplier.code == code).first():
+                skipped += 1
+                continue
+            s = Supplier(
+                code=code, name=name,
+                contact_person=str(row.get('contact_person', '') or '').strip() or None,
+                phone=str(row.get('phone', '') or '').strip() or None,
+                email=str(row.get('email', '') or '').strip() or None,
+                city=str(row.get('city', '') or '').strip() or None,
+                payment_terms_days=int(row.get('payment_terms_days', 30) or 30),
+                is_active=True, created_by=current_user.id
+            )
+            db.add(s)
+            created += 1
+        except Exception as e:
+            errors.append(f"Row {i+1}: {str(e)}")
+            skipped += 1
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Import failed — database constraint error")
+    return {"created": created, "skipped": skipped, "errors": errors[:10]}

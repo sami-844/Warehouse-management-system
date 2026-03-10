@@ -1,6 +1,7 @@
 // Product List Component
 import React, { useState, useEffect } from 'react';
-import { productAPI, categoryAPI } from '../services/api';
+import { productAPI, categoryAPI, csvImportAPI } from '../services/api';
+import CsvImportModal from './CsvImportModal';
 import './ProductList.css';
 
 function ProductList() {
@@ -12,6 +13,8 @@ function ProductList() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importMessage, setImportMessage] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -158,13 +161,33 @@ function ProductList() {
     <div className="product-list-container">
       <div className="product-header">
         <h2>Products</h2>
-        <button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="btn-primary"
-        >
-          {showAddForm ? 'Cancel' : 'Add Product'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setShowImport(true)} className="btn-secondary" style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 6, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+            Import CSV
+          </button>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="btn-primary"
+          >
+            {showAddForm ? 'Cancel' : 'Add Product'}
+          </button>
+        </div>
       </div>
+      {importMessage && <div style={{ margin: '8px 0', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, color: '#15803d', fontSize: 13 }}>{importMessage}</div>}
+      {showImport && (
+        <CsvImportModal
+          type="products"
+          onClose={() => setShowImport(false)}
+          onImport={async (rows) => {
+            try {
+              const res = await csvImportAPI.importProducts(rows);
+              setImportMessage(`Imported ${res.created} products. Skipped: ${res.skipped}.${res.errors?.length ? ' Errors: ' + res.errors[0] : ''}`);
+              setShowImport(false);
+              loadData();
+            } catch(e) { setImportMessage('Import failed: ' + (e.response?.data?.detail || e.message)); setShowImport(false); }
+          }}
+        />
+      )}
 
       {showAddForm && (
         <div className="product-form-container">

@@ -274,5 +274,48 @@ def delete_product(
     product.is_active = False
     product.updated_by = current_user.id
     db.commit()
-    
+
     return None
+
+
+@router.post("/products/import", status_code=201)
+def import_products(
+    rows: List[dict],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Bulk import products from CSV rows. Skips rows with duplicate SKU."""
+    created, skipped, errors = 0, 0, []
+    for i, row in enumerate(rows):
+        try:
+            sku = str(row.get('sku', '') or '').strip()
+            name = str(row.get('name', '') or '').strip()
+            if not sku or not name:
+                skipped += 1
+                continue
+            if db.query(Product).filter(Product.sku == sku).first():
+                skipped += 1
+                continue
+            barcode = str(row.get('barcode', '') or '').strip() or None
+            if barcode and db.query(Product).filter(Product.barcode == barcode).first():
+                barcode = None
+            p = Product(
+                sku=sku, name=name,
+                unit=str(row.get('unit', 'PCS') or 'PCS').strip(),
+                selling_price=float(row.get('selling_price', 0) or 0),
+                standard_cost=float(row.get('standard_cost', 0) or 0),
+                barcode=barcode,
+                description=str(row.get('description', '') or '').strip() or None,
+                is_active=True, created_by=current_user.id
+            )
+            db.add(p)
+            created += 1
+        except Exception as e:
+            errors.append(f"Row {i+1}: {str(e)}")
+            skipped += 1
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Import failed — database constraint error")
+    return {"created": created, "skipped": skipped, "errors": errors[:10]}

@@ -17,6 +17,7 @@ const SECTIONS = [
       { label: 'Stock Levels',    page: 'stock-levels' },
       { label: 'Stock Take',      page: 'stock-take' },
       { label: 'Stock Issue',     page: 'stock-issue' },
+      { label: 'Stock Log',       page: 'stock-log' },
       { label: 'Expiry Tracker',  page: 'expiry-tracker' },
       { label: 'FIFO Manager',    page: 'fifo-manager' },
       { label: 'Barcode Scanner', page: 'barcode-scanner' },
@@ -75,6 +76,7 @@ const SECTIONS = [
     items: [
       { label: 'Users',           page: 'users' },
       { label: 'Settings',        page: 'settings' },
+      { label: 'Lookup Tables',   page: 'settings-lookup' },
       { label: 'Notifications',   page: 'notifications' },
     ],
   },

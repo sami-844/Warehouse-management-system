@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { reportsAPI } from '../services/api';
+import { reportsAPI, reportsAPI2 } from '../services/api';
 import './AdminPanel.css';
 import { BarChart2 } from 'lucide-react';
 
@@ -14,6 +14,9 @@ const REPORTS = [
   { id: 'dead-stock', name: 'Dead Stock', icon: '', desc: 'Products not sold in 90+ days' },
   { id: 'expiry', name: 'Expiry Report', icon: '', desc: 'Expired and expiring products' },
   { id: 'delivery', name: 'Delivery Performance', icon: '', desc: 'Driver completion rates' },
+  { id: 'sales-payments', name: 'Sales Payments', icon: '', desc: 'Customer payment history' },
+  { id: 'purchase-payments', name: 'Purchase Payments', icon: '', desc: 'Supplier payment history' },
+  { id: 'customer-orders', name: 'Customer Orders', icon: '', desc: 'Order summary per customer' },
 ];
 
 function ReportsPage() {
@@ -41,6 +44,9 @@ function ReportsPage() {
         case 'dead-stock': data = await reportsAPI.deadStock(90); break;
         case 'expiry': data = await reportsAPI.expiryReport(90); break;
         case 'delivery': data = await reportsAPI.deliveryPerformance(params); break;
+        case 'sales-payments': data = await reportsAPI2.salesPayments(params); break;
+        case 'purchase-payments': data = await reportsAPI2.purchasePayments(params); break;
+        case 'customer-orders': data = await reportsAPI2.customerOrders(params); break;
         default: break;
       }
       setReportData(data);
@@ -187,6 +193,37 @@ function ReportsPage() {
               <tr key={i}><td>{r.driver}</td><td>{r.vehicle}</td><td className="center">{r.total}</td>
                 <td className="positive center">{r.delivered}</td><td className="center">{r.pending}</td>
                 <td><div className="perf-bar"><div className="perf-fill" style={{width: `${r.completion_pct || 0}%`}} /><span>{r.completion_pct || 0}%</span></div></td></tr>
+            ))}</tbody></table>
+        );
+
+      case 'sales-payments':
+        return (
+          <table className="data-table"><thead><tr><th>#</th><th>Date</th><th>Customer</th><th>Invoice</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead>
+            <tbody>{(reportData.data || []).map((r, i) => (
+              <tr key={i}><td>{i+1}</td><td>{r.date ? String(r.date).slice(0,10) : '-'}</td><td>{r.customer}</td>
+                <td className="code">{r.invoice || '-'}</td><td>{r.method || '-'}</td><td className="code">{r.reference || '-'}</td>
+                <td className="value positive">{fmt(r.amount)}</td></tr>
+            ))}</tbody></table>
+        );
+
+      case 'purchase-payments':
+        return (
+          <table className="data-table"><thead><tr><th>#</th><th>Date</th><th>Supplier</th><th>Invoice</th><th>Method</th><th>Reference</th><th>Amount</th></tr></thead>
+            <tbody>{(reportData.data || []).map((r, i) => (
+              <tr key={i}><td>{i+1}</td><td>{r.date ? String(r.date).slice(0,10) : '-'}</td><td>{r.supplier}</td>
+                <td className="code">{r.invoice || '-'}</td><td>{r.method || '-'}</td><td className="code">{r.reference || '-'}</td>
+                <td className="value positive">{fmt(r.amount)}</td></tr>
+            ))}</tbody></table>
+        );
+
+      case 'customer-orders':
+        return (
+          <table className="data-table"><thead><tr><th>#</th><th>Code</th><th>Customer</th><th>Area</th><th>Orders</th><th>Total Value</th><th>Last Order</th></tr></thead>
+            <tbody>{(reportData.data || []).map((r, i) => (
+              <tr key={i}><td>{i+1}</td><td className="code">{r.code}</td><td>{r.name}</td>
+                <td><span className="area-badge">{r.area || '-'}</span></td>
+                <td className="center">{r.orders}</td><td className="value">{fmt(r.total)}</td>
+                <td>{r.last_order || '-'}</td></tr>
             ))}</tbody></table>
         );
 

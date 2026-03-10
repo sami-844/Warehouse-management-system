@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supplierAPI } from '../services/api';
+import { supplierAPI, csvImportAPI } from '../services/api';
+import CsvImportModal from './CsvImportModal';
 import './Purchasing.css';
 import { Building2 } from 'lucide-react';
 
@@ -10,6 +11,7 @@ function SupplierList() {
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({
     code: '', name: '', contact_person: '', email: '', phone: '', mobile: '',
     address_line1: '', city: '', country: '', payment_terms_days: 30,
@@ -45,8 +47,24 @@ function SupplierList() {
     <div className="purchasing-container">
       <div className="page-header">
         <div className="header-content"><div className="header-icon supplier"><Building2 size={20} /></div><div><h1>Suppliers</h1><p>Manage your product suppliers</p></div></div>
-        <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Supplier'}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="action-btn" onClick={() => setShowImport(true)} style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>Import CSV</button>
+          <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Supplier'}</button>
+        </div>
       </div>
+      {showImport && (
+        <CsvImportModal
+          type="suppliers"
+          onClose={() => setShowImport(false)}
+          onImport={async (rows) => {
+            try {
+              const res = await csvImportAPI.importSuppliers(rows);
+              setMessage({ text: `Imported ${res.created} suppliers. Skipped: ${res.skipped}.`, type: 'success' });
+              setShowImport(false); load();
+            } catch(e) { setMessage({ text: 'Import failed: ' + (e.response?.data?.detail || e.message), type: 'error' }); setShowImport(false); }
+          }}
+        />
+      )}
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 

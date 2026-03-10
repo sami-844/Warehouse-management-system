@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 from datetime import date
 from app.core.database import get_db
@@ -182,3 +182,40 @@ async def update_customer(customer_id: int, data: CustomerUpdate, db: Session = 
         db.rollback()
         raise HTTPException(status_code=400, detail="Update failed — constraint violation")
     return {"id": c.id, "name": c.name, "message": "Customer updated"}
+
+
+@router.post("/import", status_code=201)
+async def import_customers(rows: List[dict], db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Bulk import customers from CSV rows. Skips rows with duplicate code."""
+    created, skipped, errors = 0, 0, []
+    for i, row in enumerate(rows):
+        try:
+            code = str(row.get('code', '') or '').strip()
+            name = str(row.get('name', '') or '').strip()
+            if not code or not name:
+                skipped += 1
+                continue
+            if db.query(Customer).filter(Customer.code == code).first():
+                skipped += 1
+                continue
+            c = Customer(
+                code=code, name=name,
+                phone=str(row.get('phone', '') or '').strip() or None,
+                email=str(row.get('email', '') or '').strip() or None,
+                city=str(row.get('city', '') or '').strip() or None,
+                area=str(row.get('area', '') or '').strip() or None,
+                credit_limit=float(row.get('credit_limit', 0) or 0) or None,
+                payment_terms_days=int(row.get('payment_terms_days', 7) or 7),
+                is_active=True, created_by=current_user.id, current_balance=0
+            )
+            db.add(c)
+            created += 1
+        except Exception as e:
+            errors.append(f"Row {i+1}: {str(e)}")
+            skipped += 1
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Import failed — database constraint error")
+    return {"created": created, "skipped": skipped, "errors": errors[:10]}
