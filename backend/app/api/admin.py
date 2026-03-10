@@ -2,16 +2,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 from typing import Optional
 from pydantic import BaseModel
 from datetime import date, datetime
-from app.core.database import get_db
+from app.core.database import get_db, engine
 from app.core.security import get_password_hash
 from app.api.auth import get_current_user
 from app.models.user import User, UserRole
 from app.models.admin import ActivityLog, CompanySettings
-import sqlite3, os, shutil, csv, io, json
+import os, csv, io
 
 router = APIRouter()
 
@@ -205,30 +205,15 @@ async def get_activity_log(limit: int = 50, user_id: Optional[int] = None,
 # ===== BACKUP & EXPORT =====
 @router.post("/backup")
 async def create_backup(current_user: User = Depends(get_current_user)):
-    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "warehouse.db")
-    if not os.path.exists(db_path):
-        db_path = "warehouse.db"
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_dir = os.path.join(os.path.dirname(db_path), "backups")
-    os.makedirs(backup_dir, exist_ok=True)
-    backup_path = os.path.join(backup_dir, f"warehouse_backup_{timestamp}.db")
-    shutil.copy2(db_path, backup_path)
-    size_mb = os.path.getsize(backup_path) / (1024 * 1024)
-    return {"message": "Backup created", "file": backup_path, "size_mb": round(size_mb, 2), "timestamp": timestamp}
+    return {
+        "message": "PostgreSQL backup must be performed via pg_dump on the server",
+        "command": "pg_dump -U warehouse_user warehouse > backup.sql",
+        "note": "Use Dokploy or SSH to run pg_dump — file-based backup not available in PostgreSQL mode",
+    }
 
 @router.get("/backup/list")
 async def list_backups(current_user: User = Depends(get_current_user)):
-    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "warehouse.db")
-    if not os.path.exists(db_path):
-        db_path = "warehouse.db"
-    backup_dir = os.path.join(os.path.dirname(db_path), "backups")
-    if not os.path.exists(backup_dir):
-        return {"backups": []}
-    files = sorted(os.listdir(backup_dir), reverse=True)
-    return {"backups": [{
-        "filename": f, "size_mb": round(os.path.getsize(os.path.join(backup_dir, f)) / (1024 * 1024), 2),
-        "date": f.replace("warehouse_backup_", "").replace(".db", "")
-    } for f in files if f.endswith(".db")]}
+    return {"backups": [], "note": "SQLite backups not available — database is PostgreSQL"}
 
 @router.get("/export/{table_name}")
 async def export_csv(table_name: str, current_user: User = Depends(get_current_user)):
@@ -237,23 +222,21 @@ async def export_csv(table_name: str, current_user: User = Depends(get_current_u
                "purchase_invoices", "payments", "deliveries", "pricing_rules"]
     if table_name not in allowed:
         raise HTTPException(status_code=400, detail=f"Table '{table_name}' not exportable")
-    conn = sqlite3.connect("warehouse.db", check_same_thread=False)
-    conn.row_factory = sqlite3.Row
     try:
-        rows = conn.execute(f"SELECT * FROM {table_name}").fetchall()
+        with engine.connect() as conn:
+            result = conn.execute(text(f"SELECT * FROM {table_name}"))
+            keys = list(result.keys())
+            rows = result.fetchall()
     except Exception as e:
-        conn.close()
         raise HTTPException(status_code=400, detail=f"Table not found: {e}")
     if not rows:
-        conn.close()
         return StreamingResponse(io.StringIO("No data"), media_type="text/csv",
                                  headers={"Content-Disposition": f"attachment; filename={table_name}.csv"})
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(rows[0].keys())
+    writer.writerow(keys)
     for row in rows:
-        writer.writerow([row[k] for k in row.keys()])
-    conn.close()
+        writer.writerow(list(row))
     output.seek(0)
     return StreamingResponse(output, media_type="text/csv",
                              headers={"Content-Disposition": f"attachment; filename={table_name}_{date.today().isoformat()}.csv"})
@@ -261,16 +244,15 @@ async def export_csv(table_name: str, current_user: User = Depends(get_current_u
 @router.get("/export-all")
 async def export_all_tables(current_user: User = Depends(get_current_user)):
     """Returns metadata about all exportable tables"""
-    conn = sqlite3.connect("warehouse.db", check_same_thread=False)
     tables = ["products", "customers", "suppliers", "sales_orders", "sales_order_items",
               "purchase_orders", "purchase_order_items", "inventory_transactions",
               "stock_levels", "users", "deliveries"]
     result = []
     for t in tables:
         try:
-            count = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-            result.append({"table": t, "rows": count})
+            with engine.connect() as conn:
+                count = conn.execute(text(f"SELECT COUNT(*) FROM {t}")).scalar() or 0
+                result.append({"table": t, "rows": count})
         except Exception:
             pass
-    conn.close()
     return {"tables": result}
