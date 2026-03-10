@@ -103,6 +103,7 @@
 .kpi-card.profit     { border-left-color: var(--ds-gold); }
 .kpi-card.stock      { border-left-color: var(--ds-neutral); }
 .kpi-icon  { font-size: 28px; flex-shrink: 0; }
+.kpi-body  { flex: 1; }
 .kpi-label { font-family: var(--ds-font-ui); font-size: var(--ds-text-xs); color: var(--ds-text-muted); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
 .kpi-value { font-family: var(--ds-font-mono); font-size: var(--ds-text-2xl); font-weight: 800; color: var(--ds-text); letter-spacing: -0.03em; }
 .kpi-sub   { font-family: var(--ds-font-ui); font-size: var(--ds-text-xs); color: var(--ds-text-muted); }

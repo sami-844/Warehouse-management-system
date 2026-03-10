@@ -1,0 +1,73 @@
+/* SignatureCapture.css — Canvas signature pad */
+
+.sig-container {
+  margin-bottom: 16px;
+}
+
+.sig-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #333;
+}
+
+.sig-canvas-wrapper {
+  position: relative;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  touch-action: none;
+}
+
+.sig-canvas {
+  display: block;
+  cursor: crosshair;
+  width: 100%;
+  height: auto;
+}
+
+.sig-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ccc;
+  font-size: 18px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.sig-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sig-clear-btn {
+  background: #eee;
+  color: #555;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sig-save-btn {
+  background: #0d7a3e;
+  color: #fff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sig-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

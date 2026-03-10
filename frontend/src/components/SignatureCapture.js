@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import './SignatureCapture.css';
 
 /**
  * SignatureCapture — reusable canvas signature pad.
@@ -82,14 +83,15 @@ function SignatureCapture({ onSave, label = "Signature", width = 400, height = 1
   };
 
   return (
-    <div style={styles.container}>
-      <label style={styles.label}>{label}</label>
-      <div style={styles.canvasWrapper}>
+    <div className="sig-container">
+      <label className="sig-label">{label}</label>
+      <div className="sig-canvas-wrapper">
         <canvas
           ref={canvasRef}
           width={width}
           height={height}
-          style={{ ...styles.canvas, width: '100%', height: 'auto', maxWidth: width }}
+          className="sig-canvas"
+          style={{ maxWidth: width }}
           onMouseDown={startDraw}
           onMouseMove={draw}
           onMouseUp={endDraw}
@@ -99,41 +101,18 @@ function SignatureCapture({ onSave, label = "Signature", width = 400, height = 1
           onTouchEnd={endDraw}
         />
         {!hasSignature && (
-          <div style={styles.placeholder}>Sign here</div>
+          <div className="sig-placeholder">Sign here</div>
         )}
       </div>
-      <div style={styles.buttons}>
-        <button onClick={clearSignature} style={styles.clearBtn}>Clear</button>
+      <div className="sig-buttons">
+        <button onClick={clearSignature} className="sig-clear-btn">Clear</button>
         <button onClick={saveSignature} disabled={!hasSignature || saved}
-          style={{ ...styles.saveBtn, opacity: (hasSignature && !saved) ? 1 : 0.5 }}>
+          className="sig-save-btn">
           {saved ? 'Saved' : 'Save Signature'}
         </button>
       </div>
     </div>
   );
 }
-
-const styles = {
-  container: { marginBottom: 16 },
-  label: { display: 'block', marginBottom: 6, fontWeight: 600, fontSize: 13, color: '#333' },
-  canvasWrapper: {
-    position: 'relative', border: '2px solid #ccc', borderRadius: 8,
-    overflow: 'hidden', background: '#fff', touchAction: 'none',
-  },
-  canvas: { display: 'block', cursor: 'crosshair' },
-  placeholder: {
-    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-    color: '#ccc', fontSize: 18, pointerEvents: 'none', userSelect: 'none',
-  },
-  buttons: { display: 'flex', gap: 8, marginTop: 8 },
-  clearBtn: {
-    background: '#eee', color: '#555', border: 'none', padding: '7px 16px',
-    borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-  },
-  saveBtn: {
-    background: '#0d7a3e', color: '#fff', border: 'none', padding: '7px 16px',
-    borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-  },
-};
 
 export default SignatureCapture;
