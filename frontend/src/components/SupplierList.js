@@ -25,10 +25,10 @@ function SupplierList() {
       const data = { ...form, payment_terms_days: parseInt(form.payment_terms_days) || 30 };
       if (data.credit_limit) data.credit_limit = parseFloat(data.credit_limit);
       else delete data.credit_limit;
-      if (editingId) { await supplierAPI.update(editingId, data); setMessage({ text: '✅ Supplier updated!', type: 'success' }); }
-      else { await supplierAPI.create(data); setMessage({ text: '✅ Supplier created!', type: 'success' }); }
+      if (editingId) { await supplierAPI.update(editingId, data); setMessage({ text: 'Supplier updated!', type: 'success' }); }
+      else { await supplierAPI.create(data); setMessage({ text: 'Supplier created!', type: 'success' }); }
       setShowForm(false); setEditingId(null); resetForm(); load();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const editSupplier = (s) => {
@@ -43,7 +43,7 @@ function SupplierList() {
   return (
     <div className="purchasing-container">
       <div className="page-header">
-        <div className="header-content"><div className="header-icon supplier">🏢</div><div><h1>Suppliers</h1><p>Manage your product suppliers</p></div></div>
+        <div className="header-content"><div className="header-icon supplier"></div><div><h1>Suppliers</h1><p>Manage your product suppliers</p></div></div>
         <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Supplier'}</button>
       </div>
 
@@ -78,7 +78,7 @@ function SupplierList() {
               <div className="form-group"><label>Bank Account</label><input value={form.bank_account} onChange={e => setForm(p => ({...p, bank_account: e.target.value}))} /></div>
             </div>
             <div className="form-group"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows="2" /></div>
-            <button type="submit" className="submit-btn">{editingId ? '💾 Update Supplier' : '✅ Create Supplier'}</button>
+            <button type="submit" className="submit-btn">{editingId ? 'Update Supplier' : 'Create Supplier'}</button>
           </form>
         </div>
       )}
@@ -99,7 +99,7 @@ function SupplierList() {
                     <td>Net {s.payment_terms_days}d</td>
                     <td className="center">{s.total_orders}</td>
                     <td className={`value ${(Number(s.outstanding_balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(s.outstanding_balance) || 0) > 0 ? `${(Number(s.outstanding_balance)).toFixed(3)} OMR` : '-'}</td>
-                    <td><button className="edit-btn" onClick={() => editSupplier(s)}>✏️</button></td>
+                    <td><button className="edit-btn" onClick={() => editSupplier(s)}>Edit</button></td>
                   </tr>
                 ))
               }

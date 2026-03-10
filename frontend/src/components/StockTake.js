@@ -48,14 +48,14 @@ function StockTake() {
         items: items.map(p => ({ product_id: p.product_id, counted_quantity: parseFloat(counts[p.product_id]) }))
       });
       setResult(res);
-      setMessage({ text: `✅ Stock take complete! ${res.adjustments_made} adjustments made out of ${res.total_counted} items counted.`, type: 'success' });
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+      setMessage({ text: `Stock take complete! ${res.adjustments_made} adjustments made out of ${res.total_counted} items counted.`, type: 'success' });
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
     finally { setSubmitting(false); }
   };
 
   return (
     <div className="stocktake-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon take">📋</div><div><h1>Stock Take</h1><p>Physical count and auto-adjustment</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon take"></div><div><h1>Stock Take</h1><p>Physical count and auto-adjustment</p></div></div></div>
 
       <div className="stocktake-controls">
         <div className="form-group"><label>Select Warehouse *</label>
@@ -66,9 +66,9 @@ function StockTake() {
         </div>
         {products.length > 0 && (
           <div className="count-summary">
-            <span>📦 {products.length} products</span>
-            <span>✏️ {getCountedItems().length} counted</span>
-            <span className={getDifferences().length > 0 ? 'has-diff' : ''}>⚠️ {getDifferences().length} differences</span>
+            <span>{products.length} products</span>
+            <span>{getCountedItems().length} counted</span>
+            <span className={getDifferences().length > 0 ? 'has-diff' : ''}>{getDifferences().length} differences</span>
           </div>
         )}
       </div>
@@ -98,7 +98,7 @@ function StockTake() {
           </div>
           <div className="stocktake-actions">
             <button className="submit-btn" onClick={handleSubmit} disabled={submitting || getCountedItems().length === 0}>
-              {submitting ? '⏳ Saving...' : `✅ Submit Stock Take (${getCountedItems().length} items)`}
+              {submitting ? 'Saving...' : `Submit Stock Take (${getCountedItems().length} items)`}
             </button>
           </div>
         </>
@@ -119,12 +119,12 @@ function StockTake() {
                 <tr key={i} className={r.adjusted ? 'adjusted' : 'match'}>
                   <td>{r.product_name}</td><td>{r.system_quantity}</td><td>{r.counted_quantity}</td>
                   <td className={r.difference > 0 ? 'positive' : r.difference < 0 ? 'negative' : ''}>{r.difference > 0 ? '+' : ''}{r.difference}</td>
-                  <td>{r.adjusted ? '🔄 Adjusted' : '✅ Match'}</td>
+                  <td>{r.adjusted ? 'Adjusted' : 'Match'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <button className="submit-btn" onClick={() => { setResult(null); loadProducts(selectedWarehouse); }}>📋 New Stock Take</button>
+          <button className="submit-btn" onClick={() => { setResult(null); loadProducts(selectedWarehouse); }}>New Stock Take</button>
         </div>
       )}
     </div>
