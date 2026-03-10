@@ -30,7 +30,7 @@ function FinancialDashboard() {
 
   return (
     <div className="admin-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon finance"><TrendingUp size={20} /></div><div><h1>Financial Dashboard</h1><p>Business overview at a glance</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon finance"><TrendingUp size={20} /></div><div><h1>Financial Dashboard</h1><p>Business overview at a glance</p></div></div></div>
 
       {/* KPI Cards */}
       <div className="kpi-grid">
@@ -141,7 +141,6 @@ function FinancialDashboard() {
           </table>
         </div>
       </div>
-    </div>
     </div>
   );
 }
