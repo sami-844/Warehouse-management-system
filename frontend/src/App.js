@@ -53,7 +53,6 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '60px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: 48 }}>⚠️</div>
           <h2 style={{ color: '#e67e22', marginTop: 16 }}>Something went wrong</h2>
           <p style={{ color: '#888', marginTop: 8 }}>{this.state.error?.message || 'An error occurred loading this page.'}</p>
           <button onClick={() => { this.setState({ hasError: false, error: null }); this.props.onReset?.(); }}
@@ -123,7 +122,6 @@ function canAccessPage(page, role) {
 function AccessDenied() {
   return (
     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <div style={{ fontSize: 64 }}>🔒</div>
       <h2 style={{ color: '#c0392b', marginTop: 16 }}>Access Denied</h2>
       <p style={{ color: '#888' }}>You don't have permission to view this page.</p>
     </div>
@@ -133,6 +131,7 @@ function AccessDenied() {
 function App() {
   const [user, setUser] = useState(null);
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [sidebarWidth, setSidebarWidth] = useState(220);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
@@ -207,7 +206,6 @@ function App() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1a2332, #2c3e50)' }}>
         <div style={{ background: '#fff', borderRadius: 16, padding: '48px 36px', width: 380, boxShadow: '0 12px 40px rgba(0,0,0,0.3)' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={{ fontSize: 48 }}>🏭</div>
             <h1 style={{ color: '#1a7b5b', fontSize: 24, marginTop: 8 }}>Warehouse Management</h1>
             <h2 style={{ color: '#888', fontSize: 14, fontWeight: 400, marginTop: 4 }}>AK Al Momaiza Trading</h2>
           </div>
@@ -307,7 +305,7 @@ function App() {
       default:
         return (
           <div style={{ padding: '40px 24px', textAlign: 'center' }}>
-            <h2 style={{ color: '#333' }}>📊 {currentPage.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</h2>
+            <h2 style={{ color: '#333' }}>{currentPage.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</h2>
             <p style={{ color: '#888' }}>Page "{currentPage}" — component not mapped yet.</p>
           </div>
         );
@@ -315,11 +313,17 @@ function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f6fa' }}>
-      <Navigation currentPage={currentPage} onNavigate={navigate} user={user} onLogout={handleLogout} />
-      <ErrorBoundary key={currentPage} onReset={() => setCurrentPage('dashboard')}>
-        {renderPage()}
-      </ErrorBoundary>
+    <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
+      <Navigation
+        currentPage={currentPage} onNavigate={navigate}
+        user={user} onLogout={handleLogout}
+        onWidthChange={setSidebarWidth}
+      />
+      <div style={{ marginLeft: sidebarWidth, transition: 'margin-left 0.2s ease', minHeight: '100vh' }}>
+        <ErrorBoundary key={currentPage} onReset={() => setCurrentPage('dashboard')}>
+          {renderPage()}
+        </ErrorBoundary>
+      </div>
     </div>
   );
 }
