@@ -113,17 +113,4 @@ class PricingRule(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
-class Payment(Base):
-    __tablename__ = "payments"
-    __table_args__ = {'extend_existing': True}
-    id = Column(Integer, primary_key=True, index=True)
-    payment_type = Column(String(20), nullable=False)
-    reference_type = Column(String(30), nullable=False)
-    reference_id = Column(Integer, nullable=False)
-    amount = Column(Numeric(10, 3), nullable=False)
-    payment_method = Column(String(20), default='cash')
-    payment_date = Column(Date, nullable=False)
-    bank_reference = Column(String(100))
-    notes = Column(Text)
-    recorded_by = Column(Integer)
-    created_at = Column(DateTime, server_default=func.now())
+# Payment model is defined in purchase.py to avoid duplicate table conflict

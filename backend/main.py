@@ -53,6 +53,14 @@ app.include_router(analytics_router)
 @app.on_event("startup")
 async def startup_event():
     print(f"Starting {settings.APP_NAME} v5.3")
+    from sqlalchemy import text
+    from sqlalchemy.exc import ProgrammingError
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("CREATE TYPE userrole AS ENUM ('ADMIN', 'WAREHOUSE_MANAGER', 'WAREHOUSE_STAFF', 'SALES_STAFF', 'DELIVERY_DRIVER', 'ACCOUNTANT')"))
+            conn.commit()
+        except ProgrammingError:
+            conn.rollback()
     Base.metadata.create_all(bind=engine, checkfirst=True)
     print("Database tables verified — All Phase 5c modules active")
 

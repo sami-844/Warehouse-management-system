@@ -9,12 +9,12 @@ from app.core.database import Base
 
 class UserRole(str, enum.Enum):
     """User role definitions"""
-    ADMIN = "admin"
-    WAREHOUSE_MANAGER = "warehouse_manager"
-    WAREHOUSE_STAFF = "warehouse_staff"
-    SALES_STAFF = "sales_staff"
-    DELIVERY_DRIVER = "delivery_driver"
-    ACCOUNTANT = "accountant"
+    ADMIN = "ADMIN"
+    WAREHOUSE_MANAGER = "WAREHOUSE_MANAGER"
+    WAREHOUSE_STAFF = "WAREHOUSE_STAFF"
+    SALES_STAFF = "SALES_STAFF"
+    DELIVERY_DRIVER = "DELIVERY_DRIVER"
+    ACCOUNTANT = "ACCOUNTANT"
 
 
 class User(Base):
@@ -28,7 +28,7 @@ class User(Base):
     full_name = Column(String(100), nullable=False)
     hashed_password = Column(String(255), nullable=False)
     
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.WAREHOUSE_STAFF)
+    role = Column(Enum(UserRole, name='userrole', create_type=False), nullable=False, default=UserRole.WAREHOUSE_STAFF)
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
     
