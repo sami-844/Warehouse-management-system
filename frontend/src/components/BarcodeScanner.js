@@ -46,11 +46,11 @@ function BarcodeScanner() {
 
   return (
     <div className="barcode-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon scanner">🔍</div><div><h1>Barcode Scanner</h1><p>Scan or type barcode for instant product lookup</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon scanner"></div><div><h1>Barcode Scanner</h1><p>Scan or type barcode for instant product lookup</p></div></div></div>
 
       <div className="scan-section">
         <div className="scan-input-wrapper">
-          <span className="scan-icon">📷</span>
+          <span className="scan-icon"></span>
           <input ref={inputRef} type="text" className="scan-input" value={barcode} onChange={e => setBarcode(e.target.value)} onKeyDown={handleScan}
             placeholder="Scan barcode or type and press Enter..." autoFocus />
           <button className="scan-btn" onClick={() => lookupBarcode(barcode.trim())} disabled={!barcode.trim()}>Search</button>
@@ -58,7 +58,7 @@ function BarcodeScanner() {
         <p className="scan-hint">USB barcode scanners will auto-submit. You can also type the barcode manually.</p>
       </div>
 
-      {loading && <div className="loading-state">🔍 Looking up product...</div>}
+      {loading && <div className="loading-state">Looking up product...</div>}
       {error && <div className="message error">{error}</div>}
 
       {product && (

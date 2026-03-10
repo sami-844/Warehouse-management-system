@@ -119,7 +119,7 @@ const AnalyticsDashboard = () => {
     return (
       <div className="error-container">
         <div className="error-content">
-          <div className="error-icon">⚠️</div>
+          <div className="error-icon"></div>
           <h3 className="error-title">Error Loading Dashboard</h3>
           <p className="error-message">{error}</p>
           <button className="retry-btn" onClick={fetchAllData}>Retry</button>
@@ -157,17 +157,17 @@ const AnalyticsDashboard = () => {
       <div className="brand-header">
         <div className="brand-header-inner">
           <div className="brand-logo-area">
-            <div className="brand-icon">🏢</div>
+            <div className="brand-icon"></div>
             <div>
               <h1 className="brand-title">Wholesale Distribution</h1>
               <span className="brand-tagline">Inventory Management &amp; Analytics · Oman</span>
             </div>
           </div>
           <div className="brand-header-actions no-print">
-            <button className="export-btn" onClick={handleExportCSV}>📄 CSV</button>
-            <button className="export-btn" onClick={handleExportPDF}>📑 PDF</button>
+            <button className="export-btn" onClick={handleExportCSV}>CSV</button>
+            <button className="export-btn" onClick={handleExportPDF}>PDF</button>
             <button className={`refresh-btn ${isRefreshing ? 'spinning' : ''}`}
-                    onClick={fetchAllData} title="Refresh data">🔄</button>
+                    onClick={fetchAllData} title="Refresh data">Refresh</button>
           </div>
         </div>
       </div>
@@ -189,14 +189,14 @@ const AnalyticsDashboard = () => {
       {/* ──── KPI Cards ──── */}
       <div className="kpi-section">
         <div className="kpi-grid">
-          <KPICard title="Inventory Turnover"   value={kpis.inventory_turnover_ratio}   icon="📊" accent={KPI_ACCENTS.inventory_turnover_ratio} />
-          <KPICard title="Avg. Inventory"       value={kpis.average_inventory}          unit="OMR"  icon="📦" accent={KPI_ACCENTS.average_inventory} />
-          <KPICard title="COGS"                 value={kpis.cost_of_goods_sold}         unit="OMR"  icon="💰" accent={KPI_ACCENTS.cost_of_goods_sold} />
-          <KPICard title="Service Level"        value={kpis.service_level}              unit="%"    icon="✅" accent={KPI_ACCENTS.service_level} />
-          <KPICard title="Days to Sell"         value={kpis.days_to_sell_inventory}     unit="days" icon="⏱️" accent={KPI_ACCENTS.days_to_sell_inventory} />
-          <KPICard title="Lead Time"            value={kpis.lead_time}                  unit="days" icon="🚚" accent={KPI_ACCENTS.lead_time} />
-          <KPICard title="Perfect Order Rate"  value={kpis.perfect_order_rate}         unit="%"    icon="⭐" accent={KPI_ACCENTS.perfect_order_rate} />
-          <KPICard title="Return Rate"         value={kpis.rate_of_return}             unit="%"    icon="↩️" accent={KPI_ACCENTS.rate_of_return} />
+          <KPICard title="Inventory Turnover"   value={kpis.inventory_turnover_ratio}   icon="" accent={KPI_ACCENTS.inventory_turnover_ratio} />
+          <KPICard title="Avg. Inventory"       value={kpis.average_inventory}          unit="OMR"  icon="" accent={KPI_ACCENTS.average_inventory} />
+          <KPICard title="COGS"                 value={kpis.cost_of_goods_sold}         unit="OMR"  icon="" accent={KPI_ACCENTS.cost_of_goods_sold} />
+          <KPICard title="Service Level"        value={kpis.service_level}              unit="%"    icon="" accent={KPI_ACCENTS.service_level} />
+          <KPICard title="Days to Sell"         value={kpis.days_to_sell_inventory}     unit="days" icon="" accent={KPI_ACCENTS.days_to_sell_inventory} />
+          <KPICard title="Lead Time"            value={kpis.lead_time}                  unit="days" icon="" accent={KPI_ACCENTS.lead_time} />
+          <KPICard title="Perfect Order Rate"  value={kpis.perfect_order_rate}         unit="%"    icon="" accent={KPI_ACCENTS.perfect_order_rate} />
+          <KPICard title="Return Rate"         value={kpis.rate_of_return}             unit="%"    icon="" accent={KPI_ACCENTS.rate_of_return} />
         </div>
       </div>
 

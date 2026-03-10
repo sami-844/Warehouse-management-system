@@ -60,7 +60,7 @@ function BarcodeLabelPrinter() {
       <div>
         {/* Toolbar */}
         <div className="no-print" style={{ padding: '12px 20px', background: '#1a1a2e', display: 'flex', gap: 10, position: 'sticky', top: 0, zIndex: 10 }}>
-          <button onClick={printLabels} style={btnPrint}>🖨️ Print Labels</button>
+          <button onClick={printLabels} style={btnPrint}>Print Labels</button>
           <button onClick={() => setLabels([])} style={btnClose}>← Back to Selection</button>
           <span style={{ color: '#aaa', fontSize: 13, alignSelf: 'center' }}>{labels.length} label(s) · {labelSize}</span>
         </div>
@@ -106,13 +106,13 @@ function BarcodeLabelPrinter() {
   // ── Selection View ──
   return (
     <div style={{ padding: '20px 24px', maxWidth: 900, margin: '0 auto' }}>
-      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>🏷️ Barcode Label Printer</h2>
+      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>Barcode Label Printer</h2>
       <p style={{ color: '#666', fontSize: 13, marginBottom: 20 }}>Select products → generate printable barcode stickers</p>
 
       {/* Controls */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
         <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-          placeholder="🔍 Search products..." style={inputStyle} />
+          placeholder="Search products..." style={inputStyle} />
 
         <select value={labelSize} onChange={e => setLabelSize(e.target.value)} style={selectStyle}>
           <option value="small">Small (4 per row)</option>
@@ -125,7 +125,7 @@ function BarcodeLabelPrinter() {
 
         <button onClick={generateLabels} disabled={selectedIds.length === 0 || loading}
           style={{ ...btnGen, background: '#0d7a3e', opacity: selectedIds.length > 0 ? 1 : 0.5, marginLeft: 'auto' }}>
-          {loading ? '⏳ Generating...' : `🏷️ Generate ${selectedIds.length} Label(s)`}
+          {loading ? 'Generating...' : `Generate ${selectedIds.length} Label(s)`}
         </button>
       </div>
 
@@ -142,7 +142,7 @@ function BarcodeLabelPrinter() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{p.name}</span>
-                <span style={{ fontSize: 18 }}>{selected ? '☑️' : '⬜'}</span>
+                <span style={{ fontSize: 18 }}>{selected ? '✓' : ''}</span>
               </div>
               <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
                 SKU: {p.sku || '—'} · {p.barcode || 'No barcode'}
