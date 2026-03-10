@@ -17,23 +17,23 @@ function DeliveryManager() {
   const completeDelivery = async (deliveryId) => {
     try {
       await salesAPI.completeDelivery(deliveryId, { actual_delivery_date: new Date().toISOString().slice(0, 10) });
-      setMessage({ text: '✅ Delivery completed!', type: 'success' });
+      setMessage({ text: 'Delivery completed!', type: 'success' });
       loadToday(); loadAll();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
-  const statusIcon = (s) => ({ scheduled: '📋', in_transit: '🚚', delivered: '✅', cancelled: '❌' }[s] || '❓');
+  const statusIcon = () => '';
   const statusColor = (s) => ({ scheduled: '#2563eb', in_transit: '#d97706', delivered: '#16a34a', cancelled: '#dc2626' }[s] || '#6b7280');
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon delivery">🚚</div><div><h1>Deliveries</h1><p>Daily delivery schedule and tracking</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon delivery"></div><div><h1>Deliveries</h1><p>Daily delivery schedule and tracking</p></div></div></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 
       <div className="tab-bar">
-        <button className={`tab-btn ${view === 'today' ? 'active' : ''}`} onClick={() => setView('today')}>📅 Today's Schedule</button>
-        <button className={`tab-btn ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>📋 All Deliveries</button>
+        <button className={`tab-btn ${view === 'today' ? 'active' : ''}`} onClick={() => setView('today')}>Today's Schedule</button>
+        <button className={`tab-btn ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Deliveries</button>
       </div>
 
       {view === 'today' && todayData && (
@@ -44,7 +44,7 @@ function DeliveryManager() {
           {!todayData.by_area || Object.keys(todayData.by_area).length === 0 ? <div className="no-data">No deliveries scheduled for today</div> :
             Object.entries(todayData.by_area).map(([area, deliveries]) => (
               <div key={area} className="area-group">
-                <div className="area-header"><span className="area-name">📍 {area}</span><span className="area-count">{deliveries.length} stops</span></div>
+                <div className="area-header"><span className="area-name">{area}</span><span className="area-count">{deliveries.length} stops</span></div>
                 <div className="delivery-cards">
                   {deliveries.map(d => (
                     <div key={d.id} className={`delivery-card ${d.status}`}>
@@ -55,11 +55,11 @@ function DeliveryManager() {
                       <div className="dc-customer">{d.customer}</div>
                       <div className="dc-address">{d.address || 'No address'}</div>
                       <div className="dc-footer">
-                        <span className="dc-driver">🧑‍✈️ {d.driver || 'Unassigned'}</span>
+                        <span className="dc-driver">{d.driver || 'Unassigned'}</span>
                         <span className="dc-total">{(d.total || 0).toFixed(3)} OMR</span>
                       </div>
                       {d.status !== 'delivered' && (
-                        <button className="complete-btn" onClick={() => completeDelivery(d.id)}>✅ Mark Delivered</button>
+                        <button className="complete-btn" onClick={() => completeDelivery(d.id)}>Mark Delivered</button>
                       )}
                     </div>
                   ))}
@@ -85,7 +85,7 @@ function DeliveryManager() {
                       <td>{d.scheduled_date || '-'}</td><td>{d.actual_date || '-'}</td>
                       <td className="value">{(d.total || 0).toFixed(3)}</td>
                       <td><span className="status-pill" style={{ backgroundColor: statusColor(d.status) }}>{d.status}</span></td>
-                      <td>{d.status !== 'delivered' && <button className="complete-btn small" onClick={() => completeDelivery(d.id)}>✅</button>}</td>
+                      <td>{d.status !== 'delivered' && <button className="complete-btn small" onClick={() => completeDelivery(d.id)}>Done</button>}</td>
                     </tr>
                   ))
                 }

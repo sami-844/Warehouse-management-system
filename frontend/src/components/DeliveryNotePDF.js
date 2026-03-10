@@ -29,7 +29,7 @@ function DeliveryNotePDF({ deliveryId, onClose }) {
     <div className="delivery-note-wrapper">
       {/* Toolbar — hidden when printing */}
       <div className="pdf-toolbar no-print">
-        <button onClick={handlePrint} className="btn-print">🖨️ Print / Save PDF</button>
+        <button onClick={handlePrint} className="btn-print">Print / Save PDF</button>
         <button onClick={onClose} className="btn-close-pdf">✕ Close</button>
       </div>
 

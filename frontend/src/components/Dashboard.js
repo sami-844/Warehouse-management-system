@@ -74,7 +74,7 @@ function Dashboard({ user }) {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">📦</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <h3>{stats.totalProducts}</h3>
             <p>Total Products</p>
@@ -82,7 +82,7 @@ function Dashboard({ user }) {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">📂</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <h3>{stats.totalCategories}</h3>
             <p>Categories</p>
@@ -90,7 +90,7 @@ function Dashboard({ user }) {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">✅</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <h3>{stats.activeProducts}</h3>
             <p>Active Products</p>
@@ -98,7 +98,7 @@ function Dashboard({ user }) {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">⚠️</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <h3>{stats.lowStockProducts}</h3>
             <p>Need Reorder</p>
@@ -109,9 +109,9 @@ function Dashboard({ user }) {
       <div className="quick-actions">
         <h3>Quick Actions</h3>
         <div className="action-buttons">
-          <button className="action-btn">➕ Add Product</button>
-          <button className="action-btn">📊 View Inventory</button>
-          <button className="action-btn">📋 View Orders</button>
+          <button className="action-btn">Add Product</button>
+          <button className="action-btn">View Inventory</button>
+          <button className="action-btn">View Orders</button>
         </div>
       </div>
     </div>
