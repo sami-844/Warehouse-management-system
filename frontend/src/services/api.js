@@ -113,6 +113,13 @@ export const salesAPI = {
   createPricingRule: async (data) => (await api.post('/api/sales/pricing/rules', data)).data,
   deletePricingRule: async (id) => (await api.delete(`/api/sales/pricing/rules/${id}`)).data,
   customerPrices: async (customerId) => (await api.get(`/api/sales/pricing/customer/${customerId}`)).data,
+  downloadFawtaraXML: async (invoiceId) => {
+    const res = await api.get(`/api/sales/invoices/${invoiceId}/fawtara-xml`, { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `invoice_${invoiceId}_fawtara.xml`;
+    a.click(); URL.revokeObjectURL(url);
+  },
 };
 
 export const analyticsAPI = {

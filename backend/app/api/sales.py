@@ -537,3 +537,81 @@ async def delete_pricing_rule(rule_id: int, db: Session = Depends(get_db), curre
     db.delete(rule)
     db.commit()
     return {"message": "Rule deleted"}
+
+
+# ===== Fawtara E-Invoicing =====
+
+@router.get("/invoices/{invoice_id}/fawtara-xml")
+async def download_fawtara_xml(invoice_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Generate and download UBL 2.1 XML invoice for Fawtara submission"""
+    from fastapi.responses import Response
+    from app.services.fawtara import generate_invoice_xml
+    from sqlalchemy import text as sql_text
+
+    inv = db.query(SalesInvoice).filter(SalesInvoice.id == invoice_id).first()
+    if not inv:
+        raise HTTPException(404, "Invoice not found")
+
+    customer = db.query(Customer).filter(Customer.id == inv.customer_id).first()
+
+    # Get line items via sales order
+    items_rows = db.execute(sql_text("""
+        SELECT soi.quantity_ordered, soi.unit_price, soi.discount_percent,
+               p.name as product_name
+        FROM sales_order_items soi
+        JOIN products p ON soi.product_id = p.id
+        WHERE soi.sales_order_id = :so_id
+    """), {"so_id": inv.sales_order_id}).fetchall()
+
+    items = []
+    for r in items_rows:
+        qty = float(r.quantity_ordered)
+        price = float(r.unit_price)
+        disc = float(r.discount_percent or 0)
+        line_total = qty * price * (1 - disc / 100)
+        items.append({
+            "description": r.product_name,
+            "quantity": qty, "unit_price": price,
+            "tax_rate": 5, "line_total": line_total,
+        })
+
+    subtotal = sum(i["line_total"] for i in items)
+    vat_amount = sum(i["line_total"] * i["tax_rate"] / 100 for i in items)
+    total_amount = subtotal + vat_amount
+
+    # Company info from company_settings
+    try:
+        settings_rows = db.execute(sql_text("SELECT setting_key, setting_value FROM company_settings")).fetchall()
+        settings = {r.setting_key: r.setting_value for r in settings_rows}
+    except Exception:
+        settings = {}
+
+    invoice_data = {
+        "invoice_number": inv.invoice_number,
+        "invoice_date": inv.invoice_date,
+        "due_date": inv.due_date,
+        "customer_name": customer.name if customer else "Unknown",
+        "customer_vat": getattr(customer, "tax_id", "") or "",
+        "customer_address": getattr(customer, "address_line1", "") or "",
+        "customer_city": getattr(customer, "area", "") or "",
+        "items": items,
+        "subtotal": subtotal,
+        "vat_amount": vat_amount,
+        "total_amount": total_amount,
+    }
+
+    company_data = {
+        "name": settings.get("company_name", "AK Al Momaiza Trading"),
+        "vat_number": settings.get("company_tax_id", ""),
+        "address": settings.get("company_address", "Muscat, Oman"),
+        "city": "Muscat",
+    }
+
+    xml_content = generate_invoice_xml(invoice_data, company_data)
+    filename = f"invoice_{inv.invoice_number}_fawtara.xml"
+
+    return Response(
+        content=xml_content,
+        media_type="application/xml",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

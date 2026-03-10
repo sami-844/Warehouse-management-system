@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { pdfAPI } from '../services/api';
+import QRCode from 'qrcode';
 
 function InvoicePDF({ orderId, onClose }) {
   const [data, setData] = useState(null);
@@ -13,6 +14,23 @@ function InvoicePDF({ orderId, onClose }) {
       .then(d => { setData(d); setLoading(false); })
       .catch(e => { setError(e.response?.data?.detail || 'Failed to load invoice'); setLoading(false); });
   }, [orderId]);
+
+  const [qrSrc, setQrSrc] = useState('');
+
+  useEffect(() => {
+    if (!data) return;
+    const { company, order, tax_amount, total } = data;
+    const qrData = [
+      company.name,
+      company.tax_id || '',
+      order.order_date || new Date().toISOString().slice(0, 10),
+      (Number(total) || 0).toFixed(3),
+      (Number(tax_amount) || 0).toFixed(3),
+    ].join('|');
+    QRCode.toDataURL(qrData, { width: 100, margin: 1 })
+      .then(url => setQrSrc(url))
+      .catch(() => {}); // silently skip if QR generation fails
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePrint = () => window.print();
 
@@ -133,12 +151,18 @@ function InvoicePDF({ orderId, onClose }) {
           </table>
         </div>
 
-        {/* Footer — Signatures */}
+        {/* Footer — Signatures + QR */}
         <div className="inv-footer">
           <div className="inv-sig-block">
             <div className="inv-sig-line"></div>
             <p>Prepared By</p>
           </div>
+          {qrSrc && (
+            <div style={{ textAlign: 'center' }}>
+              <img src={qrSrc} alt="Fawtara QR" style={{ width: 90, height: 90 }} />
+              <p style={{ fontSize: 7, color: '#6b7280', margin: '2px 0 0' }}>Fawtara E-Invoice</p>
+            </div>
+          )}
           <div className="inv-sig-block">
             <div className="inv-sig-line"></div>
             <p>Received By (Customer)</p>

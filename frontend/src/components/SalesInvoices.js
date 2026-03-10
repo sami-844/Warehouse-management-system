@@ -169,6 +169,7 @@ function SalesInvoices() {
                     {inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPayForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>Pay</button>}
                     <button onClick={() => sendInvoiceMsg(inv)} title="Send invoice notification" style={{ padding: '4px 8px', fontSize: 11, background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}>Notify</button>
                     {inv.days_overdue > 0 && <button onClick={() => sendReminder(inv)} title="Send payment reminder" style={{ padding: '4px 8px', fontSize: 11, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}>Remind</button>}
+                    <button onClick={() => salesAPI.downloadFawtaraXML(inv.id)} title="Download Fawtara UBL 2.1 XML" style={{ padding: '4px 8px', fontSize: 11, background: '#1A3A5C', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}>XML</button>
                   </td>
                 </tr>
               ))

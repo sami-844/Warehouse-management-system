@@ -41,3 +41,7 @@ httpx==0.26.0
 
 # Email
 fastapi-mail==1.4.1
+
+# E-Invoicing (Fawtara UBL 2.1)
+lxml>=4.9.0
+xmlschema>=2.0.0
