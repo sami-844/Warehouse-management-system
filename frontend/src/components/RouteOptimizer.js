@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { driverAPI } from '../services/api';
+import './AdminPanel.css';
+import { Navigation } from 'lucide-react';
 
 /**
  * RouteOptimizer — Shows today's deliveries on a map with route optimization.
@@ -124,15 +126,19 @@ function RouteOptimizer() {
   const completedCount = deliveries.filter(d => d.status === 'delivered').length;
 
   return (
-    <div style={{ padding: '20px 24px', maxWidth: 1000, margin: '0 auto' }}>
-      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>Route Optimizer</h2>
-      <p style={{ color: '#666', fontSize: 13, marginBottom: 20 }}>Plan optimal delivery routes — drag to reorder stops</p>
+    <div className="admin-container">
+      <div className="page-header">
+        <div className="header-content">
+          <div className="header-icon route"><Navigation size={20} /></div>
+          <div><h1>Route Optimizer</h1><p>Plan optimal delivery routes — drag to reorder stops</p></div>
+        </div>
+      </div>
 
-      {error && <div style={errStyle}>{error}</div>}
-      {success && <div style={okStyle}>{success}</div>}
+      {error && <div className="message error">{error}</div>}
+      {success && <div className="message success">{success}</div>}
 
       {/* Stats Bar */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="kpi-grid" style={{ marginBottom: 'var(--ds-sp-5)' }}>
         <StatCard label="Total Stops" value={deliveries.length} color="#0d7a3e" />
         <StatCard label="Pending" value={pendingCount} color="#e67e22" />
         <StatCard label="Completed" value={completedCount} color="#27ae60" />
@@ -140,35 +146,34 @@ function RouteOptimizer() {
       </div>
 
       {/* Controls */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={optimizeRoute} disabled={optimizing || deliveries.length < 2}
-          style={{ ...btnStyle, background: '#0d7a3e' }}>
+      <div className="filter-bar" style={{ marginBottom: 'var(--ds-sp-4)' }}>
+        <button onClick={optimizeRoute} disabled={optimizing || deliveries.length < 2} className="action-btn primary">
           {optimizing ? 'Optimizing...' : 'Auto-Optimize Route'}
         </button>
-        <button onClick={loadDeliveries} style={{ ...btnStyle, background: '#3498db' }}>Refresh</button>
-        <button onClick={() => setShowKeyInput(!showKeyInput)} style={{ ...btnStyle, background: '#666' }}>
-          🔑 {mapsApiKey ? 'Update' : 'Set'} Maps Key
+        <button onClick={loadDeliveries} className="action-btn">Refresh</button>
+        <button onClick={() => setShowKeyInput(!showKeyInput)} className="action-btn">
+          {mapsApiKey ? 'Update' : 'Set'} Maps Key
         </button>
       </div>
 
       {showKeyInput && (
-        <div style={{ background: '#f0f7f4', padding: 14, borderRadius: 8, marginBottom: 16 }}>
-          <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
+        <div className="form-card" style={{ marginBottom: 'var(--ds-sp-4)' }}>
+          <p style={{ fontSize: 'var(--ds-text-xs)', color: 'var(--ds-text-muted)', marginBottom: 'var(--ds-sp-3)' }}>
             Enter your Google Maps API key to see the route map. Get one free at{' '}
             <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer">Google Cloud Console</a>.
             Enable "Maps Embed API" and "Directions API".
           </p>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="filter-bar">
             <input value={mapsApiKey} onChange={e => setMapsApiKey(e.target.value)}
-              placeholder="AIzaSy..." style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 13 }} />
-            <button onClick={saveApiKey} style={{ ...btnStyle, background: '#0d7a3e' }}>Save</button>
+              placeholder="AIzaSy..." className="search-input" style={{ flex: 1 }} />
+            <button onClick={saveApiKey} className="action-btn primary">Save</button>
           </div>
         </div>
       )}
 
       {/* Google Maps Embed */}
       {mapUrl && (
-        <div style={{ marginBottom: 20, borderRadius: 12, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{ marginBottom: 'var(--ds-sp-5)', borderRadius: 'var(--ds-r-md)', overflow: 'hidden', boxShadow: 'var(--ds-shadow-md)' }}>
           <iframe src={mapUrl} width="100%" height="350" style={{ border: 0 }} allowFullScreen loading="lazy" title="Route Map" />
         </div>
       )}
@@ -179,28 +184,25 @@ function RouteOptimizer() {
           encodeURIComponent([d.delivery_address || d.address_line1, d.area, 'Oman'].filter(Boolean).join(', '))
         ).join('/')}`}
           target="_blank" rel="noreferrer"
-          style={{ display: 'inline-block', background: '#4285F4', color: '#fff', padding: '10px 20px', borderRadius: 8, textDecoration: 'none', fontSize: 14, fontWeight: 600, marginBottom: 20 }}>
+          style={{ display: 'inline-block', background: '#4285F4', color: '#fff', padding: '10px 20px', borderRadius: 'var(--ds-r-sm)', textDecoration: 'none', fontSize: 'var(--ds-text-sm)', fontWeight: 600, marginBottom: 'var(--ds-sp-5)', fontFamily: 'var(--ds-font-ui)' }}>
           Open Full Route in Google Maps
         </a>
       )}
 
       {/* Delivery List (draggable) */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 30, color: '#888' }}>Loading deliveries...</div>
+        <div className="loading-state">Loading deliveries...</div>
       ) : deliveries.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 30, color: '#888' }}>No deliveries today</div>
+        <div className="no-data">No deliveries today</div>
       ) : (
         <div>
-          <h3 style={{ color: '#333', fontSize: 15, marginBottom: 10 }}>Route Sequence (drag to reorder)</h3>
+          <h3 style={{ color: 'var(--ds-text)', fontSize: 'var(--ds-text-md)', fontWeight: 700, marginBottom: 'var(--ds-sp-3)', fontFamily: 'var(--ds-font-ui)' }}>
+            Route Sequence (drag to reorder)
+          </h3>
           {/* Area Summary */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div className="filter-bar" style={{ marginBottom: 'var(--ds-sp-4)' }}>
             {Object.entries(areaGroups).map(([area, items]) => (
-              <span key={area} style={{
-                background: '#e8f0f8', padding: '4px 12px', borderRadius: 20,
-                fontSize: 12, fontWeight: 600, color: '#2c3e50'
-              }}>
-                {area} ({items.length})
-              </span>
+              <span key={area} className="area-badge">{area} ({items.length})</span>
             ))}
           </div>
 
@@ -212,22 +214,24 @@ function RouteOptimizer() {
               onDragEnd={onDragEnd}
               onDragOver={(e) => e.preventDefault()}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                background: d.status === 'delivered' ? '#f0f8f0' : '#fff',
-                borderRadius: 10, marginBottom: 6, cursor: 'grab',
-                borderLeft: `4px solid ${d.status === 'delivered' ? '#27ae60' : '#e67e22'}`,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                display: 'flex', alignItems: 'center', gap: 'var(--ds-sp-3)',
+                padding: 'var(--ds-sp-3) var(--ds-sp-4)',
+                background: d.status === 'delivered' ? 'var(--ds-green-tint)' : 'var(--ds-surface)',
+                borderRadius: 'var(--ds-r-md)', marginBottom: 'var(--ds-sp-2)', cursor: 'grab',
+                borderLeft: `4px solid ${d.status === 'delivered' ? 'var(--ds-green)' : '#e67e22'}`,
+                border: '1px solid var(--ds-border)',
+                boxShadow: 'var(--ds-shadow-card)',
               }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#888', minWidth: 28, textAlign: 'center' }}>
+              <div style={{ fontSize: 'var(--ds-text-sm)', fontWeight: 700, color: 'var(--ds-text-muted)', minWidth: 28, textAlign: 'center', fontFamily: 'var(--ds-font-mono)' }}>
                 ☰ {idx + 1}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{d.customer_name}</div>
-                <div style={{ fontSize: 12, color: '#666' }}>
+                <div style={{ fontWeight: 700, fontSize: 'var(--ds-text-md)', color: 'var(--ds-text)', fontFamily: 'var(--ds-font-ui)' }}>{d.customer_name}</div>
+                <div style={{ fontSize: 'var(--ds-text-sm)', color: 'var(--ds-text-muted)', fontFamily: 'var(--ds-font-ui)' }}>
                   {d.area || d.city || ''} · {d.item_count || '?'} items · {d.order_number}
                 </div>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: d.status === 'delivered' ? '#27ae60' : '#e67e22' }}>
+              <div style={{ fontSize: 'var(--ds-text-sm)', fontWeight: 600, color: d.status === 'delivered' ? 'var(--ds-green)' : '#e67e22', fontFamily: 'var(--ds-font-ui)' }}>
                 {d.status === 'delivered' ? 'Done' : 'Pending'}
               </div>
             </div>
@@ -240,15 +244,13 @@ function RouteOptimizer() {
 
 function StatCard({ label, value, color }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 8, padding: '10px 16px', borderLeft: `3px solid ${color}`, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', minWidth: 100 }}>
-      <div style={{ fontSize: 10, color: '#888', textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color }}>{value}</div>
+    <div className="kpi-card" style={{ borderLeftColor: color }}>
+      <div className="kpi-body">
+        <div className="kpi-label">{label}</div>
+        <div className="kpi-value" style={{ color }}>{value}</div>
+      </div>
     </div>
   );
 }
-
-const btnStyle = { color: '#fff', border: 'none', padding: '9px 18px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-const errStyle = { background: '#fce4e4', color: '#c0392b', padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontSize: 13 };
-const okStyle = { background: '#e8f8e8', color: '#0d7a3e', padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontSize: 13 };
 
 export default RouteOptimizer;
