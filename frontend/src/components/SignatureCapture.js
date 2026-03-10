@@ -99,14 +99,14 @@ function SignatureCapture({ onSave, label = "Signature", width = 400, height = 1
           onTouchEnd={endDraw}
         />
         {!hasSignature && (
-          <div style={styles.placeholder}>✍️ Sign here</div>
+          <div style={styles.placeholder}>Sign here</div>
         )}
       </div>
       <div style={styles.buttons}>
         <button onClick={clearSignature} style={styles.clearBtn}>Clear</button>
         <button onClick={saveSignature} disabled={!hasSignature || saved}
           style={{ ...styles.saveBtn, opacity: (hasSignature && !saved) ? 1 : 0.5 }}>
-          {saved ? '✅ Saved' : '💾 Save Signature'}
+          {saved ? 'Saved' : 'Save Signature'}
         </button>
       </div>
     </div>

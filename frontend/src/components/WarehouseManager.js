@@ -20,9 +20,9 @@ function WarehouseManager() {
     try {
       const data = { ...formData }; if (!data.parent_id) delete data.parent_id; else data.parent_id = parseInt(data.parent_id);
       await warehouseAPI.create(data);
-      setMessage({ text: '✅ Warehouse created!', type: 'success' }); setShowForm(false);
+      setMessage({ text: 'Warehouse created!', type: 'success' }); setShowForm(false);
       setFormData({ code: '', name: '', location_type: 'zone', parent_id: '', address_line1: '', city: '' }); loadWarehouses();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const viewWarehouse = async (id) => {
@@ -35,7 +35,7 @@ function WarehouseManager() {
 
   return (
     <div className="warehouse-manager-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon wh">🏭</div><div><h1>Warehouse Locations</h1><p>Manage zones, aisles, and storage areas</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon wh"></div><div><h1>Warehouse Locations</h1><p>Manage zones, aisles, and storage areas</p></div></div>
         <button className="action-btn primary" onClick={() => setShowForm(!showForm)}>{showForm ? '✕ Cancel' : '+ Add Location'}</button>
       </div>
 
@@ -73,7 +73,7 @@ function WarehouseManager() {
             {mainWarehouses.map(wh => (
               <div key={wh.id} className={`wh-node main ${selectedWarehouse === wh.id ? 'selected' : ''}`}>
                 <div className="wh-node-header" onClick={() => viewWarehouse(wh.id)}>
-                  <div className="wh-icon">🏭</div>
+                  <div className="wh-icon"></div>
                   <div className="wh-info"><div className="wh-name">{wh.name}</div><div className="wh-code">{wh.code}</div></div>
                   <div className="wh-stats"><span>{wh.product_count} products</span><span>{wh.total_units} units</span><span>{wh.total_value} OMR</span></div>
                 </div>
@@ -82,7 +82,7 @@ function WarehouseManager() {
                     {getZones(wh.id).map(zone => (
                       <div key={zone.id} className={`wh-node zone ${selectedWarehouse === zone.id ? 'selected' : ''}`} onClick={() => viewWarehouse(zone.id)}>
                         <div className="wh-node-header">
-                          <div className="wh-icon">📍</div>
+                          <div className="wh-icon"></div>
                           <div className="wh-info"><div className="wh-name">{zone.name}</div><div className="wh-code">{zone.code}</div></div>
                           <div className="wh-stats"><span>{zone.product_count} products</span><span>{zone.total_units} units</span></div>
                         </div>
