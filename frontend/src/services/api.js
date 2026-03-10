@@ -105,6 +105,7 @@ export const salesAPI = {
   todayDeliveries: async () => (await api.get('/api/sales/deliveries/today')).data,
   deliveriesByArea: async (area) => (await api.get(`/api/sales/deliveries/route/${area}`)).data,
   completeDelivery: async (id, data) => (await api.post(`/api/sales/deliveries/${id}/complete`, data)).data,
+  getDeliveryPOD: async (id) => (await api.get(`/api/sales/deliveries/${id}/pod`)).data,
   listInvoices: async (params = {}) => (await api.get('/api/sales/invoices', { params })).data,
   overdueInvoices: async () => (await api.get('/api/sales/invoices/overdue')).data,
   recordPayment: async (invoiceId, data) => (await api.post(`/api/sales/invoices/${invoiceId}/payment`, data)).data,

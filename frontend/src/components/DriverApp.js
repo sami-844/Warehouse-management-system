@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SignatureCapture from './SignatureCapture';
 import { driverAPI } from '../services/api';
 import './DriverApp.css';
@@ -23,6 +23,10 @@ function DriverApp({ user, onClose }) {
   const [driverSig, setDriverSig] = useState('');
   const [notes, setNotes] = useState('');
   const [gps, setGps] = useState(null);
+  const [podPhoto, setPodPhoto] = useState(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
   const driverName = user?.full_name || user?.username || '';
 
@@ -61,6 +65,41 @@ function DriverApp({ user, onClose }) {
     }
   };
 
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      setShowCamera(true);
+      setTimeout(() => { if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); } }, 100);
+    } catch {
+      setError('Camera not available — please upload a photo instead');
+    }
+  };
+
+  const takePhoto = () => {
+    if (!videoRef.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth || 640;
+    canvas.height = videoRef.current.videoHeight || 480;
+    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    setPodPhoto(dataUrl);
+    stopCamera();
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+    setShowCamera(false);
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setPodPhoto(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
   const completeDelivery = () => {
     if (!selectedDelivery) return;
     if (!custSignature) { setError('Customer signature required'); return; }
@@ -72,10 +111,11 @@ function DriverApp({ user, onClose }) {
       notes: notes,
       latitude: gps?.lat || null,
       longitude: gps?.lng || null,
+      pod_photo: podPhoto || null,
     }).then(() => {
       setSuccess('Delivery completed!');
       setCompleting(false);
-      setCustSignature(''); setDriverSig(''); setNotes(''); setGps(null);
+      setCustSignature(''); setDriverSig(''); setNotes(''); setGps(null); setPodPhoto(null);
       setSelectedDelivery(null); setDetailData(null);
       loadDeliveries();
     }).catch(e => {
@@ -129,6 +169,49 @@ function DriverApp({ user, onClose }) {
 
             <SignatureCapture label="Customer Signature *" onSave={setCustSignature} width={360} height={150} />
             <SignatureCapture label="Driver Signature" onSave={setDriverSig} width={360} height={150} />
+
+            {/* POD Photo Capture */}
+            <div style={{ marginBottom: 12 }}>
+              <label className="driver-label">Proof of Delivery Photo</label>
+              {showCamera ? (
+                <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', marginBottom: 8 }}>
+                  <video ref={videoRef} style={{ width: '100%', maxHeight: 280, background: '#000', display: 'block' }} playsInline />
+                  <div style={{ display: 'flex', gap: 8, padding: 8, justifyContent: 'center' }}>
+                    <button onClick={takePhoto} style={{
+                      background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6,
+                      padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                    }}>Capture</button>
+                    <button onClick={stopCamera} style={{
+                      background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6,
+                      padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                    }}>Cancel</button>
+                  </div>
+                </div>
+              ) : podPhoto ? (
+                <div style={{ position: 'relative', marginBottom: 8 }}>
+                  <img src={podPhoto} alt="POD" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, border: '2px solid #16a34a' }} />
+                  <button onClick={() => setPodPhoto(null)} style={{
+                    position: 'absolute', top: 6, right: 6, background: '#dc2626', color: '#fff',
+                    border: 'none', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer',
+                    fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>X</button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={startCamera} style={{
+                    flex: 1, background: '#1a2332', color: '#fff', border: 'none', borderRadius: 6,
+                    padding: '10px 14px', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                  }}>Take Photo</button>
+                  <label style={{
+                    flex: 1, background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', borderRadius: 6,
+                    padding: '10px 14px', fontWeight: 600, fontSize: 13, cursor: 'pointer', textAlign: 'center',
+                  }}>
+                    Upload
+                    <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+                  </label>
+                </div>
+              )}
+            </div>
 
             <div style={{ marginBottom: 12 }}>
               <label className="driver-label">Notes</label>

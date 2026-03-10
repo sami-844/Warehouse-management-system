@@ -364,7 +364,27 @@ async def list_deliveries(status: Optional[str] = None, from_date: Optional[str]
         "status": d.status, "scheduled_date": str(d.scheduled_date) if d.scheduled_date else None,
         "actual_date": str(d.actual_delivery_date) if d.actual_delivery_date else None,
         "total": float(ta or 0),
+        "has_pod_photo": bool(d.pod_photo_base64),
+        "pod_latitude": float(d.delivery_latitude) if d.delivery_latitude else None,
+        "pod_longitude": float(d.delivery_longitude) if d.delivery_longitude else None,
+        "pod_captured_at": str(d.pod_captured_at) if d.pod_captured_at else None,
     } for d, on, ta in query.order_by(Delivery.scheduled_date.desc()).all()]
+
+@router.get("/deliveries/{delivery_id}/pod")
+async def get_delivery_pod(delivery_id: int, db: Session = Depends(get_db),
+                           current_user: User = Depends(get_current_user)):
+    d = db.query(Delivery).filter(Delivery.id == delivery_id).first()
+    if not d: raise HTTPException(status_code=404, detail="Delivery not found")
+    return {
+        "id": d.id, "status": d.status,
+        "pod_photo_base64": d.pod_photo_base64,
+        "signature_image": d.signature_image,
+        "delivery_latitude": float(d.delivery_latitude) if d.delivery_latitude else None,
+        "delivery_longitude": float(d.delivery_longitude) if d.delivery_longitude else None,
+        "pod_captured_at": str(d.pod_captured_at) if d.pod_captured_at else None,
+        "actual_delivery_date": str(d.actual_delivery_date) if d.actual_delivery_date else None,
+        "delivery_notes": d.delivery_notes,
+    }
 
 @router.get("/deliveries/today")
 async def today_deliveries(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

@@ -71,6 +71,8 @@ class Delivery(Base):
     delivery_notes = Column(Text)
     items_delivered = Column(Text)
     notes = Column(Text)
+    pod_photo_base64 = Column(Text, nullable=True)
+    pod_captured_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
 

@@ -141,6 +141,7 @@ class DeliveryComplete(BaseModel):
     notes: str = ""
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    pod_photo: Optional[str] = None  # base64 encoded photo
 
 
 @router.post("/delivery/{delivery_id}/complete")
@@ -163,6 +164,8 @@ def complete_delivery(delivery_id: int, data: DeliveryComplete):
                 delivery_notes       = :notes,
                 delivery_latitude    = :lat,
                 delivery_longitude   = :lng,
+                pod_photo_base64     = :photo,
+                pod_captured_at      = CASE WHEN :photo IS NOT NULL THEN CURRENT_TIMESTAMP ELSE NULL END,
                 actual_delivery_date = :today
             WHERE id = :id
         """), {
@@ -170,6 +173,7 @@ def complete_delivery(delivery_id: int, data: DeliveryComplete):
             "notes": data.notes,
             "lat": data.latitude,
             "lng": data.longitude,
+            "photo": data.pod_photo,
             "today": today,
             "id": delivery_id,
         })
