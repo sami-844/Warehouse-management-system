@@ -3,11 +3,11 @@ Multi-Currency API — Phase 5c
 Provides financial dashboard data in multiple currencies.
 OMR is base currency. Rates stored in company_settings.
 """
-from fastapi import APIRouter, HTTPException, Query
-import sqlite3, os
+from fastapi import APIRouter, Query
+from sqlalchemy import text
+from app.core.database import engine
 
 router = APIRouter()
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "warehouse.db")
 
 # Default exchange rates (OMR → X). OMR is pegged to USD at ~2.6008
 DEFAULT_RATES = {
@@ -21,26 +21,28 @@ DEFAULT_RATES = {
 }
 
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+def run_s(sql: str, params: dict = {}):
+    with engine.connect() as conn:
+        result = conn.execute(text(sql), params)
+        row = result.fetchone()
+        return row[0] if row and row[0] is not None else 0
 
 
-def get_rates(conn):
-    """Get exchange rates from settings, falling back to defaults."""
+def get_rates():
+    """Get exchange rates from company_settings, falling back to defaults."""
     rates = dict(DEFAULT_RATES)
     try:
-        rows = conn.execute(
-            "SELECT setting_key, setting_value FROM company_settings WHERE setting_key LIKE 'rate_%'"
-        ).fetchall()
-        for r in rows:
-            currency = r["setting_key"].replace("rate_", "").upper()
-            try:
-                rates[currency] = float(r["setting_value"])
-            except:
-                pass
-    except:
+        with engine.connect() as conn:
+            rows = conn.execute(text(
+                "SELECT setting_key, setting_value FROM company_settings WHERE setting_key LIKE 'rate_%'"
+            )).fetchall()
+            for r in rows:
+                currency = r[0].replace("rate_", "").upper()
+                try:
+                    rates[currency] = float(r[1])
+                except Exception:
+                    pass
+    except Exception:
         pass
     return rates
 
@@ -52,25 +54,20 @@ def convert(amount_omr, rate):
 # ── Get Exchange Rates ──
 @router.get("/rates")
 def get_exchange_rates():
-    conn = get_db()
-    rates = get_rates(conn)
-    conn.close()
-    return {"base_currency": "OMR", "rates": rates}
+    return {"base_currency": "OMR", "rates": get_rates()}
 
 
 # ── Update Exchange Rate ──
 @router.put("/rates/{currency}")
 def update_rate(currency: str, rate: float = Query(..., gt=0)):
     currency = currency.upper()
-    conn = get_db()
     key = f"rate_{currency}"
-    conn.execute("""
-        INSERT INTO company_settings (setting_key, setting_value, setting_type, updated_at)
-        VALUES (?, ?, 'number', CURRENT_TIMESTAMP)
-        ON CONFLICT(setting_key) DO UPDATE SET setting_value=?, updated_at=CURRENT_TIMESTAMP
-    """, (key, str(rate), str(rate)))
-    conn.commit()
-    conn.close()
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO company_settings (setting_key, setting_value, setting_type, updated_at)
+            VALUES (:key, :val, 'number', CURRENT_TIMESTAMP)
+            ON CONFLICT(setting_key) DO UPDATE SET setting_value=:val, updated_at=CURRENT_TIMESTAMP
+        """), {"key": key, "val": str(rate)})
     return {"message": f"Rate updated: 1 OMR = {rate} {currency}"}
 
 
@@ -78,65 +75,72 @@ def update_rate(currency: str, rate: float = Query(..., gt=0)):
 @router.get("/dashboard")
 def multicurrency_dashboard(currencies: str = Query(default="OMR,USD")):
     """Financial dashboard with data in multiple currencies."""
-    conn = get_db()
-    rates = get_rates(conn)
+    rates = get_rates()
     requested = [c.strip().upper() for c in currencies.split(",")]
 
     # Get base OMR figures
+    total_sales = 0
     try:
-        total_sales = conn.execute(
+        total_sales = run_s(
             "SELECT COALESCE(SUM(total_amount), 0) FROM sales_orders WHERE status NOT IN ('cancelled', 'draft')"
-        ).fetchone()[0]
-    except:
-        total_sales = 0
+        )
+    except Exception:
+        pass
 
+    total_purchases = 0
     try:
-        total_purchases = conn.execute(
+        total_purchases = run_s(
             "SELECT COALESCE(SUM(total_amount), 0) FROM purchase_orders WHERE status NOT IN ('cancelled', 'draft')"
-        ).fetchone()[0]
-    except:
-        total_purchases = 0
+        )
+    except Exception:
+        pass
 
+    total_receivables = 0
     try:
-        total_receivables = conn.execute(
+        total_receivables = run_s(
             "SELECT COALESCE(SUM(total_amount - COALESCE(amount_paid, 0)), 0) FROM sales_invoices WHERE status NOT IN ('paid', 'cancelled')"
-        ).fetchone()[0]
-    except:
-        total_receivables = 0
+        )
+    except Exception:
+        pass
 
+    total_payables = 0
     try:
-        total_payables = conn.execute(
+        total_payables = run_s(
             "SELECT COALESCE(SUM(total_amount - COALESCE(amount_paid, 0)), 0) FROM purchase_invoices WHERE status NOT IN ('paid', 'cancelled')"
-        ).fetchone()[0]
-    except:
-        total_payables = 0
+        )
+    except Exception:
+        pass
 
+    # Stock value — use stock_levels JOIN products (batch_inventory doesn't exist)
+    stock_value = 0
     try:
-        stock_value = conn.execute(
-            "SELECT COALESCE(SUM(quantity_remaining * cost_price), 0) FROM batch_inventory WHERE status='active'"
-        ).fetchone()[0]
-    except:
-        stock_value = 0
+        stock_value = run_s("""
+            SELECT COALESCE(SUM(sl.quantity_on_hand * COALESCE(p.standard_cost, 0)), 0)
+            FROM stock_levels sl
+            JOIN products p ON sl.product_id = p.id
+        """)
+    except Exception:
+        pass
 
+    # Credit notes — graceful if table doesn't exist
+    credit_notes_value = 0
     try:
-        credit_notes_value = conn.execute(
+        credit_notes_value = run_s(
             "SELECT COALESCE(SUM(total_amount), 0) FROM credit_notes WHERE status='issued'"
-        ).fetchone()[0]
-    except:
-        credit_notes_value = 0
+        )
+    except Exception:
+        pass
 
-    conn.close()
-
-    gross_profit = total_sales - total_purchases
+    gross_profit = float(total_sales) - float(total_purchases)
     base = {
-        "total_sales": round(total_sales, 3),
-        "total_purchases": round(total_purchases, 3),
+        "total_sales": round(float(total_sales), 3),
+        "total_purchases": round(float(total_purchases), 3),
         "gross_profit": round(gross_profit, 3),
-        "total_receivables": round(total_receivables, 3),
-        "total_payables": round(total_payables, 3),
-        "net_receivables": round(total_receivables - total_payables, 3),
-        "stock_value": round(stock_value, 3),
-        "open_credit_notes": round(credit_notes_value, 3),
+        "total_receivables": round(float(total_receivables), 3),
+        "total_payables": round(float(total_payables), 3),
+        "net_receivables": round(float(total_receivables) - float(total_payables), 3),
+        "stock_value": round(float(stock_value), 3),
+        "open_credit_notes": round(float(credit_notes_value), 3),
     }
 
     # Convert to all requested currencies
