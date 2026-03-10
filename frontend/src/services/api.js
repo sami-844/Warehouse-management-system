@@ -180,6 +180,7 @@ export const reportsAPI = {
   receivablesAging: async () => (await api.get('/api/reports/receivables-aging')).data,
   payablesAging: async () => (await api.get('/api/reports/payables-aging')).data,
   expiryReport: async (days = 90) => (await api.get('/api/reports/expiry-report', { params: { days } })).data,
+  vatReturn: async (params = {}) => (await api.get('/api/reports/vat-return', { params })).data,
 };
 
 export const csvImportAPI = {

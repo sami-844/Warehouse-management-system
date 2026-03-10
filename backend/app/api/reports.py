@@ -530,3 +530,77 @@ async def return_items(from_date: Optional[str] = None, to_date: Optional[str] =
     } for r in rows]
     return {"data": data, "count": len(data), "total_value": round(total_value, 3),
             "total_qty": round(total_qty, 3), "period": {"from": start, "to": end}}
+
+
+# ── VAT Return Report ──
+
+@router.get("/vat-return")
+async def vat_return(start_date: str, end_date: str,
+                     current_user: User = Depends(get_current_user)):
+    """
+    Calculate VAT return figures for the given period.
+    Oman VAT return boxes:
+      Box 1: Standard-rated sales (5% VAT)
+      Box 2: Zero-rated sales (0% VAT)
+      Box 3: Output VAT (5% of Box 1)
+      Box 4: Standard-rated purchases (input VAT claimable)
+      Box 5: Input VAT (5% of Box 4)
+      Box 6: Net VAT payable (Box 3 - Box 5)
+    """
+    # Standard-rated sales (invoices with tax > 0)
+    standard_sales = run_q("""
+        SELECT COALESCE(SUM(si.subtotal), 0) as total
+        FROM sales_invoices si
+        WHERE si.invoice_date BETWEEN :s AND :e
+          AND si.tax_amount > 0
+    """, {"s": start_date, "e": end_date})
+    box1 = float(standard_sales[0]["total"]) if standard_sales else 0
+
+    # Zero-rated sales (invoices with tax = 0)
+    zero_sales = run_q("""
+        SELECT COALESCE(SUM(si.subtotal), 0) as total
+        FROM sales_invoices si
+        WHERE si.invoice_date BETWEEN :s AND :e
+          AND (si.tax_amount = 0 OR si.tax_amount IS NULL)
+    """, {"s": start_date, "e": end_date})
+    box2 = float(zero_sales[0]["total"]) if zero_sales else 0
+
+    # Output VAT collected
+    output_vat = run_q("""
+        SELECT COALESCE(SUM(si.tax_amount), 0) as total
+        FROM sales_invoices si
+        WHERE si.invoice_date BETWEEN :s AND :e
+    """, {"s": start_date, "e": end_date})
+    box3 = float(output_vat[0]["total"]) if output_vat else 0
+
+    # Standard-rated purchases
+    standard_purchases = run_q("""
+        SELECT COALESCE(SUM(pi.subtotal), 0) as total
+        FROM purchase_invoices pi
+        WHERE pi.invoice_date BETWEEN :s AND :e
+          AND pi.tax_amount > 0
+    """, {"s": start_date, "e": end_date})
+    box4 = float(standard_purchases[0]["total"]) if standard_purchases else 0
+
+    # Input VAT on purchases
+    input_vat = run_q("""
+        SELECT COALESCE(SUM(pi.tax_amount), 0) as total
+        FROM purchase_invoices pi
+        WHERE pi.invoice_date BETWEEN :s AND :e
+    """, {"s": start_date, "e": end_date})
+    box5 = float(input_vat[0]["total"]) if input_vat else 0
+
+    box6 = box3 - box5
+
+    return {
+        "period_start": start_date,
+        "period_end": end_date,
+        "box1_standard_sales": round(box1, 3),
+        "box2_zero_rated_sales": round(box2, 3),
+        "box3_output_vat": round(box3, 3),
+        "box4_standard_purchases": round(box4, 3),
+        "box5_input_vat": round(box5, 3),
+        "box6_net_vat_payable": round(box6, 3),
+        "total_sales": round(box1 + box2, 3),
+        "total_purchases": round(box4, 3),
+    }

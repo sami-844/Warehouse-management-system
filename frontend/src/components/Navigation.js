@@ -70,6 +70,7 @@ const SECTIONS = [
       { label: 'Cash Transactions',  page: 'cash-transactions' },
       { label: 'Multi-Currency',      page: 'multi-currency' },
       { label: 'Reports',             page: 'reports' },
+      { label: 'VAT Return',          page: 'vat-return' },
     ],
   },
   {
