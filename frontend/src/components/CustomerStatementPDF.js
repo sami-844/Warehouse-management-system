@@ -49,7 +49,7 @@ function CustomerStatementPDF({ customerId: propCustomerId, onClose }) {
         <div className="pdf-toolbar no-print" style={{ marginBottom: 20 }}>
           {onClose && <button onClick={onClose} className="btn-close-pdf">✕ Close</button>}
         </div>
-        <h2 style={{ color: '#0d7a3e', marginBottom: 20 }}>📄 Customer Statement</h2>
+        <h2 style={{ color: '#0d7a3e', marginBottom: 20 }}>Customer Statement</h2>
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', marginBottom: 4, fontWeight: 600, fontSize: 13 }}>Customer *</label>
@@ -97,7 +97,7 @@ function CustomerStatementPDF({ customerId: propCustomerId, onClose }) {
     <div className="statement-wrapper">
       {/* Toolbar */}
       <div className="pdf-toolbar no-print">
-        <button onClick={handlePrint} className="btn-print">🖨️ Print / Save PDF</button>
+        <button onClick={handlePrint} className="btn-print">Print / Save PDF</button>
         <button onClick={() => setData(null)} className="btn-close-pdf">← Back</button>
         {onClose && <button onClick={onClose} className="btn-close-pdf">✕ Close</button>}
       </div>

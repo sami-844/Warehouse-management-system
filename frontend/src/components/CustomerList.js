@@ -29,10 +29,10 @@ function CustomerList() {
       if (data.credit_limit) data.credit_limit = parseFloat(data.credit_limit); else delete data.credit_limit;
       if (data.latitude) data.latitude = parseFloat(data.latitude); else delete data.latitude;
       if (data.longitude) data.longitude = parseFloat(data.longitude); else delete data.longitude;
-      if (editingId) { await customerAPI.update(editingId, data); setMessage({ text: '✅ Customer updated!', type: 'success' }); }
-      else { await customerAPI.create(data); setMessage({ text: '✅ Customer created!', type: 'success' }); }
+      if (editingId) { await customerAPI.update(editingId, data); setMessage({ text: 'Customer updated!', type: 'success' }); }
+      else { await customerAPI.create(data); setMessage({ text: 'Customer created!', type: 'success' }); }
       setShowForm(false); setEditingId(null); resetForm(); load(); loadAreas();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const editCustomer = (c) => {
@@ -46,7 +46,7 @@ function CustomerList() {
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon customer">🏪</div><div><h1>Customers</h1><p>Manage shops and delivery routes</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon customer"></div><div><h1>Customers</h1><p>Manage shops and delivery routes</p></div></div>
         <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Customer'}</button></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
@@ -88,7 +88,7 @@ function CustomerList() {
               <div className="form-group"><label>GPS Longitude</label><input type="number" step="any" value={form.longitude} onChange={e => setForm(p => ({...p, longitude: e.target.value}))} placeholder="58.3829" /></div>
             </div>
             <div className="form-group"><label>Delivery Instructions</label><textarea value={form.delivery_instructions} onChange={e => setForm(p => ({...p, delivery_instructions: e.target.value}))} rows="2" placeholder="Back entrance, ask for manager..." /></div>
-            <button type="submit" className="submit-btn">{editingId ? '💾 Update' : '✅ Create Customer'}</button>
+            <button type="submit" className="submit-btn">{editingId ? 'Update' : 'Create Customer'}</button>
           </form>
         </div>
       )}
@@ -116,7 +116,7 @@ function CustomerList() {
                   <td>{c.preferred_delivery_day || 'Any'}</td>
                   <td className="center">{c.total_orders}</td>
                   <td className={`value ${(Number(c.outstanding_balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(c.outstanding_balance) || 0) > 0 ? `${(Number(c.outstanding_balance)).toFixed(3)}` : '-'}</td>
-                  <td><button className="edit-btn" onClick={() => editCustomer(c)}>✏️</button></td>
+                  <td><button className="edit-btn" onClick={() => editCustomer(c)}>Edit</button></td>
                 </tr>
               ))
             }
