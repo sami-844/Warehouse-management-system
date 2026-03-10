@@ -2,27 +2,27 @@
 PDF Generator API — Phase 5
 Returns structured data for frontend-rendered print documents.
 Frontend renders as HTML/CSS then uses window.print() → PDF.
+Migrated from SQLite3 to SQLAlchemy (PostgreSQL compatible).
 """
 from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from datetime import datetime
-import sqlite3, os
+from sqlalchemy import text
+from app.core.database import engine
 
 router = APIRouter()
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "warehouse.db")
+
+def run_q(sql: str, params: dict = {}):
+    with engine.connect() as conn:
+        result = conn.execute(text(sql), params)
+        keys = result.keys()
+        return [dict(zip(keys, row)) for row in result.fetchall()]
 
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def get_company_info(conn):
-    """Get company settings or defaults."""
+def get_company_info() -> dict:
     try:
-        rows = conn.execute("SELECT setting_key, setting_value FROM company_settings").fetchall()
+        rows = run_q("SELECT setting_key, setting_value FROM company_settings")
         settings = {r["setting_key"]: r["setting_value"] for r in rows}
     except Exception:
         settings = {}
@@ -40,35 +40,34 @@ def get_company_info(conn):
 # ── Sales Invoice ──
 @router.get("/invoice/{order_id}")
 def get_invoice_data(order_id: int):
-    conn = get_db()
-    company = get_company_info(conn)
+    company = get_company_info()
 
-    order = conn.execute("""
-        SELECT so.*, c.name as customer_name, c.address_line1, c.address_line2,
+    rows = run_q("""
+        SELECT so.id, so.order_number, so.order_date, so.status,
+               so.subtotal, so.tax_amount, so.discount_amount, so.total_amount,
+               so.delivery_address, so.notes,
+               c.name as customer_name, c.address_line1, c.address_line2,
                c.city, c.area, c.phone as customer_phone, c.email as customer_email,
                c.tax_id as customer_tax_id, c.payment_terms_days, c.contact_person
         FROM sales_orders so
         JOIN customers c ON so.customer_id = c.id
-        WHERE so.id = ?
-    """, (order_id,)).fetchone()
-    if not order:
+        WHERE so.id = :id
+    """, {"id": order_id})
+    if not rows:
         raise HTTPException(404, "Order not found")
+    order = rows[0]
 
-    items = conn.execute("""
-        SELECT soi.*, p.name as product_name, p.sku, p.barcode, p.unit_of_measure
+    items = run_q("""
+        SELECT soi.id, soi.quantity_ordered AS quantity, soi.unit_price,
+               soi.unit_cost, soi.discount_percent, soi.total_price,
+               p.name as product_name, p.sku, p.barcode, p.unit_of_measure
         FROM sales_order_items soi
         JOIN products p ON soi.product_id = p.id
-        WHERE soi.sales_order_id = ?
-    """, (order_id,)).fetchall()
+        WHERE soi.sales_order_id = :id
+    """, {"id": order_id})
 
-    conn.close()
-
-    order_dict = dict(order)
-    items_list = [dict(i) for i in items]
-
-    # Calculate totals
-    subtotal = sum((i.get("quantity", 0) or 0) * (i.get("unit_price", 0) or 0) for i in items_list)
-    discount = float(order_dict.get("discount_amount", 0) or 0)
+    subtotal = sum(float(i.get("quantity") or 0) * float(i.get("unit_price") or 0) for i in items)
+    discount = float(order.get("discount_amount") or 0)
     tax_rate = company["tax_rate"]
     taxable = subtotal - discount
     tax = round(taxable * tax_rate / 100, 3)
@@ -76,8 +75,8 @@ def get_invoice_data(order_id: int):
 
     return {
         "company": company,
-        "order": order_dict,
-        "items": items_list,
+        "order": order,
+        "items": items,
         "subtotal": round(subtotal, 3),
         "discount": discount,
         "tax_rate": tax_rate,
@@ -90,70 +89,71 @@ def get_invoice_data(order_id: int):
 # ── Delivery Note ──
 @router.get("/delivery-note/{delivery_id}")
 def get_delivery_note_data(delivery_id: int):
-    conn = get_db()
-    company = get_company_info(conn)
+    company = get_company_info()
 
-    delivery = conn.execute("""
-        SELECT d.*, so.order_number, so.customer_id, so.delivery_address, so.notes as order_notes,
+    rows = run_q("""
+        SELECT d.id, d.status, d.driver_name, d.vehicle, d.scheduled_date,
+               d.actual_delivery_date, d.signature_image, d.delivery_notes, d.notes,
+               d.sales_order_id,
+               so.order_number, so.customer_id, so.delivery_address, so.notes as order_notes,
                c.name as customer_name, c.address_line1, c.city, c.area,
                c.phone as customer_phone, c.contact_person
         FROM deliveries d
         JOIN sales_orders so ON d.sales_order_id = so.id
         JOIN customers c ON so.customer_id = c.id
-        WHERE d.id = ?
-    """, (delivery_id,)).fetchone()
-    if not delivery:
+        WHERE d.id = :id
+    """, {"id": delivery_id})
+    if not rows:
         raise HTTPException(404, "Delivery not found")
+    delivery = rows[0]
 
-    items = conn.execute("""
-        SELECT soi.*, p.name as product_name, p.sku, p.barcode, p.unit_of_measure, p.weight
+    items = run_q("""
+        SELECT soi.quantity_ordered AS quantity, soi.unit_price,
+               p.name as product_name, p.sku, p.barcode, p.unit_of_measure, p.weight
         FROM sales_order_items soi
         JOIN products p ON soi.product_id = p.id
-        WHERE soi.sales_order_id = ?
-    """, (delivery["sales_order_id"],)).fetchall()
+        WHERE soi.sales_order_id = :so_id
+    """, {"so_id": delivery["sales_order_id"]})
 
-    conn.close()
     return {
         "company": company,
-        "delivery": dict(delivery),
-        "items": [dict(i) for i in items],
+        "delivery": delivery,
+        "items": items,
         "type": "delivery_note"
     }
 
 
-# ── Customer Statement (bonus — useful for accountant) ──
+# ── Customer Statement ──
 @router.get("/statement/{customer_id}")
 def get_customer_statement(customer_id: int, from_date: str = "", to_date: str = ""):
-    conn = get_db()
-    company = get_company_info(conn)
+    company = get_company_info()
 
-    customer = conn.execute("SELECT * FROM customers WHERE id=?", (customer_id,)).fetchone()
-    if not customer:
+    cust_rows = run_q("SELECT * FROM customers WHERE id = :id", {"id": customer_id})
+    if not cust_rows:
         raise HTTPException(404, "Customer not found")
+    customer = cust_rows[0]
 
     date_filter = ""
-    params = [customer_id]
+    params: dict = {"cid": customer_id}
     if from_date:
-        date_filter += " AND so.order_date >= ?"
-        params.append(from_date)
+        date_filter += " AND so.order_date >= :from_date"
+        params["from_date"] = from_date
     if to_date:
-        date_filter += " AND so.order_date <= ?"
-        params.append(to_date)
+        date_filter += " AND so.order_date <= :to_date"
+        params["to_date"] = to_date
 
-    orders = conn.execute(f"""
+    orders = run_q(f"""
         SELECT so.id, so.order_number, so.order_date, so.total_amount, so.status
-        FROM sales_orders so WHERE so.customer_id=? {date_filter}
+        FROM sales_orders so
+        WHERE so.customer_id = :cid{date_filter}
         ORDER BY so.order_date ASC
-    """, params).fetchall()
-
-    conn.close()
+    """, params)
 
     entries = []
     running_balance = 0
     for o in orders:
-        o = dict(o)
         if o["status"] in ("confirmed", "shipped", "delivered", "invoiced"):
-            running_balance += o["total_amount"] or 0
+            running_balance += float(o["total_amount"] or 0)
             entries.append({
                 "date": o["order_date"],
                 "reference": o["order_number"],
@@ -165,7 +165,7 @@ def get_customer_statement(customer_id: int, from_date: str = "", to_date: str =
 
     return {
         "company": company,
-        "customer": dict(customer),
+        "customer": customer,
         "entries": entries,
         "opening_balance": 0,
         "closing_balance": round(running_balance, 3),

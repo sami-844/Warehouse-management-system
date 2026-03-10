@@ -4,17 +4,18 @@ Generates SVG barcodes for printing labels. No external dependencies.
 Uses Code128B encoding rendered as SVG.
 """
 from fastapi import APIRouter, HTTPException, Query
-from typing import Optional, List
-import sqlite3, os
+from typing import Optional
+from sqlalchemy import text
+from app.core.database import engine
 
 router = APIRouter()
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "warehouse.db")
 
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+def run_q(sql: str, params: dict = {}):
+    with engine.connect() as conn:
+        result = conn.execute(text(sql), params)
+        keys = result.keys()
+        return [dict(zip(keys, row)) for row in result.fetchall()]
 
 
 # ── Code128B barcode encoding ──
@@ -46,51 +47,44 @@ CODE128B_PATTERNS = [
 ]
 
 
-def encode_code128(text):
-    """Encode text as Code128B barcode pattern."""
+def encode_code128(text_val):
     values = [CODE128B_START]
-    for char in text:
+    for char in text_val:
         val = ord(char) - 32
         if 0 <= val <= 94:
             values.append(val)
-
-    # Checksum
     checksum = values[0]
     for i, val in enumerate(values[1:], 1):
         checksum += i * val
     checksum %= 103
     values.append(checksum)
     values.append(CODE128B_STOP)
-
     pattern = ""
     for val in values:
         pattern += CODE128B_PATTERNS[val]
     return pattern
 
 
-def barcode_to_svg(text, width=200, height=60, show_text=True):
-    """Generate an SVG barcode."""
-    pattern = encode_code128(text)
+def barcode_to_svg(text_val, width=200, height=60, show_text=True):
+    pattern = encode_code128(text_val)
     bar_width = width / len(pattern)
     text_height = 16 if show_text else 0
     total_height = height + text_height + 4
-
     bars = ""
     for i, bit in enumerate(pattern):
         if bit == "1":
             x = round(i * bar_width, 2)
             w = round(bar_width, 2)
             bars += f'<rect x="{x}" y="0" width="{w}" height="{height}" fill="black"/>'
-
     text_svg = ""
     if show_text:
-        text_svg = f'<text x="{width/2}" y="{height + text_height}" text-anchor="middle" font-family="monospace" font-size="12">{text}</text>'
-
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{total_height}" viewBox="0 0 {width} {total_height}">
-<rect width="{width}" height="{total_height}" fill="white"/>
-{bars}
-{text_svg}
-</svg>'''
+        text_svg = f'<text x="{width/2}" y="{height + text_height}" text-anchor="middle" font-family="monospace" font-size="12">{text_val}</text>'
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{total_height}" '
+        f'viewBox="0 0 {width} {total_height}">'
+        f'<rect width="{width}" height="{total_height}" fill="white"/>'
+        f'{bars}{text_svg}</svg>'
+    )
 
 
 # ── Generate Single Barcode ──
@@ -110,33 +104,33 @@ def generate_barcode(
 # ── Generate Labels for Products ──
 @router.get("/product-labels")
 def product_labels(
-    product_ids: str = Query(default=""),  # comma-separated
+    product_ids: str = Query(default=""),
     category_id: Optional[int] = None,
     limit: int = 50,
-    label_size: str = Query(default="medium"),  # small, medium, large
+    label_size: str = Query(default="medium"),
 ):
-    """Generate barcode labels for selected products."""
-    conn = get_db()
-
     if product_ids:
         ids = [int(x.strip()) for x in product_ids.split(",") if x.strip().isdigit()]
-        placeholders = ",".join("?" * len(ids))
-        products = conn.execute(f"""
-            SELECT id, name, sku, barcode, selling_price, unit_of_measure
-            FROM products WHERE id IN ({placeholders})
-        """, ids).fetchall()
+        if not ids:
+            products = []
+        else:
+            products = run_q(
+                "SELECT id, name, sku, barcode, selling_price, unit_of_measure "
+                "FROM products WHERE id = ANY(:ids)",
+                {"ids": ids}
+            )
     elif category_id:
-        products = conn.execute(
-            "SELECT id, name, sku, barcode, selling_price, unit_of_measure FROM products WHERE category_id = ? LIMIT ?",
-            (category_id, limit)
-        ).fetchall()
+        products = run_q(
+            "SELECT id, name, sku, barcode, selling_price, unit_of_measure "
+            "FROM products WHERE category_id = :cat LIMIT :lim",
+            {"cat": category_id, "lim": limit}
+        )
     else:
-        products = conn.execute(
-            "SELECT id, name, sku, barcode, selling_price, unit_of_measure FROM products LIMIT ?",
-            (limit,)
-        ).fetchall()
-
-    conn.close()
+        products = run_q(
+            "SELECT id, name, sku, barcode, selling_price, unit_of_measure "
+            "FROM products WHERE is_active = true LIMIT :lim",
+            {"lim": limit}
+        )
 
     sizes = {
         "small":  {"w": 150, "h": 40, "cols": 4},
@@ -147,7 +141,6 @@ def product_labels(
 
     labels = []
     for p in products:
-        p = dict(p)
         barcode_text = p.get("barcode") or p.get("sku") or f"P{p['id']}"
         svg = barcode_to_svg(barcode_text, sz["w"], sz["h"])
         labels.append({
@@ -160,36 +153,32 @@ def product_labels(
             "svg": svg,
         })
 
-    return {
-        "labels": labels,
-        "total": len(labels),
-        "columns": sz["cols"],
-        "label_size": label_size,
-    }
+    return {"labels": labels, "total": len(labels), "columns": sz["cols"], "label_size": label_size}
 
 
 # ── Generate Batch Labels (for FIFO) ──
 @router.get("/batch-labels")
 def batch_labels(batch_ids: str = Query(default="")):
-    """Generate barcode labels for batch inventory."""
-    conn = get_db()
     if not batch_ids:
         raise HTTPException(400, "Provide batch_ids (comma-separated)")
-
     ids = [int(x.strip()) for x in batch_ids.split(",") if x.strip().isdigit()]
-    placeholders = ",".join("?" * len(ids))
-    batches = conn.execute(f"""
-        SELECT bi.id, bi.batch_number, bi.expiry_date, bi.quantity_remaining,
-               p.name as product_name, p.sku
-        FROM batch_inventory bi
-        JOIN products p ON bi.product_id = p.id
-        WHERE bi.id IN ({placeholders})
-    """, ids).fetchall()
-    conn.close()
+    if not ids:
+        return {"labels": [], "total": 0}
+
+    # batch_inventory table may not exist — graceful fallback
+    try:
+        batches = run_q("""
+            SELECT bi.id, bi.batch_number, bi.expiry_date, bi.quantity_remaining,
+                   p.name as product_name, p.sku
+            FROM batch_inventory bi
+            JOIN products p ON bi.product_id = p.id
+            WHERE bi.id = ANY(:ids)
+        """, {"ids": ids})
+    except Exception:
+        return {"labels": [], "total": 0}
 
     labels = []
     for b in batches:
-        b = dict(b)
         barcode_text = b["batch_number"] or f"BATCH-{b['id']}"
         svg = barcode_to_svg(barcode_text, 250, 60)
         labels.append({
