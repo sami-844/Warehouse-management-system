@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Package, ShoppingBag, ShoppingCart, Truck,
   DollarSign, Settings, ChevronRight, LogOut, User,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, Menu,
 } from 'lucide-react';
 import './Navigation.css';
 
@@ -90,18 +90,38 @@ function sectionForPage(page) {
 function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) {
   const [collapsed, setCollapsed] = useState(false);
   const [open, setOpen] = useState(() => sectionForPage(currentPage));
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const role = user?.role?.toUpperCase() || '';
   const isAdmin = role === 'ADMIN';
+
+  // Close mobile sidebar when navigating
+  const navigate = (page) => {
+    if (isMobile) setMobileOpen(false);
+    onNavigate(page);
+  };
 
   useEffect(() => {
     const sec = sectionForPage(currentPage);
     if (sec) setOpen(sec);
   }, [currentPage]);
 
+  // Track viewport width
   useEffect(() => {
-    onWidthChange?.(collapsed ? 60 : 220);
-  }, [collapsed, onWidthChange]);
+    const handler = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setMobileOpen(false);
+    };
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  // Broadcast sidebar width to App.js
+  useEffect(() => {
+    onWidthChange?.(isMobile ? 0 : (collapsed ? 60 : 220));
+  }, [collapsed, isMobile, onWidthChange]);
 
   const toggleSection = (key) => {
     if (collapsed) return;
@@ -110,179 +130,212 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
 
   const sidebarStyle = {
     position: 'fixed',
-    top: 0,
-    left: 0,
-    width: collapsed ? 60 : 220,
-    height: '100vh',
+    top: isMobile ? 56 : 0,
+    left: isMobile ? (mobileOpen ? 0 : -220) : 0,
+    width: isMobile ? 220 : (collapsed ? 60 : 220),
+    height: isMobile ? 'calc(100vh - 56px)' : '100vh',
     background: '#0f172a',
     display: 'flex',
     flexDirection: 'column',
     overflowY: 'auto',
     overflowX: 'hidden',
     zIndex: 50,
-    transition: 'width 0.2s ease',
+    transition: isMobile ? 'left 0.2s ease' : 'width 0.2s ease',
     userSelect: 'none',
   };
 
   return (
-    <div style={sidebarStyle}>
-      {/* Brand + Toggle */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between',
-        padding: collapsed ? '14px 0' : '14px 12px', borderBottom: '1px solid #1e293b',
-        flexShrink: 0,
-      }}>
-        {!collapsed && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
-            <div style={{
-              width: 28, height: 28, background: '#16a34a', borderRadius: 6,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <span style={{ color: '#fff', fontWeight: 900, fontSize: 13, fontFamily: 'Figtree, sans-serif' }}>AK</span>
-            </div>
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', fontFamily: 'Figtree, sans-serif', lineHeight: 1.2 }}>Al Momaiza</div>
-              <div style={{ color: '#64748b', fontSize: 10, whiteSpace: 'nowrap', fontFamily: 'Figtree, sans-serif' }}>WMS v5.3</div>
-            </div>
+    <>
+      {/* Mobile top bar */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, height: 56,
+          background: '#0f172a', display: 'flex', alignItems: 'center',
+          padding: '0 16px', zIndex: 51, borderBottom: '1px solid #1e293b',
+        }}>
+          <button
+            onClick={() => setMobileOpen(o => !o)}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+          >
+            <Menu size={22} />
+          </button>
+          <div style={{ marginLeft: 12, color: '#fff', fontWeight: 700, fontSize: 15, fontFamily: 'Figtree, sans-serif' }}>
+            AK WMS
           </div>
-        )}
-        <button
-          onClick={() => setCollapsed(c => !c)}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer', color: '#64748b',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 4, borderRadius: 4, flexShrink: 0,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#94a3b8')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}
-        >
-          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-        </button>
-      </div>
+        </div>
+      )}
 
-      {/* Dashboard */}
-      <NavItem
-        icon={<LayoutDashboard size={16} />}
-        label="Dashboard"
-        active={currentPage === 'dashboard'}
-        collapsed={collapsed}
-        onClick={() => onNavigate('dashboard')}
-      />
+      {/* Backdrop (mobile only, when open) */}
+      {isMobile && mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 49, top: 56 }}
+        />
+      )}
 
-      {/* Sections */}
-      <div style={{ flex: 1 }}>
-        {SECTIONS.map(section => {
-          if (section.adminOnly && !isAdmin) return null;
-
-          const isOpen = open === section.key && !collapsed;
-          const sectionActive = section.items.some(i => i.page === currentPage);
-
-          return (
-            <div key={section.key}>
-              <button
-                onClick={() => toggleSection(section.key)}
-                title={collapsed ? section.label : undefined}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center',
-                  gap: collapsed ? 0 : 8,
-                  padding: collapsed ? '10px 0' : '10px 12px',
-                  justifyContent: collapsed ? 'center' : 'space-between',
-                  background: sectionActive && !isOpen ? '#1e293b' : 'transparent',
-                  border: 'none', cursor: 'pointer',
-                  color: sectionActive ? '#e2e8f0' : '#94a3b8',
-                  transition: 'background 0.1s, color 0.1s',
-                  borderLeft: sectionActive ? '2px solid #16a34a' : '2px solid transparent',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.color = '#e2e8f0'; }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = sectionActive && !isOpen ? '#1e293b' : 'transparent';
-                  e.currentTarget.style.color = sectionActive ? '#e2e8f0' : '#94a3b8';
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <section.Icon size={16} />
-                  {!collapsed && (
-                    <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'Figtree, sans-serif', whiteSpace: 'nowrap' }}>
-                      {section.label}
-                    </span>
-                  )}
-                </div>
-                {!collapsed && (
-                  <ChevronRight
-                    size={14}
-                    style={{
-                      transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.15s ease',
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-              </button>
-
-              {isOpen && (
-                <div>
-                  {section.items.map(item => (
-                    <SubItem
-                      key={item.page}
-                      label={item.label}
-                      active={currentPage === item.page}
-                      onClick={() => onNavigate(item.page)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* User Section */}
-      <div style={{ borderTop: '1px solid #1e293b', flexShrink: 0 }}>
-        {!collapsed && (
-          <div style={{ padding: '10px 12px 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 28, height: 28, background: '#1e293b', borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <User size={14} color="#64748b" />
-            </div>
-            <div style={{ overflow: 'hidden', flex: 1 }}>
-              <div style={{ color: '#e2e8f0', fontSize: 11, fontWeight: 600, fontFamily: 'Figtree, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.full_name || user?.username || 'User'}
-              </div>
+      {/* Sidebar */}
+      <div style={sidebarStyle}>
+        {/* Brand + Toggle */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between',
+          padding: collapsed ? '14px 0' : '14px 12px', borderBottom: '1px solid #1e293b',
+          flexShrink: 0,
+        }}>
+          {!collapsed && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
               <div style={{
-                display: 'inline-block', marginTop: 2, padding: '1px 6px',
-                background: '#16a34a', color: '#fff',
-                fontSize: 9, fontWeight: 700, fontFamily: 'Figtree, sans-serif',
-                borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.05em',
+                width: 28, height: 28, background: '#16a34a', borderRadius: 6,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                {(user?.role || 'user').replace(/_/g, ' ')}
+                <span style={{ color: '#fff', fontWeight: 900, fontSize: 13, fontFamily: 'Figtree, sans-serif' }}>AK</span>
+              </div>
+              <div style={{ overflow: 'hidden' }}>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', fontFamily: 'Figtree, sans-serif', lineHeight: 1.2 }}>Al Momaiza</div>
+                <div style={{ color: '#64748b', fontSize: 10, whiteSpace: 'nowrap', fontFamily: 'Figtree, sans-serif' }}>WMS v5.3</div>
               </div>
             </div>
-          </div>
-        )}
-        <button
-          onClick={onLogout}
-          title="Logout"
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center',
-            gap: collapsed ? 0 : 8,
-            padding: collapsed ? '10px 0' : '9px 12px',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: '#64748b', fontSize: 12, fontFamily: 'Figtree, sans-serif', fontWeight: 600,
-            transition: 'background 0.1s, color 0.1s',
-            marginBottom: 4,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.color = '#f87171'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
-        >
-          <LogOut size={15} />
-          {!collapsed && <span>Logout</span>}
-        </button>
+          )}
+          {/* Desktop collapse toggle — hidden on mobile */}
+          {!isMobile && (
+            <button
+              onClick={() => setCollapsed(c => !c)}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', color: '#64748b',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 4, borderRadius: 4, flexShrink: 0,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#94a3b8')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}
+            >
+              {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </button>
+          )}
+        </div>
+
+        {/* Dashboard */}
+        <NavItem
+          icon={<LayoutDashboard size={16} />}
+          label="Dashboard"
+          active={currentPage === 'dashboard'}
+          collapsed={collapsed}
+          onClick={() => navigate('dashboard')}
+        />
+
+        {/* Sections */}
+        <div style={{ flex: 1 }}>
+          {SECTIONS.map(section => {
+            if (section.adminOnly && !isAdmin) return null;
+
+            const isOpen = open === section.key && !collapsed;
+            const sectionActive = section.items.some(i => i.page === currentPage);
+
+            return (
+              <div key={section.key}>
+                <button
+                  onClick={() => toggleSection(section.key)}
+                  title={collapsed ? section.label : undefined}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center',
+                    gap: collapsed ? 0 : 8,
+                    padding: collapsed ? '10px 0' : '10px 12px',
+                    justifyContent: collapsed ? 'center' : 'space-between',
+                    background: sectionActive && !isOpen ? '#1e293b' : 'transparent',
+                    border: 'none', cursor: 'pointer',
+                    color: sectionActive ? '#e2e8f0' : '#94a3b8',
+                    transition: 'background 0.1s, color 0.1s',
+                    borderLeft: sectionActive ? '2px solid #16a34a' : '2px solid transparent',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.color = '#e2e8f0'; }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = sectionActive && !isOpen ? '#1e293b' : 'transparent';
+                    e.currentTarget.style.color = sectionActive ? '#e2e8f0' : '#94a3b8';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <section.Icon size={16} />
+                    {!collapsed && (
+                      <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'Figtree, sans-serif', whiteSpace: 'nowrap' }}>
+                        {section.label}
+                      </span>
+                    )}
+                  </div>
+                  {!collapsed && (
+                    <ChevronRight
+                      size={14}
+                      style={{
+                        transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.15s ease',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                </button>
+
+                {isOpen && (
+                  <div>
+                    {section.items.map(item => (
+                      <SubItem
+                        key={item.page}
+                        label={item.label}
+                        active={currentPage === item.page}
+                        onClick={() => navigate(item.page)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* User Section */}
+        <div style={{ borderTop: '1px solid #1e293b', flexShrink: 0 }}>
+          {!collapsed && (
+            <div style={{ padding: '10px 12px 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 28, height: 28, background: '#1e293b', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <User size={14} color="#64748b" />
+              </div>
+              <div style={{ overflow: 'hidden', flex: 1 }}>
+                <div style={{ color: '#e2e8f0', fontSize: 11, fontWeight: 600, fontFamily: 'Figtree, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {user?.full_name || user?.username || 'User'}
+                </div>
+                <div style={{
+                  display: 'inline-block', marginTop: 2, padding: '1px 6px',
+                  background: '#16a34a', color: '#fff',
+                  fontSize: 9, fontWeight: 700, fontFamily: 'Figtree, sans-serif',
+                  borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.05em',
+                }}>
+                  {(user?.role || 'user').replace(/_/g, ' ')}
+                </div>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={onLogout}
+            title="Logout"
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center',
+              gap: collapsed ? 0 : 8,
+              padding: collapsed ? '10px 0' : '9px 12px',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#64748b', fontSize: 12, fontFamily: 'Figtree, sans-serif', fontWeight: 600,
+              transition: 'background 0.1s, color 0.1s',
+              marginBottom: 4,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.color = '#f87171'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
+          >
+            <LogOut size={15} />
+            {!collapsed && <span>Logout</span>}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

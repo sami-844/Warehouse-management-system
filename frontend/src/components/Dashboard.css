@@ -115,3 +115,15 @@
 }
 
 .error { color: var(--ds-danger); }
+
+@media (max-width: 768px) {
+  .dashboard { padding: var(--ds-sp-3); }
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: var(--ds-sp-3); }
+  .stat-card { padding: var(--ds-sp-4); }
+  .action-buttons { flex-direction: column; }
+  .action-btn { width: 100%; text-align: center; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}

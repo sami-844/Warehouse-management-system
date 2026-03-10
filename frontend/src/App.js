@@ -132,6 +132,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [sidebarWidth, setSidebarWidth] = useState(220);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
@@ -150,6 +151,12 @@ function App() {
     if (token && savedUser) {
       try { setUser(JSON.parse(savedUser)); } catch(e) { /* ignore */ }
     }
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
   }, []);
 
   useEffect(() => {
@@ -319,7 +326,7 @@ function App() {
         user={user} onLogout={handleLogout}
         onWidthChange={setSidebarWidth}
       />
-      <div style={{ marginLeft: sidebarWidth, transition: 'margin-left 0.2s ease', minHeight: '100vh' }}>
+      <div style={{ marginLeft: sidebarWidth, paddingTop: isMobile ? 56 : 0, transition: 'margin-left 0.2s ease', minHeight: '100vh' }}>
         <ErrorBoundary key={currentPage} onReset={() => setCurrentPage('dashboard')}>
           {renderPage()}
         </ErrorBoundary>
