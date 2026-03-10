@@ -48,7 +48,7 @@ function LoginPage({ onLoginSuccess }) {
     <div className="login-container">
       <div className="login-box">
         <div className="login-header">
-          <h1>🏭 Warehouse Management</h1>
+          <h1>Warehouse Management</h1>
           <h2>AK Al Momaiza Trading</h2>
         </div>
 

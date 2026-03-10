@@ -30,9 +30,9 @@ function PricingRules() {
       if (!data.valid_from) delete data.valid_from;
       if (!data.valid_to) delete data.valid_to;
       await salesAPI.createPricingRule(data);
-      setMessage({ text: '✅ Pricing rule created!', type: 'success' });
+      setMessage({ text: 'Pricing rule created!', type: 'success' });
       setShowForm(false); setForm({ rule_name: '', product_id: '', customer_id: '', min_quantity: 1, discount_percent: '', special_price: '', valid_from: '', valid_to: '' }); load();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const deleteRule = async (id) => {
@@ -48,7 +48,7 @@ function PricingRules() {
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon pricing">💲</div><div><h1>Pricing Rules</h1><p>Customer discounts, volume pricing, promotions</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon pricing"></div><div><h1>Pricing Rules</h1><p>Customer discounts, volume pricing, promotions</p></div></div>
         <button className="action-btn primary" onClick={() => setShowForm(!showForm)}>{showForm ? '✕ Cancel' : '+ New Rule'}</button></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
@@ -78,7 +78,7 @@ function PricingRules() {
               <div className="form-group"><label>Valid From</label><input type="date" value={form.valid_from} onChange={e => setForm(p => ({...p, valid_from: e.target.value}))} /></div>
               <div className="form-group"><label>Valid To</label><input type="date" value={form.valid_to} onChange={e => setForm(p => ({...p, valid_to: e.target.value}))} /></div>
             </div>
-            <button type="submit" className="submit-btn">💲 Create Rule</button>
+            <button type="submit" className="submit-btn">Create Rule</button>
           </form>
         </div>
       )}
@@ -125,8 +125,8 @@ function PricingRules() {
                   <td className={r.discount_percent > 0 ? 'positive' : ''}>{r.discount_percent > 0 ? `${r.discount_percent}%` : '-'}</td>
                   <td className="value">{r.special_price ? `${(Number(r.special_price) || 0).toFixed(3)} OMR` : '-'}</td>
                   <td>{r.valid_from ? `${r.valid_from} → ${r.valid_to || '∞'}` : 'Always'}</td>
-                  <td>{r.is_active ? '✅' : '❌'}</td>
-                  <td><button className="remove-btn" onClick={() => deleteRule(r.id)}>🗑️</button></td>
+                  <td>{r.is_active ? 'Yes' : 'No'}</td>
+                  <td><button className="remove-btn" onClick={() => deleteRule(r.id)}>Delete</button></td>
                 </tr>
               ))
             }

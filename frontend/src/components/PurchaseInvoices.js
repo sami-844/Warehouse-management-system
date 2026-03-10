@@ -24,17 +24,17 @@ function PurchaseInvoices() {
         payment_date: paymentForm.payment_date, bank_reference: paymentForm.bank_reference || null,
         notes: paymentForm.notes || null
       });
-      setMessage({ text: `✅ Payment of ${paymentForm.amount} OMR recorded. New balance: ${result.new_balance} OMR`, type: 'success' });
+      setMessage({ text: `Payment of ${paymentForm.amount} OMR recorded. New balance: ${result.new_balance} OMR`, type: 'success' });
       setPayingInvoice(null); setPaymentForm({ amount: '', payment_method: 'bank_transfer', payment_date: new Date().toISOString().slice(0, 10), bank_reference: '', notes: '' });
       load(); loadAging();
-    } catch(e) { setMessage({ text: `❌ ${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
   };
 
   const statusColor = (s) => ({ pending: '#d97706', partial: '#2563eb', paid: '#16a34a', overdue: '#dc2626' }[s] || '#6b7280');
 
   return (
     <div className="purchasing-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon invoice">🧾</div><div><h1>Purchase Invoices</h1><p>Track supplier invoices and payments</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon invoice"></div><div><h1>Purchase Invoices</h1><p>Track supplier invoices and payments</p></div></div></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 
@@ -77,7 +77,7 @@ function PurchaseInvoices() {
               <div className="form-group"><label>Bank Ref</label><input value={paymentForm.bank_reference} onChange={e => setPaymentForm(p => ({...p, bank_reference: e.target.value}))} /></div>
             </div>
             <div className="modal-actions">
-              <button className="submit-btn" onClick={submitPayment}>💰 Record Payment</button>
+              <button className="submit-btn" onClick={submitPayment}>Record Payment</button>
               <button className="cancel-btn" onClick={() => setPayingInvoice(null)}>Cancel</button>
             </div>
           </div>
@@ -105,7 +105,7 @@ function PurchaseInvoices() {
                     <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(inv.balance) || 0).toFixed(3)}</td>
                     <td className={inv.days_overdue > 0 ? 'negative' : ''}>{inv.days_overdue > 0 ? `${inv.days_overdue}d` : '-'}</td>
                     <td><span className="status-pill" style={{ backgroundColor: statusColor(inv.status) }}>{inv.status}</span></td>
-                    <td>{inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPaymentForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>💰 Pay</button>}</td>
+                    <td>{inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPaymentForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>Pay</button>}</td>
                   </tr>
                 ))
               }
