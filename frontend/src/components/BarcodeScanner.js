@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { productAPI, inventoryAPI } from '../services/api';
 import './BarcodeScanner.css';
+import { ScanLine } from 'lucide-react';
 
 function BarcodeScanner() {
   const [barcode, setBarcode] = useState('');
@@ -46,7 +47,7 @@ function BarcodeScanner() {
 
   return (
     <div className="barcode-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon scanner"></div><div><h1>Barcode Scanner</h1><p>Scan or type barcode for instant product lookup</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon scanner"><ScanLine size={20} /></div><div><h1>Barcode Scanner</h1><p>Scan or type barcode for instant product lookup</p></div></div></div>
 
       <div className="scan-section">
         <div className="scan-input-wrapper">

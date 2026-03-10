@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { inventoryAPI, warehouseAPI } from '../services/api';
 import './StockTake.css';
+import { ClipboardList } from 'lucide-react';
 
 function StockTake() {
   const [warehouses, setWarehouses] = useState([]);
@@ -55,7 +56,7 @@ function StockTake() {
 
   return (
     <div className="stocktake-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon take"></div><div><h1>Stock Take</h1><p>Physical count and auto-adjustment</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon take"><ClipboardList size={20} /></div><div><h1>Stock Take</h1><p>Physical count and auto-adjustment</p></div></div></div>
 
       <div className="stocktake-controls">
         <div className="form-group"><label>Select Warehouse *</label>

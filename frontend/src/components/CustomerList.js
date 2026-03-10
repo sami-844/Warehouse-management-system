@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { customerAPI } from '../services/api';
 import './Sales.css';
+import { Users } from 'lucide-react';
 
 function CustomerList() {
   const [customers, setCustomers] = useState([]);
@@ -46,7 +47,7 @@ function CustomerList() {
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon customer"></div><div><h1>Customers</h1><p>Manage shops and delivery routes</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon customer"><Users size={20} /></div><div><h1>Customers</h1><p>Manage shops and delivery routes</p></div></div>
         <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Customer'}</button></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}

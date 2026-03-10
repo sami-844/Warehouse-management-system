@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { salesAPI } from '../services/api';
 import './Sales.css';
+import { Receipt } from 'lucide-react';
 
 function SalesInvoices() {
   const [invoices, setInvoices] = useState([]);
@@ -34,7 +35,7 @@ function SalesInvoices() {
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon sinvoice"></div><div><h1>Sales Invoices</h1><p>Track customer invoices and collections</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon sinvoice"><Receipt size={20} /></div><div><h1>Sales Invoices</h1><p>Track customer invoices and collections</p></div></div></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 

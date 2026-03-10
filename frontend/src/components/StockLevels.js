@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { inventoryAPI, warehouseAPI } from '../services/api';
 import './StockLevels.css';
+import { Layers } from 'lucide-react';
 
 function StockLevels() {
   const [stockLevels, setStockLevels] = useState([]);
@@ -49,7 +50,7 @@ function StockLevels() {
   return (
     <div className="stock-levels-container">
       <div className="page-header">
-        <div className="header-content"><div className="header-icon levels"></div><div><h1>Stock Levels</h1><p>Real-time inventory across all locations</p></div></div>
+        <div className="header-content"><div className="header-icon levels"><Layers size={20} /></div><div><h1>Stock Levels</h1><p>Real-time inventory across all locations</p></div></div>
         <div className="header-actions">
           <button className="action-btn" onClick={exportCSV}>Export CSV</button>
           <button className="action-btn refresh" onClick={loadStockLevels}>Refresh</button>

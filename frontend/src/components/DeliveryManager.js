@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { salesAPI } from '../services/api';
 import './Sales.css';
+import { Truck } from 'lucide-react';
 
 function DeliveryManager() {
   const [todayData, setTodayData] = useState(null);
@@ -27,7 +28,7 @@ function DeliveryManager() {
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon delivery"></div><div><h1>Deliveries</h1><p>Daily delivery schedule and tracking</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon delivery"><Truck size={20} /></div><div><h1>Deliveries</h1><p>Daily delivery schedule and tracking</p></div></div></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { productAPI, inventoryAPI, warehouseAPI } from '../services/api';
 import './StockIssue.css';
+import { PackageMinus } from 'lucide-react';
 
 function StockIssue() {
   const [products, setProducts] = useState([]);
@@ -47,7 +48,7 @@ function StockIssue() {
 
   return (
     <div className="stock-issue-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon issue"></div><div><h1>Stock Issue</h1><p>Process deliveries and stock out</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon issue"><PackageMinus size={20} /></div><div><h1>Stock Issue</h1><p>Process deliveries and stock out</p></div></div></div>
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
       <div className="issue-content">
         <div className="issue-form-section">

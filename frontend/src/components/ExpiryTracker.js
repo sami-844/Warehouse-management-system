@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { inventoryAPI } from '../services/api';
 import './ExpiryTracker.css';
+import { Clock } from 'lucide-react';
 
 function ExpiryTracker() {
   const [data, setData] = useState({ summary: {}, items: [] });
@@ -31,7 +32,7 @@ function ExpiryTracker() {
 
   return (
     <div className="expiry-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon expiry"></div><div><h1>Expiry Tracker</h1><p>Monitor product shelf life — FIFO enforcement</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon expiry"><Clock size={20} /></div><div><h1>Expiry Tracker</h1><p>Monitor product shelf life — FIFO enforcement</p></div></div>
         <div className="header-actions"><button className="action-btn" onClick={exportCSV}>Export</button><button className="action-btn refresh" onClick={loadData}>Refresh</button></div>
       </div>
 

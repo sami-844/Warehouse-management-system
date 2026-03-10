@@ -633,9 +633,12 @@ body {
 .header-icon {
   border-radius: var(--ds-r-md) !important;
   box-shadow: none !important;
-  font-size: 24px !important;
   width: 44px !important;
   height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
 }
 
 /* Loading states */

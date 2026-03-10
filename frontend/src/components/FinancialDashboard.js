@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { financialAPI } from '../services/api';
 import './AdminPanel.css';
+import { TrendingUp } from 'lucide-react';
 
 function FinancialDashboard() {
   const [data, setData] = useState(null);
@@ -29,7 +30,7 @@ function FinancialDashboard() {
 
   return (
     <div className="admin-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon finance"><div><h1>Financial Dashboard</h1><p>Business overview at a glance</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon finance"><TrendingUp size={20} /></div><div><h1>Financial Dashboard</h1><p>Business overview at a glance</p></div></div>
 
       {/* KPI Cards */}
       <div className="kpi-grid">

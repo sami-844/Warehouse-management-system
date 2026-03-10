@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { salesAPI, customerAPI, productAPI, inventoryAPI } from '../services/api';
 import './Sales.css';
+import { ShoppingCart } from 'lucide-react';
 
 function SalesOrderList({ onViewOrder }) {
   const [orders, setOrders] = useState([]);
@@ -77,7 +78,7 @@ function SalesOrderList({ onViewOrder }) {
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon so"></div><div><h1>Sales Orders</h1><p>Create and manage customer orders</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon so"><ShoppingCart size={20} /></div><div><h1>Sales Orders</h1><p>Create and manage customer orders</p></div></div>
         <button className="action-btn primary" onClick={() => setShowCreate(!showCreate)}>{showCreate ? '✕ Cancel' : '+ New Order'}</button></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}

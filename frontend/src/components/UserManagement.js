@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import './AdminPanel.css';
+import { UserCog } from 'lucide-react';
 
 function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -60,7 +61,7 @@ function UserManagement() {
 
   return (
     <div className="admin-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon users"></div><div><h1>User Management</h1><p>Manage system users and roles</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon users"><UserCog size={20} /></div><div><h1>User Management</h1><p>Manage system users and roles</p></div></div>
         <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New User'}</button></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}

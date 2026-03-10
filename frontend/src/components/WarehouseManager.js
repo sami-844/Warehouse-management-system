@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { warehouseAPI } from '../services/api';
 import './WarehouseManager.css';
+import { Warehouse } from 'lucide-react';
 
 function WarehouseManager() {
   const [warehouses, setWarehouses] = useState([]);
@@ -35,7 +36,7 @@ function WarehouseManager() {
 
   return (
     <div className="warehouse-manager-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon wh"></div><div><h1>Warehouse Locations</h1><p>Manage zones, aisles, and storage areas</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon wh"><Warehouse size={20} /></div><div><h1>Warehouse Locations</h1><p>Manage zones, aisles, and storage areas</p></div></div>
         <button className="action-btn primary" onClick={() => setShowForm(!showForm)}>{showForm ? '✕ Cancel' : '+ Add Location'}</button>
       </div>
 

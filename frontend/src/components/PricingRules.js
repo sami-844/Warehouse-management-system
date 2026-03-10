@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { salesAPI, productAPI, customerAPI } from '../services/api';
 import './Sales.css';
+import { Percent } from 'lucide-react';
 
 function PricingRules() {
   const [rules, setRules] = useState([]);
@@ -48,7 +49,7 @@ function PricingRules() {
 
   return (
     <div className="sales-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon pricing"></div><div><h1>Pricing Rules</h1><p>Customer discounts, volume pricing, promotions</p></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon pricing"><Percent size={20} /></div><div><h1>Pricing Rules</h1><p>Customer discounts, volume pricing, promotions</p></div></div>
         <button className="action-btn primary" onClick={() => setShowForm(!showForm)}>{showForm ? '✕ Cancel' : '+ New Rule'}</button></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}

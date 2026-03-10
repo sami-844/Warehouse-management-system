@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supplierAPI } from '../services/api';
 import './Purchasing.css';
+import { Building2 } from 'lucide-react';
 
 function SupplierList() {
   const [suppliers, setSuppliers] = useState([]);
@@ -43,7 +44,7 @@ function SupplierList() {
   return (
     <div className="purchasing-container">
       <div className="page-header">
-        <div className="header-content"><div className="header-icon supplier"></div><div><h1>Suppliers</h1><p>Manage your product suppliers</p></div></div>
+        <div className="header-content"><div className="header-icon supplier"><Building2 size={20} /></div><div><h1>Suppliers</h1><p>Manage your product suppliers</p></div></div>
         <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Supplier'}</button>
       </div>
 

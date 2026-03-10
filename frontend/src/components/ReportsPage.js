@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { reportsAPI } from '../services/api';
 import './AdminPanel.css';
+import { BarChart2 } from 'lucide-react';
 
 const REPORTS = [
   { id: 'sales-customer', name: 'Sales by Customer', icon: '', desc: 'Revenue breakdown by customer' },
@@ -195,7 +196,7 @@ function ReportsPage() {
 
   return (
     <div className="admin-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon reports"></div><div><h1>Reports</h1><p>Business intelligence and analytics</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon reports"><BarChart2 size={20} /></div><div><h1>Reports</h1><p>Business intelligence and analytics</p></div></div></div>
 
       {/* Date Filters */}
       <div className="filter-bar">

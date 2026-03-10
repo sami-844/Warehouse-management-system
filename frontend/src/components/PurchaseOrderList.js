@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { purchaseAPI, supplierAPI, productAPI } from '../services/api';
 import './Purchasing.css';
+import { ShoppingBag } from 'lucide-react';
 
 function PurchaseOrderList({ onViewOrder }) {
   const [orders, setOrders] = useState([]);
@@ -56,7 +57,7 @@ function PurchaseOrderList({ onViewOrder }) {
   return (
     <div className="purchasing-container">
       <div className="page-header">
-        <div className="header-content"><div className="header-icon po"></div><div><h1>Purchase Orders</h1><p>Create and track supplier orders</p></div></div>
+        <div className="header-content"><div className="header-icon po"><ShoppingBag size={20} /></div><div><h1>Purchase Orders</h1><p>Create and track supplier orders</p></div></div>
         <button className="action-btn primary" onClick={() => setShowCreate(!showCreate)}>{showCreate ? '✕ Cancel' : '+ New PO'}</button>
       </div>
 

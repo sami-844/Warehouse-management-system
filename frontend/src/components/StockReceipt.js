@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { productAPI, inventoryAPI, warehouseAPI } from '../services/api';
 import './StockReceipt.css';
+import { PackagePlus } from 'lucide-react';
 
 function StockReceipt() {
   const [products, setProducts] = useState([]);
@@ -83,7 +84,7 @@ function StockReceipt() {
     <div className="stock-receipt-container">
       <div className="page-header">
         <div className="header-content">
-          <div className="header-icon"></div>
+          <div className="header-icon"><PackagePlus size={20} /></div>
           <div><h1>Stock Receipt</h1><p>Record goods received from suppliers</p></div>
         </div>
         <div className="mode-toggle">

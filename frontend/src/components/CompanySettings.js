@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { adminAPI } from '../services/api';
 import './AdminPanel.css';
+import { Settings } from 'lucide-react';
 
 function CompanySettings() {
   const [tab, setTab] = useState('company');
@@ -62,7 +63,7 @@ function CompanySettings() {
 
   return (
     <div className="admin-container">
-      <div className="page-header"><div className="header-content"><div className="header-icon settings"></div><div><h1>Settings & Admin</h1><p>Company configuration and maintenance</p></div></div></div>
+      <div className="page-header"><div className="header-content"><div className="header-icon settings"><Settings size={20} /></div><div><h1>Settings & Admin</h1><p>Company configuration and maintenance</p></div></div></div>
 
       {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
 
