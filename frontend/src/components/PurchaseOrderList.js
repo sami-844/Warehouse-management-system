@@ -102,7 +102,7 @@ function PurchaseOrderList({ onViewOrder }) {
                   <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
                   <tbody>
                     {lineItems.map((item, idx) => (
-                      <tr key={idx}><td>{item.product_name}</td><td>{item.quantity}</td><td>{item.unit_price.toFixed(3)}</td><td>{(item.quantity * item.unit_price).toFixed(3)}</td><td><button type="button" className="remove-btn" onClick={() => removeItem(idx)}>✕</button></td></tr>
+                      <tr key={idx}><td>{item.product_name}</td><td>{item.quantity}</td><td>{(Number(item.unit_price) || 0).toFixed(3)}</td><td>{(Number(item.quantity) * (Number(item.unit_price) || 0)).toFixed(3)}</td><td><button type="button" className="remove-btn" onClick={() => removeItem(idx)}>✕</button></td></tr>
                     ))}
                     <tr className="totals-row"><td colSpan="3">Subtotal</td><td>{subtotal.toFixed(3)} {form.currency}</td><td></td></tr>
                     {tax > 0 && <tr className="totals-row"><td colSpan="3">Tax ({form.tax_rate}%)</td><td>{tax.toFixed(3)}</td><td></td></tr>}

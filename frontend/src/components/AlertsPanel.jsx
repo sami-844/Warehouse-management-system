@@ -33,7 +33,7 @@ const AlertsPanel = ({ alerts = {}, expanded, onToggle }) => {
             <div key={i}
                  className={`alert-item ${alert.severity === 'critical' ? 'critical' : alert.severity === 'warning' ? 'warning' : 'info'}`}>
               <span className={`alert-type-badge ${alert.type}`}>
-                {alert.type.replace(/_/g, ' ')}
+                {(alert.type || '').replace(/_/g, ' ')}
               </span>
               <span className="alert-message">{alert.message}</span>
               {alert.type === 'overdue' && alert.total_amount != null && (

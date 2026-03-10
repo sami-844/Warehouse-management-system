@@ -62,7 +62,7 @@ function InventoryDashboard() {
         <div className="stat-card success">
           <div className="stat-icon">💰</div>
           <div className="stat-content">
-            <div className="stat-value">OMR {summary?.total_stock_value?.toFixed(2) || '0.00'}</div>
+            <div className="stat-value">OMR {summary?.total_stock_value?.toFixed(3) || '0.000'}</div>
             <div className="stat-label">Total Stock Value</div>
           </div>
         </div>

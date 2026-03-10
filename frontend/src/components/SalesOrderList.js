@@ -124,8 +124,8 @@ function SalesOrderList({ onViewOrder }) {
                         <tr key={idx} className={item.quantity_ordered > item.available_stock ? 'stock-warning' : ''}>
                           <td>{item.product_name}</td>
                           <td className={item.available_stock < item.quantity_ordered ? 'negative' : 'positive'}>{item.available_stock}</td>
-                          <td>{item.quantity_ordered}</td><td>{item.unit_price.toFixed(3)}</td><td>{item.discount_percent}%</td>
-                          <td>{lineTotal.toFixed(3)}</td><td><button type="button" className="remove-btn" onClick={() => removeItem(idx)}>✕</button></td>
+                          <td>{item.quantity_ordered}</td><td>{(Number(item.unit_price) || 0).toFixed(3)}</td><td>{item.discount_percent}%</td>
+                          <td>{(lineTotal || 0).toFixed(3)}</td><td><button type="button" className="remove-btn" onClick={() => removeItem(idx)}>✕</button></td>
                         </tr>
                       );
                     })}
