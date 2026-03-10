@@ -10,6 +10,7 @@
 .header-icon.delivery  { background: var(--ds-gold); color: #fff; }
 .header-icon.sinvoice  { background: #7c3aed; color: #fff; }
 .header-icon.pricing   { background: var(--ds-danger); color: #fff; }
+.header-icon.returns   { background: #ea580c; color: #fff; }
 .page-header h1 { font-size: var(--ds-text-2xl); font-weight: 800; margin: 0; color: var(--ds-text); letter-spacing: -0.4px; }
 .page-header p  { font-size: var(--ds-text-sm); color: var(--ds-text-muted); margin: 2px 0 0; }
 
