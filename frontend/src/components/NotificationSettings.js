@@ -58,7 +58,7 @@ function NotificationSettings() {
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 800, margin: '0 auto' }}>
-      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>🔔 Email Notifications</h2>
+      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>Email Notifications</h2>
       <p style={{ color: '#666', fontSize: 13, marginBottom: 16 }}>Configure SMTP, manage alerts for low stock, overdue payments, and expiring inventory</p>
 
       {error && <div style={errS}>{error}</div>}
@@ -66,7 +66,7 @@ function NotificationSettings() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 2, marginBottom: 20, borderBottom: '2px solid #e5e5e5' }}>
-        {[{ id: 'settings', label: '⚙️ Settings' }, { id: 'trigger', label: '🚀 Send Alerts' }, { id: 'log', label: '📋 Log' }].map(t => (
+        {[{ id: 'settings', label: 'Settings' }, { id: 'trigger', label: 'Send Alerts' }, { id: 'log', label: 'Log' }].map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
             padding: '9px 18px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
             background: activeTab === t.id ? '#0d7a3e' : 'transparent',
@@ -93,7 +93,7 @@ function NotificationSettings() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
             <input value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="Test email address"
               style={{ flex: 1, padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 13 }} />
-            <button onClick={sendTest} style={btn}>📧 Send Test</button>
+            <button onClick={sendTest} style={btn}>Send Test</button>
           </div>
 
           <h3 style={secTitle}>Alert Toggles & Recipients</h3>
@@ -118,7 +118,7 @@ function NotificationSettings() {
           </div>
 
           <button onClick={saveSettings} disabled={saving} style={{ ...btn, background: '#0d7a3e', padding: '10px 24px' }}>
-            {saving ? '⏳ Saving...' : '💾 Save Settings'}
+            {saving ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       )}
@@ -128,9 +128,9 @@ function NotificationSettings() {
         <div>
           <p style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>Manually send alert emails now. In production, these can be scheduled via a cron job or background task.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <TriggerCard icon="📦" title="Low Stock Alert" desc="Sends list of products below threshold" onClick={() => triggerAlert('low-stock')} />
-            <TriggerCard icon="💰" title="Overdue Payment Alert" desc="Sends list of overdue customer invoices" onClick={() => triggerAlert('overdue')} />
-            <TriggerCard icon="⏰" title="Expiring Stock Alert" desc="Sends list of batches expiring within 30 days" onClick={() => triggerAlert('expiring')} />
+            <TriggerCard icon="" title="Low Stock Alert" desc="Sends list of products below threshold" onClick={() => triggerAlert('low-stock')} />
+            <TriggerCard icon="" title="Overdue Payment Alert" desc="Sends list of overdue customer invoices" onClick={() => triggerAlert('overdue')} />
+            <TriggerCard icon="" title="Expiring Stock Alert" desc="Sends list of batches expiring within 30 days" onClick={() => triggerAlert('expiring')} />
           </div>
         </div>
       )}
@@ -140,7 +140,7 @@ function NotificationSettings() {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
             <span style={{ fontSize: 13, color: '#666' }}>Recent notifications</span>
-            <button onClick={refreshLog} style={{ ...btn, padding: '4px 12px', fontSize: 12 }}>🔄 Refresh</button>
+            <button onClick={refreshLog} style={{ ...btn, padding: '4px 12px', fontSize: 12 }}>Refresh</button>
           </div>
           {log.length === 0 ? (
             <div style={{ padding: 30, textAlign: 'center', color: '#888' }}>No notifications sent yet</div>
@@ -162,7 +162,7 @@ function NotificationSettings() {
                       <td style={{ ...tdS, fontSize: 11 }}>{l.recipient_email?.slice(0, 40)}</td>
                       <td style={tdS}>
                         <span style={{ color: l.status === 'sent' ? '#27ae60' : '#c0392b', fontWeight: 600 }}>
-                          {l.status === 'sent' ? '✅' : '❌'} {l.status}
+                          {l.status}
                         </span>
                         {l.error_message && <div style={{ fontSize: 10, color: '#c0392b', marginTop: 2 }}>{l.error_message.slice(0, 80)}</div>}
                       </td>

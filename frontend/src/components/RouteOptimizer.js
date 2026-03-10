@@ -125,7 +125,7 @@ function RouteOptimizer() {
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 1000, margin: '0 auto' }}>
-      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>🗺️ Route Optimizer</h2>
+      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>Route Optimizer</h2>
       <p style={{ color: '#666', fontSize: 13, marginBottom: 20 }}>Plan optimal delivery routes — drag to reorder stops</p>
 
       {error && <div style={errStyle}>{error}</div>}
@@ -143,9 +143,9 @@ function RouteOptimizer() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <button onClick={optimizeRoute} disabled={optimizing || deliveries.length < 2}
           style={{ ...btnStyle, background: '#0d7a3e' }}>
-          {optimizing ? '⏳ Optimizing...' : '🔄 Auto-Optimize Route'}
+          {optimizing ? 'Optimizing...' : 'Auto-Optimize Route'}
         </button>
-        <button onClick={loadDeliveries} style={{ ...btnStyle, background: '#3498db' }}>🔄 Refresh</button>
+        <button onClick={loadDeliveries} style={{ ...btnStyle, background: '#3498db' }}>Refresh</button>
         <button onClick={() => setShowKeyInput(!showKeyInput)} style={{ ...btnStyle, background: '#666' }}>
           🔑 {mapsApiKey ? 'Update' : 'Set'} Maps Key
         </button>
@@ -180,7 +180,7 @@ function RouteOptimizer() {
         ).join('/')}`}
           target="_blank" rel="noreferrer"
           style={{ display: 'inline-block', background: '#4285F4', color: '#fff', padding: '10px 20px', borderRadius: 8, textDecoration: 'none', fontSize: 14, fontWeight: 600, marginBottom: 20 }}>
-          🗺️ Open Full Route in Google Maps
+          Open Full Route in Google Maps
         </a>
       )}
 
@@ -199,7 +199,7 @@ function RouteOptimizer() {
                 background: '#e8f0f8', padding: '4px 12px', borderRadius: 20,
                 fontSize: 12, fontWeight: 600, color: '#2c3e50'
               }}>
-                📍 {area} ({items.length})
+                {area} ({items.length})
               </span>
             ))}
           </div>
@@ -228,7 +228,7 @@ function RouteOptimizer() {
                 </div>
               </div>
               <div style={{ fontSize: 12, fontWeight: 600, color: d.status === 'delivered' ? '#27ae60' : '#e67e22' }}>
-                {d.status === 'delivered' ? '✅ Done' : '⏳ Pending'}
+                {d.status === 'delivered' ? 'Done' : 'Pending'}
               </div>
             </div>
           ))}

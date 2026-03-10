@@ -40,21 +40,21 @@ function MultiCurrencyDashboard() {
   const availableCurrencies = ['OMR', 'USD', 'EUR', 'GBP', 'INR', 'AED', 'SAR'];
 
   const metrics = [
-    { key: 'total_sales', label: 'Total Sales', icon: '💰', color: '#0d7a3e' },
-    { key: 'total_purchases', label: 'Total Purchases', icon: '🛒', color: '#e67e22' },
-    { key: 'gross_profit', label: 'Gross Profit', icon: '📈', color: '#27ae60' },
-    { key: 'total_receivables', label: 'Receivables', icon: '📥', color: '#3498db' },
-    { key: 'total_payables', label: 'Payables', icon: '📤', color: '#e74c3c' },
-    { key: 'net_receivables', label: 'Net Position', icon: '⚖️', color: '#8e44ad' },
-    { key: 'stock_value', label: 'Stock Value', icon: '📦', color: '#2c3e50' },
-    { key: 'open_credit_notes', label: 'Open Credits', icon: '📄', color: '#7f8c8d' },
+    { key: 'total_sales', label: 'Total Sales', icon: '', color: '#0d7a3e' },
+    { key: 'total_purchases', label: 'Total Purchases', icon: '', color: '#e67e22' },
+    { key: 'gross_profit', label: 'Gross Profit', icon: '', color: '#27ae60' },
+    { key: 'total_receivables', label: 'Receivables', icon: '', color: '#3498db' },
+    { key: 'total_payables', label: 'Payables', icon: '', color: '#e74c3c' },
+    { key: 'net_receivables', label: 'Net Position', icon: '', color: '#8e44ad' },
+    { key: 'stock_value', label: 'Stock Value', icon: '', color: '#2c3e50' },
+    { key: 'open_credit_notes', label: 'Open Credits', icon: '', color: '#7f8c8d' },
   ];
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>Loading multi-currency data...</div>;
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 1100, margin: '0 auto' }}>
-      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>💱 Multi-Currency Dashboard</h2>
+      <h2 style={{ color: '#0d7a3e', marginBottom: 4 }}>Multi-Currency Dashboard</h2>
       <p style={{ color: '#666', fontSize: 13, marginBottom: 20 }}>Financial overview in multiple currencies (base: OMR)</p>
 
       {error && <div style={{ background: '#fce4e4', color: '#c0392b', padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontSize: 13 }}>{error}</div>}
@@ -75,7 +75,7 @@ function MultiCurrencyDashboard() {
         ))}
         <button onClick={() => setEditingRates(!editingRates)}
           style={{ marginLeft: 'auto', background: '#f0f0f0', border: 'none', padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-          ⚙️ {editingRates ? 'Hide' : 'Edit'} Rates
+          {editingRates ? 'Hide' : 'Edit'} Rates
         </button>
       </div>
 
