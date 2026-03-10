@@ -56,6 +56,13 @@ import SettingsPages from './components/SettingsPages';
 import StockAdjustmentLog from './components/StockAdjustmentLog';
 import ToastContainer from './components/Toast';
 
+// ── Apply saved font on startup ──
+const savedFont = localStorage.getItem('app_font');
+if (savedFont) {
+  document.documentElement.style.setProperty('--font-main', savedFont);
+  document.documentElement.style.fontFamily = savedFont;
+}
+
 // ── Error Boundary ──
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }

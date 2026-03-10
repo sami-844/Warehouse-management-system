@@ -13,6 +13,7 @@ function CompanySettings() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [form, setForm] = useState({});
+  const [selectedFont, setSelectedFont] = useState(localStorage.getItem('app_font') || "'Figtree', sans-serif");
 
   useEffect(() => { loadSettings(); loadActivity(); loadBackups(); loadTables(); }, []);
 
@@ -71,6 +72,7 @@ function CompanySettings() {
       <div className="tab-bar">
         <button className={`tab-btn ${tab === 'company' ? 'active' : ''}`} onClick={() => setTab('company')}>Company</button>
         <button className={`tab-btn ${tab === 'system' ? 'active' : ''}`} onClick={() => setTab('system')}>System</button>
+        <button className={`tab-btn ${tab === 'appearance' ? 'active' : ''}`} onClick={() => setTab('appearance')}>Appearance</button>
         <button className={`tab-btn ${tab === 'backup' ? 'active' : ''}`} onClick={() => setTab('backup')}>Backup</button>
         <button className={`tab-btn ${tab === 'export' ? 'active' : ''}`} onClick={() => setTab('export')}>Export</button>
         <button className={`tab-btn ${tab === 'activity' ? 'active' : ''}`} onClick={() => setTab('activity')}>Activity Log</button>
@@ -134,6 +136,51 @@ function CompanySettings() {
                 <input type="number" value={form.expiry_warning_days || ''} onChange={e => setForm(p => ({...p, expiry_warning_days: e.target.value}))} /></div>
             </div>
             <button className="submit-btn" onClick={saveSettings}>Save System Settings</button>
+          </div>
+        </div>
+      )}
+
+      {/* Appearance Tab */}
+      {tab === 'appearance' && (
+        <div className="tab-content">
+          <h3>App Font</h3>
+          <p style={{ color: 'var(--ds-text-muted)', fontSize: 13, marginBottom: 16 }}>
+            Choose the font used throughout the entire app. Changes apply immediately after saving.
+          </p>
+          <div className="settings-form">
+            <div className="form-group">
+              <label>Select Font Family</label>
+              <select value={selectedFont} onChange={e => setSelectedFont(e.target.value)} style={{ maxWidth: 350 }}>
+                <option value="'Figtree', sans-serif">Figtree (Current Default)</option>
+                <option value="'Inter', sans-serif">Inter (Modern)</option>
+                <option value="'Segoe UI', sans-serif">Segoe UI (Windows)</option>
+                <option value="'Roboto', sans-serif">Roboto (Google)</option>
+                <option value="'Open Sans', sans-serif">Open Sans (Friendly)</option>
+                <option value="'Noto Sans', sans-serif">Noto Sans (Arabic support)</option>
+                <option value="'Cairo', sans-serif">Cairo (Arabic-friendly)</option>
+                <option value="'Tajawal', sans-serif">Tajawal (Arabic)</option>
+                <option value="Arial, sans-serif">Arial (Classic)</option>
+                <option value="'Times New Roman', serif">Times New Roman (Formal)</option>
+              </select>
+            </div>
+            <div style={{
+              marginTop: 12, padding: 16, border: '1px solid var(--ds-border)',
+              borderRadius: 8, fontFamily: selectedFont, maxWidth: 450, background: 'var(--ds-surface)',
+            }}>
+              <strong style={{ fontSize: 18 }}>Preview: AK Al Momaiza WMS</strong>
+              <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--ds-text-muted)' }}>
+                The quick brown fox jumps over the lazy dog — 0123456789 — OMR 5.500
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--ds-text-sub)' }}>
+                ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz
+              </p>
+            </div>
+            <button className="submit-btn" style={{ marginTop: 16 }} onClick={() => {
+              document.documentElement.style.setProperty('--font-main', selectedFont);
+              document.documentElement.style.fontFamily = selectedFont;
+              localStorage.setItem('app_font', selectedFont);
+              setMessage({ text: 'Font updated! Applied across the app.', type: 'success' });
+            }}>Save Font</button>
           </div>
         </div>
       )}
