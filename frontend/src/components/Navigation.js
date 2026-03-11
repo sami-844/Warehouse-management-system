@@ -60,6 +60,8 @@ const SECTIONS = [
     label: 'Delivery',
     Icon: Truck,
     items: [
+      { label: 'Van Sales Entry',  page: 'van-sales-entry' },
+      { label: 'Driver Due Summary', page: 'driver-due-summary' },
       { label: 'Driver App',      page: 'driver-app' },
       { label: 'Route Optimizer', page: 'route-optimizer' },
     ],

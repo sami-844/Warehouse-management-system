@@ -68,6 +68,8 @@ import ProductBrands from './components/ProductBrands';
 import VariationTemplates from './components/VariationTemplates';
 import DamageItems from './components/DamageItems';
 import DeletedItems from './components/DeletedItems';
+import VanSalesEntry from './components/VanSalesEntry';
+import DriverDueSummary from './components/DriverDueSummary';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
 import Breadcrumb from './components/Breadcrumb';
@@ -143,6 +145,8 @@ const PAGE_ROLE_MAP = {
   'deliveries':         ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER','DELIVERY_DRIVER'],
   'customer-statement': ['ADMIN','SALES_STAFF','ACCOUNTANT'],
   'returns-manager':    ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER','ACCOUNTANT'],
+  'van-sales-entry':    ['ADMIN','WAREHOUSE_MANAGER'],
+  'driver-due-summary': ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
   'driver-app':         ['ADMIN','DELIVERY_DRIVER'],
   'route-optimizer':    ['ADMIN','DELIVERY_DRIVER','WAREHOUSE_MANAGER'],
   'financial':          ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
@@ -363,6 +367,8 @@ function App() {
       case 'returns-manager':      return <ReturnsManager />;
 
       // ── Delivery ──
+      case 'van-sales-entry':      return <VanSalesEntry />;
+      case 'driver-due-summary':   return <DriverDueSummary />;
       case 'driver-app':           return <DriverApp user={user} onClose={() => navigate('dashboard')} />;
       case 'route-optimizer':      return <RouteOptimizer />;
 

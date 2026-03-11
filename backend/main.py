@@ -270,6 +270,14 @@ try:
 except ImportError as e:
     print(f"  \u26a0\ufe0f  Dashboard Summary module: {e}")
 
+# ── Phase 36: Van Sales / Route Accounting ──
+try:
+    from app.api.van_sales import router as van_sales_router
+    app.include_router(van_sales_router, prefix="/api/van-sales", tags=["Van Sales"])
+    print("  Van Sales module loaded")
+except ImportError as e:
+    print(f"  Van Sales module: {e}")
+
 # ── RBAC Navigation Helper ──
 @app.get("/api/rbac/nav-items")
 async def get_nav_items(role: str = "ADMIN"):

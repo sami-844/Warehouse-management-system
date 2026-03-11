@@ -18,6 +18,10 @@ try:
     from app.models.accounts import Account, MoneyTransfer, JournalEntry, JournalEntryLine, BankReconciliation
 except ImportError:
     pass
+try:
+    from app.models.van_sales import DriverRouteAccount, DriverRouteAccountItem
+except ImportError:
+    pass
 
 __all__ = [
     "Base", "User", "UserRole", "Product", "ProductCategory",

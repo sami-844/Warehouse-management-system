@@ -381,4 +381,16 @@ export const messagingAPI = {
   sendPaymentReminder: async (invoiceId) => (await api.post('/api/messaging/send-payment-reminder', null, { params: { invoice_id: invoiceId } })).data,
 };
 
+// ━━ Phase 36: Van Sales / Route Accounting ━━
+export const vanSalesAPI = {
+  list: async (params = {}) => (await api.get('/api/van-sales/accounts', { params })).data,
+  get: async (id) => (await api.get(`/api/van-sales/accounts/${id}`)).data,
+  create: async (data) => (await api.post('/api/van-sales/accounts', data)).data,
+  update: async (id, data) => (await api.put(`/api/van-sales/accounts/${id}`, data)).data,
+  settle: async (id) => (await api.post(`/api/van-sales/accounts/${id}/settle`)).data,
+  driverSummary: async (params = {}) => (await api.get('/api/van-sales/driver-summary', { params })).data,
+  drivers: async () => (await api.get('/api/van-sales/drivers')).data,
+  productsList: async () => (await api.get('/api/van-sales/products-list')).data,
+};
+
 export default api;
