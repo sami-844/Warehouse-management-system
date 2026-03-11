@@ -151,4 +151,5 @@ class EstimateItem(Base):
     line_total = Column(Numeric(14, 3), default=0)
 
 
-# Payment model is defined in purchase.py to avoid duplicate table conflict
+# Payment model lives in purchase.py — re-export here for backward compat
+from app.models.purchase import Payment  # noqa: F401

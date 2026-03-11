@@ -197,6 +197,9 @@ def create_product(
     
     # Create product — coerce nulls to defaults for non-nullable fields
     product_data = product.dict()
+    # Extract opening stock fields before creating product
+    opening_qty = int(product_data.pop('opening_qty', 0) or 0)
+    opening_cost = float(product_data.pop('opening_cost', 0) or 0)
     if product_data.get('tax_rate') is None:
         product_data['tax_rate'] = 0.00
     if product_data.get('reorder_level') is None:
@@ -213,6 +216,56 @@ def create_product(
         db.rollback()
         raise HTTPException(status_code=400, detail="SKU or barcode already exists")
     db.refresh(db_product)
+
+    # Create opening stock transaction if qty > 0
+    if opening_qty > 0:
+        try:
+            from app.models.inventory import InventoryTransaction, StockLevel
+            unit_cost = opening_cost if opening_cost > 0 else float(db_product.standard_cost or 0)
+            txn = InventoryTransaction(
+                product_id=db_product.id,
+                warehouse_id=1,
+                transaction_type='RECEIPT',
+                quantity=opening_qty,
+                unit_cost=unit_cost,
+                total_cost=round(unit_cost * opening_qty, 3),
+                reference_type='opening_stock',
+                reference_number=f"OPEN-{db_product.sku}",
+                notes='Opening stock on product creation',
+                created_by=current_user.id,
+            )
+            db.add(txn)
+            # Update or create stock level
+            sl = db.query(StockLevel).filter(
+                StockLevel.product_id == db_product.id,
+                StockLevel.warehouse_id == 1
+            ).first()
+            if sl:
+                sl.quantity_on_hand = (sl.quantity_on_hand or 0) + opening_qty
+                sl.quantity_available = (sl.quantity_available or 0) + opening_qty
+                sl.total_value = float(sl.quantity_on_hand or 0) * unit_cost
+                sl.average_cost = unit_cost
+            else:
+                sl = StockLevel(
+                    product_id=db_product.id,
+                    warehouse_id=1,
+                    quantity_on_hand=opening_qty,
+                    quantity_reserved=0,
+                    quantity_available=opening_qty,
+                    total_value=round(unit_cost * opening_qty, 3),
+                    average_cost=unit_cost,
+                )
+                db.add(sl)
+            # Update product standard_cost if opening_cost was provided
+            if opening_cost > 0:
+                db_product.standard_cost = opening_cost
+            db.commit()
+            db.refresh(db_product)
+        except Exception as e:
+            # Don't fail the whole product creation if stock txn fails
+            db.rollback()
+            print(f"Warning: Opening stock transaction failed: {e}")
+
     return db_product
 
 
@@ -240,6 +293,28 @@ def product_avg_costs(
         return {"costs": data}
     except Exception:
         return {"costs": {}}
+
+
+@router.get("/products/{product_id}/stock")
+def get_product_stock(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get current stock level for a product."""
+    from app.models.inventory import StockLevel
+    sl = db.query(StockLevel).filter(
+        StockLevel.product_id == product_id,
+        StockLevel.warehouse_id == 1
+    ).first()
+    if sl:
+        return {
+            "quantity_on_hand": float(sl.quantity_on_hand or 0),
+            "quantity_reserved": float(sl.quantity_reserved or 0),
+            "quantity_available": float(sl.quantity_available or 0),
+            "average_cost": float(sl.average_cost or 0),
+        }
+    return {"quantity_on_hand": 0, "quantity_reserved": 0, "quantity_available": 0, "average_cost": 0}
 
 
 @router.get("/products/deleted")
@@ -334,28 +409,49 @@ def update_product(
     # Update only provided fields
     update_data = product_update.dict(exclude_unset=True)
     
-    # Check for SKU conflict if SKU is being updated
-    if "sku" in update_data and update_data["sku"] != db_product.sku:
-        existing = db.query(Product).filter(Product.sku == update_data["sku"]).first()
+    # Check for SKU conflict — exclude current product
+    if "sku" in update_data and update_data["sku"]:
+        existing = db.query(Product).filter(
+            Product.sku == update_data["sku"],
+            Product.id != product_id
+        ).first()
         if existing:
-            raise HTTPException(status_code=400, detail="SKU already exists")
-    
-    # Check for barcode conflict if barcode is being updated
-    if "barcode" in update_data and update_data["barcode"] and update_data["barcode"] != db_product.barcode:
-        existing = db.query(Product).filter(Product.barcode == update_data["barcode"]).first()
+            raise HTTPException(status_code=400, detail="SKU already used by another product")
+
+    # Check for barcode conflict — exclude current product
+    if "barcode" in update_data and update_data["barcode"]:
+        existing = db.query(Product).filter(
+            Product.barcode == update_data["barcode"],
+            Product.id != product_id,
+            Product.barcode != ''
+        ).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Barcode already exists")
-    
+            raise HTTPException(status_code=400, detail="Barcode already used by another product")
+
+    # Strip unknown fields the model doesn't have
+    update_data.pop('brand_id', None)
+
+    # Coerce nullable-false fields to safe defaults
+    if 'tax_rate' in update_data:
+        update_data['tax_rate'] = float(update_data['tax_rate'] or 0)
+    if 'reorder_level' in update_data:
+        update_data['reorder_level'] = int(update_data['reorder_level'] or 0)
+    if 'minimum_stock' in update_data:
+        update_data['minimum_stock'] = int(update_data['minimum_stock'] or 0)
+    if 'maximum_stock' in update_data:
+        update_data['maximum_stock'] = int(update_data['maximum_stock'] or 0)
+
     # Update fields
     for field, value in update_data.items():
-        setattr(db_product, field, value)
-    
+        if hasattr(db_product, field):
+            setattr(db_product, field, value)
+
     db_product.updated_by = current_user.id
     try:
         db.commit()
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="SKU or barcode conflict with existing product")
+        raise HTTPException(status_code=400, detail=f"Update failed: {str(e)[:200]}")
     db.refresh(db_product)
     return db_product
 
@@ -472,7 +568,7 @@ def import_products(
                 barcode = None
             p = Product(
                 sku=sku, name=name,
-                unit=str(row.get('unit', 'PCS') or 'PCS').strip(),
+                unit_of_measure=str(row.get('unit', 'PCS') or 'PCS').strip(),
                 selling_price=float(row.get('selling_price', 0) or 0),
                 standard_cost=float(row.get('standard_cost', 0) or 0),
                 barcode=barcode,
@@ -499,64 +595,70 @@ async def import_products_file(
     current_user: User = Depends(get_current_user)
 ):
     """Import products from an uploaded CSV or Excel file."""
-    import uuid, csv, io
-    content = await file.read()
-    fname = (file.filename or '').lower()
-
-    rows = []
-    if fname.endswith('.xlsx') or fname.endswith('.xls'):
-        from openpyxl import load_workbook
-        wb = load_workbook(filename=io.BytesIO(content), read_only=True)
-        ws = wb.active
-        data = list(ws.iter_rows(values_only=True))
-        if len(data) < 2:
-            return {"created": 0, "skipped": 0, "errors": ["File has no data rows"]}
-        headers = [str(h or '').strip().lower().replace(' ', '_') for h in data[0]]
-        for vals in data[1:]:
-            row = {}
-            for j, h in enumerate(headers):
-                row[h] = str(vals[j]) if j < len(vals) and vals[j] is not None else ''
-            rows.append(row)
-        wb.close()
-    else:
-        text = content.decode('utf-8-sig')
-        reader = csv.DictReader(io.StringIO(text))
-        for r in reader:
-            rows.append({k.strip().lower().replace(' ', '_'): (v or '').strip() for k, v in r.items()})
-
-    created, skipped, errors = 0, 0, []
-    for i, row in enumerate(rows):
-        try:
-            name = str(row.get('name', '') or '').strip()
-            if not name:
-                skipped += 1
-                continue
-            sku = str(row.get('sku', '') or '').strip()
-            if not sku:
-                sku = f"SKU-{str(uuid.uuid4())[:8].upper()}"
-            if db.query(Product).filter(Product.sku == sku).first():
-                skipped += 1
-                continue
-            barcode = str(row.get('barcode', '') or '').strip() or None
-            if barcode and db.query(Product).filter(Product.barcode == barcode).first():
-                barcode = None
-            p = Product(
-                sku=sku, name=name,
-                unit=str(row.get('unit', 'PCS') or 'PCS').strip(),
-                selling_price=float(row.get('selling_price', 0) or 0),
-                standard_cost=float(row.get('standard_cost', 0) or 0),
-                barcode=barcode,
-                description=str(row.get('description', '') or '').strip() or None,
-                is_active=True, created_by=current_user.id
-            )
-            db.add(p)
-            created += 1
-        except Exception as e:
-            errors.append(f"Row {i+1}: {str(e)}")
-            skipped += 1
+    import uuid, csv, io, traceback as tb
     try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=400, detail="Import failed — database constraint error")
-    return {"created": created, "skipped": skipped, "errors": errors[:10]}
+        content = await file.read()
+        fname = (file.filename or '').lower()
+
+        rows = []
+        if fname.endswith('.xlsx') or fname.endswith('.xls'):
+            from openpyxl import load_workbook
+            wb = load_workbook(filename=io.BytesIO(content), read_only=True)
+            ws = wb.active
+            data = list(ws.iter_rows(values_only=True))
+            if len(data) < 2:
+                return {"created": 0, "skipped": 0, "errors": ["File has no data rows"]}
+            headers = [str(h or '').strip().lower().replace(' ', '_') for h in data[0]]
+            for vals in data[1:]:
+                row = {}
+                for j, h in enumerate(headers):
+                    row[h] = str(vals[j]) if j < len(vals) and vals[j] is not None else ''
+                rows.append(row)
+            wb.close()
+        else:
+            text = content.decode('utf-8-sig')
+            reader = csv.DictReader(io.StringIO(text))
+            for r in reader:
+                rows.append({k.strip().lower().replace(' ', '_'): (v or '').strip() for k, v in r.items()})
+
+        created, skipped, errors = 0, 0, []
+        for i, row in enumerate(rows):
+            try:
+                name = str(row.get('name', '') or '').strip()
+                if not name:
+                    skipped += 1
+                    continue
+                sku = str(row.get('sku', '') or '').strip()
+                if not sku:
+                    sku = f"SKU-{str(uuid.uuid4())[:8].upper()}"
+                if db.query(Product).filter(Product.sku == sku).first():
+                    skipped += 1
+                    continue
+                barcode = str(row.get('barcode', '') or '').strip() or None
+                if barcode and db.query(Product).filter(Product.barcode == barcode).first():
+                    barcode = None
+                p = Product(
+                    sku=sku, name=name,
+                    unit_of_measure=str(row.get('unit', 'PCS') or 'PCS').strip(),
+                    selling_price=float(row.get('selling_price', 0) or 0),
+                    standard_cost=float(row.get('standard_cost', 0) or 0),
+                    barcode=barcode,
+                    description=str(row.get('description', '') or '').strip() or None,
+                    is_active=True, created_by=current_user.id
+                )
+                db.add(p)
+                created += 1
+            except Exception as e:
+                errors.append(f"Row {i+1}: {str(e)}")
+                skipped += 1
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=400, detail="Import failed — database constraint error")
+        return {"created": created, "skipped": skipped, "errors": errors[:10]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        tb.print_exc()
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")

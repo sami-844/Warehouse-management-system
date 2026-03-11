@@ -51,12 +51,12 @@ class Product(Base):
     selling_price = Column(Numeric(10, 3), nullable=True)  # What we charge
     
     # Tax
-    tax_rate = Column(Numeric(5, 2), nullable=False, default=0.00)  # e.g., 5.00 for 5%
-    
+    tax_rate = Column(Numeric(5, 2), nullable=False, default=0.00, server_default='0')
+
     # Inventory management
-    reorder_level = Column(Integer, nullable=False, default=10)  # When to reorder
-    minimum_stock = Column(Integer, nullable=False, default=5)
-    maximum_stock = Column(Integer, nullable=True)
+    reorder_level = Column(Integer, nullable=False, default=10, server_default='10')
+    minimum_stock = Column(Integer, nullable=False, default=0, server_default='0')
+    maximum_stock = Column(Integer, nullable=True, default=0, server_default='0')
     
     # Product specifications
     weight = Column(Numeric(10, 3), nullable=True)  # in kg

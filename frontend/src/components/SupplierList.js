@@ -55,7 +55,7 @@ function SupplierList() {
       <div className="page-header">
         <div className="header-content"><div className="header-icon supplier"><Building2 size={20} /></div><div><h1>Suppliers</h1><p>Manage your product suppliers</p></div></div>
         <div className="wms-flex-row">
-          <button className="wms-btn-import" onClick={() => setShowImport(true)}>Import CSV</button>
+          <button className="wms-btn-import" onClick={() => setShowImport(true)}>Import CSV / Excel</button>
           <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Supplier'}</button>
         </div>
       </div>

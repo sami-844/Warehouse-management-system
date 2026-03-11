@@ -21,6 +21,7 @@ function ProductList() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
+  const [currentStock, setCurrentStock] = useState(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -34,10 +35,13 @@ function ProductList() {
     selling_price: '',
     tax_rate: 5.00,
     reorder_level: 10,
-    minimum_stock: 5,
+    minimum_stock: 0,
+    maximum_stock: 0,
     is_active: true,
     is_perishable: false,
     brand_id: '',
+    opening_qty: 0,
+    opening_cost: '',
   });
 
   useEffect(() => {
@@ -58,15 +62,11 @@ function ProductList() {
         const b = await brandAPI.list();
         setBrands((b?.brands || []).filter(br => br.status === 'active'));
       } catch (e) { /* brands optional */ }
-      // Load avg costs
+      // Load avg costs (authenticated)
       try {
-        const ac = await productAPI.getAll({ avg_costs: true });
-        if (ac?.data?.costs) setAvgCosts(ac.data.costs);
-        else {
-          const acRes = await (await fetch('/api/products/avg-costs')).json();
-          if (acRes?.costs) setAvgCosts(acRes.costs);
-        }
-      } catch (e) { /* avg costs optional */ }
+        const acRes = await productAPI.getAvgCosts();
+        if (acRes?.costs) setAvgCosts(acRes.costs);
+      } catch (e) { /* avg costs optional — 401 before login is fine */ }
       setError(null);
     } catch (err) {
       console.error('Error loading data:', err);
@@ -106,12 +106,23 @@ function ProductList() {
       ['category_id', 'default_supplier_id', 'brand_id'].forEach(f => {
         cleanData[f] = (cleanData[f] === '' || cleanData[f] == null) ? null : parseInt(cleanData[f]) || null;
       });
-      ['standard_cost', 'selling_price', 'tax_rate', 'weight', 'volume'].forEach(f => {
-        cleanData[f] = (cleanData[f] === '' || cleanData[f] == null) ? null : parseFloat(cleanData[f]) || null;
+      ['standard_cost', 'selling_price', 'weight', 'volume'].forEach(f => {
+        cleanData[f] = (cleanData[f] === '' || cleanData[f] == null) ? 0 : parseFloat(cleanData[f]) || 0;
       });
+      // Never send null for these — always a number
+      cleanData.tax_rate = parseFloat(cleanData.tax_rate) || 0;
+      cleanData.reorder_level = parseInt(cleanData.reorder_level) || 0;
+      cleanData.minimum_stock = parseInt(cleanData.minimum_stock) || 0;
+      cleanData.maximum_stock = parseInt(cleanData.maximum_stock) || 0;
       if (editingProduct) {
+        // Don't send opening fields on edit
+        delete cleanData.opening_qty;
+        delete cleanData.opening_cost;
         await productAPI.update(editingProduct.id, cleanData);
       } else {
+        // Send opening_qty and opening_cost to backend — it handles the stock transaction
+        cleanData.opening_qty = parseInt(cleanData.opening_qty) || 0;
+        cleanData.opening_cost = parseFloat(cleanData.opening_cost) || 0;
         await productAPI.create(cleanData);
       }
       await loadData();
@@ -122,7 +133,7 @@ function ProductList() {
     }
   };
 
-  const handleEdit = (product) => {
+  const handleEdit = async (product) => {
     setEditingProduct(product);
     setFormData({
       sku: product.sku,
@@ -133,14 +144,24 @@ function ProductList() {
       unit_of_measure: product.unit_of_measure,
       standard_cost: product.standard_cost || '',
       selling_price: product.selling_price || '',
-      tax_rate: product.tax_rate,
-      reorder_level: product.reorder_level,
-      minimum_stock: product.minimum_stock,
+      tax_rate: product.tax_rate ?? 0,
+      reorder_level: product.reorder_level ?? 0,
+      minimum_stock: product.minimum_stock ?? 0,
+      maximum_stock: product.maximum_stock ?? 0,
       is_active: product.is_active,
       is_perishable: product.is_perishable,
       brand_id: product.brand_id || '',
+      opening_qty: 0,
+      opening_cost: '',
     });
     setShowAddForm(true);
+    // Fetch current stock level for this product
+    try {
+      const stock = await productAPI.getStock(product.id);
+      setCurrentStock(stock);
+    } catch (e) {
+      setCurrentStock(null);
+    }
   };
 
   const handleDeleteClick = (product) => {
@@ -176,12 +197,16 @@ function ProductList() {
       selling_price: '',
       tax_rate: 5.00,
       reorder_level: 10,
-      minimum_stock: 5,
+      minimum_stock: 0,
+      maximum_stock: 0,
       is_active: true,
       is_perishable: false,
       brand_id: '',
+      opening_qty: 0,
+      opening_cost: '',
     });
     setEditingProduct(null);
+    setCurrentStock(null);
     setShowAddForm(false);
   };
 
@@ -194,7 +219,7 @@ function ProductList() {
       <div className="page-header">
         <div><h1 className="page-title">Products</h1><p className="page-subtitle">Manage your product catalog</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setShowImport(true)} className="wms-btn-import">Import CSV</button>
+          <button onClick={() => setShowImport(true)} className="wms-btn-import">Import CSV / Excel</button>
           <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">{showAddForm ? 'Cancel' : 'Add Product'}</button>
         </div>
       </div>
@@ -351,16 +376,64 @@ function ProductList() {
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Reorder Level</label>
-                <input
-                  type="number"
-                  name="reorder_level"
-                  value={formData.reorder_level}
-                  onChange={handleInputChange}
-                />
+            {/* Opening stock fields (create only) or current stock info (edit only) */}
+            {editingProduct && currentStock ? (
+              <div style={{
+                background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8,
+                padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 24, alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Current Stock on Hand</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#0369a1' }}>{currentStock.quantity_on_hand}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Reserved</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#d97706' }}>{currentStock.quantity_reserved}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Available</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#15803d' }}>{currentStock.quantity_available}</div>
+                </div>
+                {currentStock.average_cost > 0 && (
+                  <div>
+                    <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Avg Cost</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#1a2332' }}>OMR {Number(currentStock.average_cost).toFixed(3)}</div>
+                  </div>
+                )}
               </div>
+            ) : null}
+
+            <div className="form-row">
+              {!editingProduct && (
+                <>
+                  <div className="form-group">
+                    <label>Opening Quantity</label>
+                    <input
+                      type="number"
+                      name="opening_qty"
+                      value={formData.opening_qty}
+                      onChange={handleInputChange}
+                      min="0"
+                      step="1"
+                      placeholder="0"
+                    />
+                    <small style={{color:'#718096',fontSize:11}}>Initial stock quantity</small>
+                  </div>
+                  <div className="form-group">
+                    <label>Opening Cost (OMR)</label>
+                    <input
+                      type="number"
+                      name="opening_cost"
+                      value={formData.opening_cost}
+                      onChange={handleInputChange}
+                      min="0"
+                      step="0.001"
+                      placeholder="0.000"
+                    />
+                    <small style={{color:'#718096',fontSize:11}}>Cost per unit for opening stock</small>
+                  </div>
+                </>
+              )}
               <div className="form-group">
                 <label>Minimum Stock</label>
                 <input
@@ -368,6 +441,31 @@ function ProductList() {
                   name="minimum_stock"
                   value={formData.minimum_stock}
                   onChange={handleInputChange}
+                  min="0"
+                  step="1"
+                />
+              </div>
+              <div className="form-group">
+                <label>Maximum Stock</label>
+                <input
+                  type="number"
+                  name="maximum_stock"
+                  value={formData.maximum_stock}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="1"
+                  placeholder="0"
+                />
+              </div>
+              <div className="form-group">
+                <label>Reorder Level</label>
+                <input
+                  type="number"
+                  name="reorder_level"
+                  value={formData.reorder_level}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="1"
                 />
               </div>
             </div>
@@ -469,7 +567,7 @@ function ProductList() {
       </div>
 
       {filteredProducts.length === 0 && (
-        <EmptyState title="No products found" hint="Click '+ Add Product' or import from CSV to get started" />
+        <EmptyState title="No products found" hint="Click '+ Add Product' or import from CSV/Excel to get started" />
       )}
 
       {showDeleteModal && productToDelete && (

@@ -31,6 +31,8 @@ export const productAPI = {
   getByBarcode: (barcode) => api.get(`/api/products/barcode/${barcode}`),
   getDeleted: async () => (await api.get('/api/products/deleted')).data,
   restore: async (id) => (await api.post(`/api/products/${id}/restore`)).data,
+  getAvgCosts: async () => (await api.get('/api/products/avg-costs')).data,
+  getStock: async (id) => (await api.get(`/api/products/${id}/stock`)).data,
 };
 
 export const categoryAPI = {

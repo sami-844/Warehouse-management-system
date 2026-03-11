@@ -118,7 +118,7 @@ function CustomerList({ onNavigate }) {
     <div className="sales-container">
       <div className="page-header"><div className="header-content"><div className="header-icon customer"><Users size={20} /></div><div><h1>Customers</h1><p>Manage shops and delivery routes</p></div></div>
         <div className="wms-flex-row">
-          <button className="wms-btn-import" onClick={() => setShowImport(true)}>Import CSV</button>
+          <button className="wms-btn-import" onClick={() => setShowImport(true)}>Import CSV / Excel</button>
           <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Customer'}</button>
         </div>
       </div>

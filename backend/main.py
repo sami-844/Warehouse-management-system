@@ -64,21 +64,48 @@ async def startup_event():
             except ProgrammingError:
                 conn.rollback()
     Base.metadata.create_all(bind=engine, checkfirst=True)
-    # Ensure soft-delete columns exist on products table (ALTER TABLE for existing DBs)
+    # ── Auto-migration: add missing columns to existing tables ──
+    _migrations = [
+        ("products", "is_deleted", "BOOLEAN DEFAULT FALSE"),
+        ("products", "deleted_at", "TIMESTAMP"),
+        ("products", "deleted_by", "INTEGER"),
+        ("products", "deleted_reason", "TEXT"),
+        ("purchase_orders", "received_date", "DATE"),
+        ("purchase_orders", "container_reference", "VARCHAR(100)"),
+        ("purchase_orders", "freight_cost", "NUMERIC(10,3) DEFAULT 0"),
+        ("purchase_orders", "customs_duty", "NUMERIC(10,3) DEFAULT 0"),
+        ("purchase_orders", "handling_cost", "NUMERIC(10,3) DEFAULT 0"),
+        ("purchase_orders", "insurance_cost", "NUMERIC(10,3) DEFAULT 0"),
+        ("purchase_orders", "local_transport_cost", "NUMERIC(10,3) DEFAULT 0"),
+        ("purchase_orders", "currency", "VARCHAR(3) DEFAULT 'OMR'"),
+        ("purchase_orders", "exchange_rate", "NUMERIC(10,6) DEFAULT 1.0"),
+        ("purchase_order_items", "batch_number", "VARCHAR(100)"),
+        ("purchase_order_items", "expiry_date", "DATE"),
+        ("purchase_order_items", "notes", "TEXT"),
+        ("deliveries", "customer_name", "VARCHAR(200)"),
+        ("deliveries", "delivery_notes", "TEXT"),
+        ("deliveries", "items_delivered", "TEXT"),
+        ("deliveries", "pod_photo_base64", "TEXT"),
+        ("deliveries", "pod_captured_at", "DATETIME"),
+        ("deliveries", "route_area", "VARCHAR(100)"),
+    ]
+    with engine.connect() as conn:
+        for table, col, col_type in _migrations:
+            try:
+                conn.execute(text(f"SELECT {col} FROM {table} LIMIT 1"))
+            except Exception:
+                try:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+    # Fix any lowercase enum values in inventory_transactions
     with engine.connect() as conn:
         try:
-            conn.execute(text("SELECT is_deleted FROM products LIMIT 1"))
+            conn.execute(text("UPDATE inventory_transactions SET transaction_type = UPPER(transaction_type) WHERE transaction_type != UPPER(transaction_type)"))
+            conn.commit()
         except Exception:
-            try:
-                conn.execute(text("ALTER TABLE products ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE"))
-                conn.execute(text("ALTER TABLE products ADD COLUMN deleted_at TIMESTAMP"))
-                conn.execute(text("ALTER TABLE products ADD COLUMN deleted_by INTEGER"))
-                conn.execute(text("ALTER TABLE products ADD COLUMN deleted_reason TEXT"))
-                conn.commit()
-                print("Added soft-delete columns to products table")
-            except Exception as e:
-                conn.rollback()
-                print(f"Soft-delete column migration note: {e}")
+            conn.rollback()
     print("Database tables verified — All Phase 5c modules active")
 
 @app.on_event("shutdown")

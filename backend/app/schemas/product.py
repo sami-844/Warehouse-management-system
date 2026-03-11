@@ -61,7 +61,8 @@ class ProductBase(BaseModel):
 
 class ProductCreate(ProductBase):
     """Schema for creating a new product"""
-    pass
+    opening_qty: Optional[int] = 0
+    opening_cost: Optional[Decimal] = None
 
 
 class ProductUpdate(BaseModel):
