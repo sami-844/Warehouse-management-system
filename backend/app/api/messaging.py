@@ -117,7 +117,7 @@ async def send_invoice_notification(
         f"Dear {row['customer_name']}, Invoice #{row['invoice_number']} "
         f"for {float(row['total_amount']):.3f} OMR has been created. "
         f"Balance due: {float(row['balance']):.3f} OMR. "
-        f"Thank you for your business. - AK Al Momaiza"
+        f"Thank you for your business. - AK Al Mumayza"
     )
 
     return await send_message(
@@ -154,7 +154,7 @@ async def send_delivery_notification(
     message = (
         f"Dear {row['customer_name']}, Your order #{row['order_number']} "
         f"has been dispatched. Expected delivery: {row['scheduled_date']}. "
-        f"- AK Al Momaiza"
+        f"- AK Al Mumayza"
     )
 
     return await send_message(
@@ -190,7 +190,7 @@ async def send_payment_reminder(
         f"Dear {row['customer_name']}, Invoice #{row['invoice_number']} "
         f"for {float(row['balance']):.3f} OMR is overdue (due: {row['due_date']}). "
         f"Please arrange payment at your earliest convenience. "
-        f"Thank you. - AK Al Momaiza"
+        f"Thank you. - AK Al Mumayza"
     )
 
     return await send_message(

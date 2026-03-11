@@ -27,7 +27,7 @@ def get_company_info() -> dict:
     except Exception:
         settings = {}
     return {
-        "name": settings.get("company_name", "AK Al Momaiza Trading"),
+        "name": settings.get("company_name", "AK Al Mumayza Trading"),
         "address": settings.get("company_address", "Muscat, Oman"),
         "phone": settings.get("company_phone", ""),
         "email": settings.get("company_email", ""),

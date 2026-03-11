@@ -125,7 +125,7 @@ if not table_exists("notification_settings"):
         ('smtp_username', ''),
         ('smtp_password', ''),
         ('smtp_from_email', ''),
-        ('smtp_from_name', 'AK Al Momaiza Trading'),
+        ('smtp_from_name', 'AK Al Mumayza Trading'),
         ('notify_low_stock', 'true'),
         ('notify_overdue_payments', 'true'),
         ('notify_expiring_stock', 'true'),

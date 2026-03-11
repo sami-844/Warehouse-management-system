@@ -98,7 +98,7 @@ function CompanySettings() {
                 <div className="form-group"><label>Phone</label>
                   <input value={form.company_phone || ''} onChange={e => setForm(p => ({...p, company_phone: e.target.value}))} placeholder="+968 ..." /></div>
                 <div className="form-group"><label>Email</label>
-                  <input value={form.company_email || ''} onChange={e => setForm(p => ({...p, company_email: e.target.value}))} placeholder="info@akmomaiza.com" /></div>
+                  <input value={form.company_email || ''} onChange={e => setForm(p => ({...p, company_email: e.target.value}))} placeholder="info@akmumayza.com" /></div>
               </div>
               <button className="submit-btn" onClick={saveSettings}>Save Company Info</button>
             </div>
@@ -169,7 +169,7 @@ function CompanySettings() {
               marginTop: 12, padding: 16, border: '1px solid var(--ds-border)',
               borderRadius: 8, fontFamily: selectedFont, maxWidth: 450, background: 'var(--ds-surface)',
             }}>
-              <strong style={{ fontSize: 18 }}>Preview: AK Al Momaiza WMS</strong>
+              <strong style={{ fontSize: 18 }}>Preview: AK Al Mumayza WMS</strong>
               <p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--ds-text-muted)' }}>
                 The quick brown fox jumps over the lazy dog — 0123456789 — OMR 5.500
               </p>

@@ -9,7 +9,7 @@ from app.models import *
 
 app = FastAPI(
     title=settings.APP_NAME, version="5.3",
-    description="Wholesale Distribution Management System — AK Al Momaiza Trading",
+    description="Wholesale Distribution Management System — AK Al Mumayza Trading",
     docs_url="/api/docs", redoc_url="/api/redoc", openapi_url="/api/openapi.json"
 )
 
@@ -72,7 +72,7 @@ async def shutdown_event():
 
 @app.get("/")
 async def root():
-    return {"message": "Ak Al Momaiza - Warehouse Management System", "version": "5.3", "status": "online"}
+    return {"message": "AK Al Mumayza - Warehouse Management System", "version": "5.3", "status": "online"}
 
 @app.get("/api/health")
 async def health_check():

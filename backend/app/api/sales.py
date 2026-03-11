@@ -637,7 +637,7 @@ async def download_fawtara_xml(invoice_id: int, db: Session = Depends(get_db), c
     }
 
     company_data = {
-        "name": settings.get("company_name", "AK Al Momaiza Trading"),
+        "name": settings.get("company_name", "AK Al Mumayza Trading"),
         "vat_number": settings.get("company_tax_id", ""),
         "address": settings.get("company_address", "Muscat, Oman"),
         "city": "Muscat",

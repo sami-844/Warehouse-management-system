@@ -1,4 +1,4 @@
-"""Populate Sample Data - AK Al Momaiza Trading WMS"""
+"""Populate Sample Data - AK Al Mumayza Trading WMS"""
 import sys
 sys.path.insert(0, '/app/backend')
 from sqlalchemy import text
@@ -9,7 +9,7 @@ db = SessionLocal()
 
 try:
     print("=" * 60)
-    print("POPULATING SAMPLE DATA - AK Al Momaiza Trading")
+    print("POPULATING SAMPLE DATA - AK Al Mumayza Trading")
     print("=" * 60)
 
     # ── Users ──────────────────────────────────────────────────

@@ -110,7 +110,7 @@ function CustomerList({ onNavigate }) {
   const sendReminder = (c) => {
     const outstanding = (Number(c.outstanding_balance) || 0).toFixed(3);
     const phone = (c.mobile || c.phone || '').replace(/[^0-9+]/g, '').replace(/^\+/, '');
-    const msg = `Dear ${c.name}, this is a reminder that you have an outstanding balance of ${outstanding} OMR with AK Al Momaiza Trading. Please contact us to arrange payment. Thank you.`;
+    const msg = `Dear ${c.name}, this is a reminder that you have an outstanding balance of ${outstanding} OMR with AK Al Mumayza Trading. Please contact us to arrange payment. Thank you.`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 

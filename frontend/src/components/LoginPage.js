@@ -49,7 +49,7 @@ function LoginPage({ onLoginSuccess }) {
       <div className="login-box">
         <div className="login-header">
           <h1>Warehouse Management</h1>
-          <h2>AK Al Momaiza Trading</h2>
+          <h2>AK Al Mumayza Trading</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">

@@ -62,7 +62,7 @@ function SalesInvoices() {
     const balance = (Number(inv.balance) || 0).toFixed(3);
     const total = (Number(inv.total_amount) || 0).toFixed(3);
     const lines = [
-      `*Invoice from AK Al Momaiza Trading*`,
+      `*Invoice from AK Al Mumayza Trading*`,
       ``,
       `Invoice #: ${inv.invoice_number}`,
       `Date: ${inv.invoice_date}`,

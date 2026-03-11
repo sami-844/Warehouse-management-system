@@ -6,7 +6,7 @@ import { MessageSquare } from 'lucide-react';
 const DEFAULT_TEMPLATES = [
   {
     id: 1, name: 'Invoice Created', trigger: 'sales_invoice_created', is_active: true,
-    body: 'Dear {customer_name}, Invoice #{invoice_number} for {amount} OMR has been created. Thank you for your business. - AK Al Momaiza'
+    body: 'Dear {customer_name}, Invoice #{invoice_number} for {amount} OMR has been created. Thank you for your business. - AK Al Mumayza'
   },
   {
     id: 2, name: 'Payment Received', trigger: 'payment_received', is_active: true,
@@ -100,7 +100,7 @@ function MessagingSettings() {
           <div className="form-group">
             <label>Sender Name / Number</label>
             <input value={config.sender} onChange={e => updateConfig('sender', e.target.value)}
-              placeholder="+968 1234 5678 or AK Al Momaiza" disabled={config.provider === 'none'} />
+              placeholder="+968 1234 5678 or AK Al Mumayza" disabled={config.provider === 'none'} />
           </div>
         </div>
         <div className="form-row-2">

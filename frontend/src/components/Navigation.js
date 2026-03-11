@@ -218,7 +218,7 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
                 <span style={{ color: '#fff', fontWeight: 900, fontSize: 13, fontFamily: 'Figtree, sans-serif' }}>AK</span>
               </div>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ color: '#fff', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', fontFamily: 'Figtree, sans-serif', lineHeight: 1.2 }}>Al Momaiza</div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', fontFamily: 'Figtree, sans-serif', lineHeight: 1.2 }}>Al Mumayza</div>
                 <div style={{ color: '#64748b', fontSize: 10, whiteSpace: 'nowrap', fontFamily: 'Figtree, sans-serif' }}>WMS v5.3</div>
               </div>
             </div>

@@ -172,7 +172,7 @@ def trigger_low_stock_alert(background_tasks: BackgroundTasks):
     <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;font-family:Arial">
     <tr style="background:#c0392b;color:white"><th>Product</th><th>SKU</th><th>Current Stock</th></tr>
     {rows_html}</table>
-    <p style="color:#888;font-size:12px">Generated {datetime.now().strftime('%Y-%m-%d %H:%M')} — AK Al Momaiza WMS</p>
+    <p style="color:#888;font-size:12px">Generated {datetime.now().strftime('%Y-%m-%d %H:%M')} — AK Al Mumayza WMS</p>
     """
 
     result = send_email(settings, recipients, f"Low Stock Alert — {len(low_items)} items", html)
@@ -225,7 +225,7 @@ def trigger_overdue_payments():
     <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;font-family:Arial">
     <tr style="background:#e67e22;color:white"><th>Customer</th><th>Invoice</th><th>Due Date</th><th>Total</th><th>Outstanding</th></tr>
     {rows_html}</table>
-    <p style="color:#888;font-size:12px">Generated {datetime.now().strftime('%Y-%m-%d %H:%M')} — AK Al Momaiza WMS</p>
+    <p style="color:#888;font-size:12px">Generated {datetime.now().strftime('%Y-%m-%d %H:%M')} — AK Al Mumayza WMS</p>
     """
 
     result = send_email(settings, recipients, f"Overdue Payments — OMR {round(total_overdue, 3)}", html)
@@ -353,7 +353,7 @@ def email_invoice(invoice_id: int = Query(...)):
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
     <div style="background:#1a2332;padding:20px;text-align:center">
-        <h1 style="color:#D4A017;margin:0">AK Al Momaiza Trading</h1>
+        <h1 style="color:#D4A017;margin:0">AK Al Mumayza Trading</h1>
     </div>
     <div style="padding:20px;border:1px solid #e2e8f0">
         <h2 style="color:#1a2332">Invoice {inv['invoice_number']}</h2>
@@ -374,12 +374,12 @@ def email_invoice(invoice_id: int = Query(...)):
         </div>
     </div>
     <div style="padding:12px;text-align:center;color:#94a3b8;font-size:11px">
-        AK Al Momaiza Trading &middot; Oman &middot; Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}
+        AK Al Mumayza Trading &middot; Oman &middot; Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}
     </div>
     </div>
     """
 
-    subject = f"Invoice {inv['invoice_number']} — {balance} OMR — AK Al Momaiza Trading"
+    subject = f"Invoice {inv['invoice_number']} — {balance} OMR — AK Al Mumayza Trading"
     result = send_email(settings, [email], subject, html)
     status = "sent" if result is True else "failed"
     log_notification("invoice_email", email, subject, html, status,

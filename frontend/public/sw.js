@@ -1,4 +1,4 @@
-/* Service Worker — AK Al Momaiza Driver PWA
+/* Service Worker — AK Al Mumayza Driver PWA
    Provides offline support by caching the app shell and recent API data.
    Install: Register this in index.html or App.js */
 

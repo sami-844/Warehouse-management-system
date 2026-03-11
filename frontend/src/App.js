@@ -280,7 +280,7 @@ function App() {
         <div style={{ background: '#fff', borderRadius: 16, padding: '48px 36px', width: 380, boxShadow: '0 12px 40px rgba(0,0,0,0.3)' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <h1 style={{ color: '#1a7b5b', fontSize: 24, marginTop: 8 }}>Warehouse Management</h1>
-            <h2 style={{ color: '#888', fontSize: 14, fontWeight: 400, marginTop: 4 }}>AK Al Momaiza Trading</h2>
+            <h2 style={{ color: '#888', fontSize: 14, fontWeight: 400, marginTop: 4 }}>AK Al Mumayza Trading</h2>
           </div>
           {loginError && <div style={{ background: '#fce4e4', color: '#c0392b', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{loginError}</div>}
           <form onSubmit={handleLogin}>

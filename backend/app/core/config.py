@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     
     # Company Info
-    COMPANY_NAME: str = "AK Al Momaiza Trading"
+    COMPANY_NAME: str = "AK Al Mumayza Trading"
     COMPANY_ADDRESS: str = "Oman"
     COMPANY_PHONE: str = ""
     COMPANY_EMAIL: str = ""

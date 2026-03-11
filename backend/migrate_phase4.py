@@ -44,7 +44,7 @@ if not table_exists("company_settings"):
     )""")
     # Insert defaults
     defaults = [
-        ('company_name', 'AK Al Momaiza Trading', 'string'),
+        ('company_name', 'AK Al Mumayza Trading', 'string'),
         ('company_address', 'Oman', 'string'),
         ('company_phone', '', 'string'),
         ('company_email', '', 'string'),
