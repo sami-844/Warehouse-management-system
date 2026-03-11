@@ -551,7 +551,7 @@ async def create_pricing_rule(data: PricingRuleCreate, db: Session = Depends(get
 
 @router.get("/pricing/customer/{customer_id}")
 async def customer_prices(customer_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    products = db.query(Product).filter(Product.is_active == True).order_by(Product.name).all()
+    products = db.query(Product).filter(Product.is_active == True, Product.is_deleted != True).order_by(Product.name).all()
     today = date.today()
     result = []
     for p in products:

@@ -68,6 +68,12 @@ class Product(Base):
     # Status
     is_active = Column(Boolean, default=True, nullable=False)
     is_perishable = Column(Boolean, default=False, nullable=False)  # Has expiry date?
+
+    # Soft delete
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_by = Column(Integer, nullable=True)
+    deleted_reason = Column(Text, nullable=True)
     
     # Relationships
     category = relationship("ProductCategory", back_populates="products")
@@ -80,3 +86,24 @@ class Product(Base):
     
     def __repr__(self):
         return f"<Product {self.sku}: {self.name}>"
+
+
+class DeletedItemsLog(Base):
+    """Audit log for all deleted items (products, customers, etc.)"""
+    __tablename__ = "deleted_items_log"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    item_type = Column(String(50), default="product")
+    item_id = Column(Integer)
+    item_name = Column(String(500))
+    item_sku = Column(String(200))
+    item_data = Column(Text)
+    deleted_by_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    deleted_by_name = Column(String(200))
+    deleted_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_reason = Column(Text)
+    restored_at = Column(DateTime(timezone=True), nullable=True)
+    restored_by_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    restored_by_name = Column(String(200), nullable=True)
+    is_restored = Column(Boolean, default=False)

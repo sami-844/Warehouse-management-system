@@ -27,8 +27,10 @@ export const productAPI = {
   getById: (id) => api.get(`/api/products/${id}`),
   create: (data) => api.post('/api/products', data),
   update: (id, data) => api.put(`/api/products/${id}`, data),
-  delete: (id) => api.delete(`/api/products/${id}`),
+  delete: (id, reason = '') => api.delete(`/api/products/${id}`, { params: { reason } }),
   getByBarcode: (barcode) => api.get(`/api/products/barcode/${barcode}`),
+  getDeleted: async () => (await api.get('/api/products/deleted')).data,
+  restore: async (id) => (await api.post(`/api/products/${id}/restore`)).data,
 };
 
 export const categoryAPI = {

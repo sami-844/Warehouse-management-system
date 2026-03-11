@@ -8,8 +8,10 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from app.core.database import get_db
-from app.models.product import Product, ProductCategory
+from app.models.product import Product, ProductCategory, DeletedItemsLog
 from app.models.user import User
+from datetime import datetime, timezone
+import json
 from app.schemas.product import (
     Product as ProductSchema,
     ProductCreate,
@@ -150,8 +152,8 @@ def list_products(
     - **search**: Search in product name or SKU
     - **is_active**: Filter by active status
     """
-    query = db.query(Product)
-    
+    query = db.query(Product).filter(Product.is_deleted != True)
+
     # Apply filters
     if category_id is not None:
         query = query.filter(Product.category_id == category_id)
@@ -300,27 +302,113 @@ def update_product(
     return db_product
 
 
-@router.delete("/products/{product_id}", status_code=204)
+@router.delete("/products/{product_id}")
 def delete_product(
+    product_id: int,
+    reason: str = Query("", description="Reason for deletion"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Soft delete a product with audit trail."""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Soft delete the product
+    product.is_deleted = True
+    product.is_active = False
+    product.deleted_at = datetime.now(timezone.utc)
+    product.deleted_by = current_user.id
+    product.deleted_reason = reason or None
+    product.updated_by = current_user.id
+
+    # Log in deleted_items_log
+    log_entry = DeletedItemsLog(
+        item_type="product",
+        item_id=product.id,
+        item_name=product.name,
+        item_sku=product.sku,
+        item_data=json.dumps({
+            "id": product.id, "name": product.name, "sku": product.sku,
+            "barcode": product.barcode,
+            "selling_price": str(product.selling_price or 0),
+            "standard_cost": str(product.standard_cost or 0),
+            "unit_of_measure": product.unit_of_measure,
+            "category_id": product.category_id,
+            "description": product.description,
+            "reorder_level": product.reorder_level,
+            "tax_rate": str(product.tax_rate or 0),
+            "is_perishable": product.is_perishable,
+        }),
+        deleted_by_id=current_user.id,
+        deleted_by_name=current_user.username,
+        deleted_at=datetime.now(timezone.utc),
+        deleted_reason=reason or None,
+    )
+    db.add(log_entry)
+    db.commit()
+
+    return {"message": f"Product '{product.name}' deleted successfully"}
+
+
+@router.get("/products/deleted")
+def list_deleted_products(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all deleted items from the audit log."""
+    items = db.query(DeletedItemsLog).filter(
+        DeletedItemsLog.is_restored == False
+    ).order_by(DeletedItemsLog.deleted_at.desc()).all()
+    return [
+        {
+            "id": i.id, "item_type": i.item_type, "item_id": i.item_id,
+            "item_name": i.item_name, "item_sku": i.item_sku,
+            "item_data": i.item_data,
+            "deleted_by_id": i.deleted_by_id, "deleted_by_name": i.deleted_by_name,
+            "deleted_at": i.deleted_at.isoformat() if i.deleted_at else None,
+            "deleted_reason": i.deleted_reason,
+            "is_restored": i.is_restored,
+        }
+        for i in items
+    ]
+
+
+@router.post("/products/{product_id}/restore")
+def restore_product(
     product_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Delete a product (soft delete - sets is_active to False)
-    
-    Note: This doesn't actually delete from database, just marks as inactive
-    """
+    """Restore a soft-deleted product."""
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
-    # Soft delete
-    product.is_active = False
-    product.updated_by = current_user.id
-    db.commit()
+    if not product.is_deleted:
+        raise HTTPException(status_code=400, detail="Product is not deleted")
 
-    return None
+    # Restore the product
+    product.is_deleted = False
+    product.is_active = True
+    product.deleted_at = None
+    product.deleted_by = None
+    product.deleted_reason = None
+    product.updated_by = current_user.id
+
+    # Update the log entry
+    log = db.query(DeletedItemsLog).filter(
+        DeletedItemsLog.item_id == product_id,
+        DeletedItemsLog.item_type == "product",
+        DeletedItemsLog.is_restored == False
+    ).order_by(DeletedItemsLog.deleted_at.desc()).first()
+    if log:
+        log.is_restored = True
+        log.restored_at = datetime.now(timezone.utc)
+        log.restored_by_id = current_user.id
+        log.restored_by_name = current_user.username
+
+    db.commit()
+    return {"message": f"Product '{product.name}' restored successfully"}
 
 
 @router.post("/products/import", status_code=201)

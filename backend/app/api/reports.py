@@ -294,7 +294,7 @@ async def sales_by_product(from_date: Optional[str] = None, to_date: Optional[st
         FROM products p
         LEFT JOIN sales_order_items soi ON p.id = soi.product_id
         LEFT JOIN sales_orders so ON soi.sales_order_id = so.id AND so.order_date BETWEEN :start AND :end
-        WHERE p.is_active = true
+        WHERE p.is_active = true AND (p.is_deleted = false OR p.is_deleted IS NULL)
         GROUP BY p.id, p.sku, p.name
         ORDER BY revenue DESC
     """, {"start": start, "end": end})
@@ -349,7 +349,7 @@ async def stock_valuation(current_user: User = Depends(get_current_user)):
                COALESCE(SUM(sl.quantity_on_hand), 0) * COALESCE(p.selling_price, 0) as retail_value
         FROM products p
         LEFT JOIN stock_levels sl ON p.id = sl.product_id
-        WHERE p.is_active = true
+        WHERE p.is_active = true AND (p.is_deleted = false OR p.is_deleted IS NULL)
         GROUP BY p.id, p.sku, p.name, p.unit_of_measure, p.standard_cost, p.selling_price
         ORDER BY stock_value DESC
     """)
@@ -389,7 +389,7 @@ async def inventory_movements(from_date: Optional[str] = None, to_date: Optional
         FROM inventory_transactions it
         JOIN products p ON it.product_id = p.id
         JOIN warehouses w ON it.warehouse_id = w.id
-        WHERE {" AND ".join(where)}
+        WHERE {" AND ".join(where)} AND (p.is_deleted = false OR p.is_deleted IS NULL)
         ORDER BY it.transaction_date DESC LIMIT :limit
     """, params)
     return {
@@ -414,7 +414,7 @@ async def dead_stock(days: int = 90, current_user: User = Depends(get_current_us
         FROM products p
         LEFT JOIN stock_levels sl ON p.id = sl.product_id
         LEFT JOIN inventory_transactions it ON p.id = it.product_id AND it.transaction_type = 'issue'
-        WHERE p.is_active = true
+        WHERE p.is_active = true AND (p.is_deleted = false OR p.is_deleted IS NULL)
         GROUP BY p.id, p.sku, p.name, p.standard_cost
         HAVING COALESCE(SUM(sl.quantity_on_hand), 0) > 0
            AND (MAX(it.transaction_date) IS NULL OR MAX(it.transaction_date) < :cutoff)
@@ -978,7 +978,7 @@ async def product_sales_report(from_date: Optional[str] = None, to_date: Optiona
             FROM products p
             LEFT JOIN sales_order_items soi ON p.id = soi.product_id
             LEFT JOIN sales_orders so ON soi.sales_order_id = so.id AND {wc}
-            WHERE p.is_active = true
+            WHERE p.is_active = true AND (p.is_deleted = false OR p.is_deleted IS NULL)
             GROUP BY p.id, p.sku, p.name
             HAVING COALESCE(SUM(soi.quantity_ordered), 0) > 0
             ORDER BY total_amount DESC

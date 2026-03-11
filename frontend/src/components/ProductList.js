@@ -18,6 +18,9 @@ function ProductList() {
   const [importMessage, setImportMessage] = useState('');
   const [brands, setBrands] = useState([]);
   const [avgCosts, setAvgCosts] = useState({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -140,15 +143,24 @@ function ProductList() {
     setShowAddForm(true);
   };
 
-  const handleDelete = async (product) => {
-    if (window.confirm(`Delete ${product.name}?`)) {
-      try {
-        await productAPI.delete(product.id);
-        await loadData();
-      } catch (err) {
-        console.error('Error deleting product:', err);
-        setError('Failed to delete product');
-      }
+  const handleDeleteClick = (product) => {
+    setProductToDelete(product);
+    setDeleteReason('');
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
+    try {
+      await productAPI.delete(productToDelete.id, deleteReason);
+      setShowDeleteModal(false);
+      setProductToDelete(null);
+      setDeleteReason('');
+      await loadData();
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      setError('Failed to delete product');
+      setShowDeleteModal(false);
     }
   };
 
@@ -439,7 +451,7 @@ function ProductList() {
               <button onClick={() => handleEdit(product)} className="btn-edit">
                 Edit
               </button>
-              <button onClick={() => handleDelete(product)} className="btn-delete">
+              <button onClick={() => handleDeleteClick(product)} className="btn-delete">
                 Delete
               </button>
             </div>
@@ -449,6 +461,40 @@ function ProductList() {
 
       {filteredProducts.length === 0 && (
         <EmptyState title="No products found" hint="Click '+ Add Product' or import from CSV to get started" />
+      )}
+
+      {showDeleteModal && productToDelete && (
+        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: 440, padding: 24 }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 18, color: '#dc2626' }}>Delete Product</h3>
+            <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: 14 }}>
+              Are you sure you want to delete <strong>{productToDelete.name}</strong> ({productToDelete.sku})?
+              This item will be moved to the Deleted Items archive.
+            </p>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#1a2332', marginBottom: 4, display: 'block' }}>
+                Reason for deletion
+              </label>
+              <textarea
+                value={deleteReason}
+                onChange={e => setDeleteReason(e.target.value)}
+                placeholder="e.g. Discontinued, duplicate entry, wrong product..."
+                rows={3}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowDeleteModal(false)}
+                style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                Cancel
+              </button>
+              <button onClick={confirmDelete}
+                style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#dc2626', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                Delete Product
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

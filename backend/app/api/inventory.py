@@ -297,7 +297,7 @@ async def get_product_history(product_id: int, limit: int = Query(100), db: Sess
 # ===== NEW: Products for Stocktake =====
 @router.get("/products-for-stocktake")
 async def get_products_for_stocktake(warehouse_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    products = db.query(Product).filter(Product.is_active == True).all()
+    products = db.query(Product).filter(Product.is_active == True, Product.is_deleted != True).all()
     return [{"product_id": p.id, "product_name": p.name, "sku": p.sku, "barcode": p.barcode, "unit_of_measure": p.unit_of_measure,
              "system_quantity": float((db.query(StockLevel).filter(StockLevel.product_id == p.id, StockLevel.warehouse_id == warehouse_id).first() or StockLevel(quantity_on_hand=0)).quantity_on_hand)
     } for p in products]

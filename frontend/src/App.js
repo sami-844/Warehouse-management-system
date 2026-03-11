@@ -67,6 +67,7 @@ import CategoryList from './components/CategoryList';
 import ProductBrands from './components/ProductBrands';
 import VariationTemplates from './components/VariationTemplates';
 import DamageItems from './components/DamageItems';
+import DeletedItems from './components/DeletedItems';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
 import Breadcrumb from './components/Breadcrumb';
@@ -175,6 +176,7 @@ const PAGE_ROLE_MAP = {
   'product-brands':     ['ADMIN'],
   'variations':         ['ADMIN'],
   'damage-items':       ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
+  'deleted-items':      ['ADMIN'],
 };
 
 function canAccessPage(page, role) {
@@ -398,6 +400,7 @@ function App() {
       case 'product-brands':       return <ProductBrands />;
       case 'variations':           return <VariationTemplates />;
       case 'damage-items':         return <DamageItems />;
+      case 'deleted-items':        return <DeletedItems />;
 
       // ── PDF Print (hidden pages, accessed via buttons) ──
       case 'print-invoice':        return <InvoicePDF orderId={printInvoiceOrderId} onClose={closePDF} />;

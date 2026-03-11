@@ -104,6 +104,7 @@ const SECTIONS = [
       { label: 'Variations',      page: 'variations' },
       { label: 'Notifications',   page: 'notifications' },
       { label: 'Messaging',       page: 'messaging' },
+      { label: 'Deleted Items',   page: 'deleted-items' },
     ],
   },
 ];
