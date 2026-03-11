@@ -63,13 +63,13 @@
   --ds-neutral-border: #e2e8f0;
 
   /* ── Typography ── */
-  --ds-font-ui:        'Figtree', 'Segoe UI', system-ui, sans-serif;
+  --ds-font-ui:        'Inter', 'Figtree', 'Segoe UI', system-ui, sans-serif;
   --ds-font-mono:      'IBM Plex Mono', 'Consolas', 'Courier New', monospace;
 
   --ds-text-xs:     11px;
   --ds-text-sm:     12px;
-  --ds-text-base:   13px;
-  --ds-text-md:     14px;
+  --ds-text-base:   14px;
+  --ds-text-md:     15px;
   --ds-text-lg:     16px;
   --ds-text-xl:     20px;
   --ds-text-2xl:    24px;
@@ -530,14 +530,15 @@ body {
 .data-table thead th {
   background: var(--ds-navy) !important;
   font-family: var(--ds-font-ui) !important;
-  font-size: var(--ds-text-xs) !important;
+  font-size: 13px !important;
   letter-spacing: 0.07em !important;
-  padding: 10px 14px !important;
+  padding: 12px 18px !important;
 }
 
 .data-table td {
   font-family: var(--ds-font-ui) !important;
   font-size: var(--ds-text-base) !important;
+  padding: 12px 18px !important;
 }
 
 .data-table tbody tr:hover {
@@ -633,8 +634,8 @@ body {
 .header-icon {
   border-radius: var(--ds-r-md) !important;
   box-shadow: none !important;
-  width: 44px !important;
-  height: 44px !important;
+  width: 48px !important;
+  height: 48px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

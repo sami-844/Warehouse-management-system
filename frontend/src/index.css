@@ -220,14 +220,14 @@ body {
 
 /* ── Page Header Consistency ── */
 .page-title {
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 26px;
+  font-weight: 700;
   color: #1a2332;
   margin: 0;
   line-height: 1.2;
 }
 .page-subtitle {
-  font-size: 13px;
+  font-size: 14px;
   color: #64748b;
   margin: 2px 0 0;
   font-weight: 400;
@@ -262,4 +262,49 @@ body {
 @keyframes modalIn {
   from { opacity: 0; transform: scale(0.96) translateY(-8px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Layout Scaling — Larger, More Spacious Enterprise Feel
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Content Area — full width, generous padding ── */
+.sales-container,
+.purchasing-container,
+.admin-container,
+.expiry-container,
+.analytics-container,
+.product-list-container,
+.inventory-dashboard-container,
+.stock-levels-container,
+.dashboard {
+  width: 100%;
+  max-width: none;
+  padding: 24px 32px;
+  box-sizing: border-box;
+}
+
+/* ── KPI Cards — larger values ── */
+.wms-kpi-value {
+  font-size: 28px;
+}
+.kpi-value {
+  font-size: 36px !important;
+}
+
+/* ── Buttons — larger and more prominent ── */
+.submit-btn,
+.btn-primary {
+  padding: 9px 22px !important;
+  font-size: 14px !important;
+}
+
+/* ── Form Inputs — taller and more readable ── */
+.form-group input,
+.form-group select,
+.form-group textarea,
+.search-input,
+.filter-select {
+  padding: 10px 14px !important;
+  font-size: 14px !important;
 }
