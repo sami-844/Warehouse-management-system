@@ -49,6 +49,24 @@ import VATReturn from './components/VATReturn';
 import BankReconciliation from './components/BankReconciliation';
 import LandedCosts from './components/LandedCosts';
 import CashTransactions from './components/CashTransactions';
+import EstimateList from './components/EstimateList';
+import PurchaseReturnList from './components/PurchaseReturnList';
+import BillsList from './components/BillsList';
+import AdvancePayments from './components/AdvancePayments';
+import BankAccounts from './components/BankAccounts';
+import BalanceSheet from './components/BalanceSheet';
+import GeneralLedger from './components/GeneralLedger';
+import VendorLedger from './components/VendorLedger';
+import AllSalesReport from './components/AllSalesReport';
+import CustomerSalesSummary from './components/CustomerSalesSummary';
+import ProductSalesReport from './components/ProductSalesReport';
+import AllPurchasesReport from './components/AllPurchasesReport';
+import ExpenseBreakdown from './components/ExpenseBreakdown';
+import SalesTaxReport from './components/SalesTaxReport';
+import CategoryList from './components/CategoryList';
+import ProductBrands from './components/ProductBrands';
+import VariationTemplates from './components/VariationTemplates';
+import DamageItems from './components/DamageItems';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
 import Breadcrumb from './components/Breadcrumb';
@@ -113,7 +131,10 @@ const PAGE_ROLE_MAP = {
   'purchase-order-detail': ['ADMIN','WAREHOUSE_MANAGER'],
   'purchase-invoices':  ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
   'landed-costs':       ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
+  'purchase-returns':   ['ADMIN','WAREHOUSE_MANAGER'],
+  'bills':              ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
   'customers':          ['ADMIN','SALES_STAFF','ACCOUNTANT'],
+  'estimates':          ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],
   'sales-orders':       ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],
   'sales-order-detail': ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],
   'sales-invoices':     ['ADMIN','SALES_STAFF','ACCOUNTANT'],
@@ -132,6 +153,17 @@ const PAGE_ROLE_MAP = {
   'reports':            ['ADMIN','WAREHOUSE_MANAGER','SALES_STAFF','ACCOUNTANT'],
   'vat-return':         ['ADMIN','ACCOUNTANT'],
   'bank-recon':         ['ADMIN','ACCOUNTANT'],
+  'advance-payments':   ['ADMIN','ACCOUNTANT','SALES_STAFF'],
+  'bank-accounts':      ['ADMIN','ACCOUNTANT'],
+  'balance-sheet':      ['ADMIN','ACCOUNTANT'],
+  'general-ledger':     ['ADMIN','ACCOUNTANT'],
+  'vendor-ledger':      ['ADMIN','ACCOUNTANT'],
+  'all-sales-report':   ['ADMIN','ACCOUNTANT'],
+  'customer-sales-summary': ['ADMIN','ACCOUNTANT'],
+  'product-sales':      ['ADMIN','ACCOUNTANT'],
+  'all-purchases-report': ['ADMIN','ACCOUNTANT'],
+  'expense-breakdown':  ['ADMIN','ACCOUNTANT'],
+  'sales-tax':          ['ADMIN','ACCOUNTANT'],
   'users':              ['ADMIN'],
   'settings':           ['ADMIN'],
   'notifications':      ['ADMIN','ACCOUNTANT','WAREHOUSE_MANAGER'],
@@ -139,6 +171,10 @@ const PAGE_ROLE_MAP = {
   'activity-log':       ['ADMIN'],
   'settings-lookup':    ['ADMIN'],
   'stock-log':          ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
+  'categories':         ['ADMIN','WAREHOUSE_MANAGER'],
+  'product-brands':     ['ADMIN'],
+  'variations':         ['ADMIN'],
+  'damage-items':       ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
 };
 
 function canAccessPage(page, role) {
@@ -289,7 +325,7 @@ function App() {
 
     switch (currentPage) {
       // ★ Dashboard (Analytics with graphs, KPIs, charts)
-      case 'dashboard':            return <AnalyticsDashboard />;
+      case 'dashboard':            return <AnalyticsDashboard onNavigate={navigate} />;
 
       // ── Inventory ──
       case 'products':             return <ProductList />;
@@ -310,9 +346,12 @@ function App() {
       case 'purchase-order-detail': return <PurchaseOrderDetail poId={viewPOId} onBack={() => navigate('purchase-orders')} />;
       case 'purchase-invoices':    return <PurchaseInvoices />;
       case 'landed-costs':         return <LandedCosts />;
+      case 'purchase-returns':     return <PurchaseReturnList />;
+      case 'bills':                return <BillsList />;
 
       // ── Sales ──
-      case 'customers':            return <CustomerList />;
+      case 'customers':            return <CustomerList onNavigate={navigate} />;
+      case 'estimates':            return <EstimateList />;
       case 'sales-orders':         return <SalesOrderList onViewOrder={viewSalesOrder} onPrintInvoice={printInvoice} />;
       case 'sales-order-detail':   return <SalesOrderDetail soId={viewSOId} onBack={() => navigate('sales-orders')} />;
       case 'sales-invoices':       return <SalesInvoices />;
@@ -335,6 +374,17 @@ function App() {
       case 'reports':              return <ReportsPage />;
       case 'vat-return':           return <VATReturn />;
       case 'bank-recon':           return <BankReconciliation />;
+      case 'advance-payments':     return <AdvancePayments />;
+      case 'bank-accounts':        return <BankAccounts />;
+      case 'balance-sheet':        return <BalanceSheet />;
+      case 'general-ledger':       return <GeneralLedger />;
+      case 'vendor-ledger':        return <VendorLedger />;
+      case 'all-sales-report':     return <AllSalesReport />;
+      case 'customer-sales-summary': return <CustomerSalesSummary />;
+      case 'product-sales':        return <ProductSalesReport />;
+      case 'all-purchases-report': return <AllPurchasesReport />;
+      case 'expense-breakdown':    return <ExpenseBreakdown />;
+      case 'sales-tax':            return <SalesTaxReport />;
 
       // ── Admin ──
       case 'users':                return <UserManagement />;
@@ -344,6 +394,10 @@ function App() {
       case 'messaging':            return <MessagingSettings />;
       case 'activity-log':         return <UserManagement />;
       case 'stock-log':            return <StockAdjustmentLog />;
+      case 'categories':           return <CategoryList />;
+      case 'product-brands':       return <ProductBrands />;
+      case 'variations':           return <VariationTemplates />;
+      case 'damage-items':         return <DamageItems />;
 
       // ── PDF Print (hidden pages, accessed via buttons) ──
       case 'print-invoice':        return <InvoicePDF orderId={printInvoiceOrderId} onClose={closePDF} />;

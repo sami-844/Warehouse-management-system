@@ -34,6 +34,28 @@ export const productAPI = {
 export const categoryAPI = {
   getAll: () => api.get('/api/categories'),
   create: (data) => api.post('/api/categories', data),
+  update: (id, data) => api.put(`/api/categories/${id}`, data),
+  delete: (id) => api.delete(`/api/categories/${id}`),
+};
+
+export const brandAPI = {
+  list: async (params = {}) => (await api.get('/api/brands', { params })).data,
+  create: async (data) => (await api.post('/api/brands', data)).data,
+  update: async (id, data) => (await api.put(`/api/brands/${id}`, data)).data,
+  remove: async (id) => (await api.delete(`/api/brands/${id}`)).data,
+};
+
+export const variationAPI = {
+  list: async (params = {}) => (await api.get('/api/variations', { params })).data,
+  create: async (data) => (await api.post('/api/variations', data)).data,
+  update: async (id, data) => (await api.put(`/api/variations/${id}`, data)).data,
+  remove: async (id) => (await api.delete(`/api/variations/${id}`)).data,
+};
+
+export const damageItemsAPI = {
+  list: async (params = {}) => (await api.get('/api/damage-items', { params })).data,
+  create: async (data) => (await api.post('/api/damage-items', data)).data,
+  summary: async (params = {}) => (await api.get('/api/damage-items/summary', { params })).data,
 };
 
 export const inventoryAPI = {
@@ -124,6 +146,15 @@ export const salesAPI = {
   },
 };
 
+export const estimatesAPI = {
+  list: async (params = {}) => (await api.get('/api/estimates/', { params })).data,
+  get: async (id) => (await api.get(`/api/estimates/${id}`)).data,
+  create: async (data) => (await api.post('/api/estimates/', data)).data,
+  update: async (id, data) => (await api.put(`/api/estimates/${id}`, data)).data,
+  remove: async (id) => (await api.delete(`/api/estimates/${id}`)).data,
+  convert: async (id) => (await api.post(`/api/estimates/${id}/convert`)).data,
+};
+
 export const analyticsAPI = {
   dashboard: async (days = 30, categoryId = null) => {
     const params = { days };
@@ -141,6 +172,10 @@ export const analyticsAPI = {
   stockStatus: async () => (await api.get('/api/analytics/stock-status')).data,
   salesSummary: async (days = 30) => (await api.get('/api/analytics/sales-summary', { params: { days } })).data,
   lowStockProducts: async () => (await api.get('/api/analytics/low-stock-products')).data,
+};
+
+export const dashboardAPI = {
+  summary: async () => (await api.get('/api/dashboard/summary')).data,
 };
 
 export const financialAPI = {
@@ -164,6 +199,20 @@ export const accountingAPI = {
   bankReconSystemRecords: async (params = {}) => (await api.get('/api/accounting/bank-recon/system-records', { params })).data,
   bankReconSave: async (data) => (await api.post('/api/accounting/bank-recon/save', data)).data,
   bankReconHistory: async () => (await api.get('/api/accounting/bank-recon/history')).data,
+  cashIn: async (data) => (await api.post('/api/accounting/cash-in', data)).data,
+  cashOut: async (data) => (await api.post('/api/accounting/cash-out', data)).data,
+  createJournalEntry: async (data) => (await api.post('/api/accounting/journal-entries', data)).data,
+  vatPayment: async (data) => (await api.post('/api/accounting/vat-payment', data)).data,
+  chartOfAccounts: async () => (await api.get('/api/accounting/chart-of-accounts')).data,
+};
+
+export const bankAccountsAPI = {
+  list: async (params = {}) => (await api.get('/api/bank-accounts/bank-accounts', { params })).data,
+  get: async (id) => (await api.get(`/api/bank-accounts/bank-accounts/${id}`)).data,
+  create: async (data) => (await api.post('/api/bank-accounts/bank-accounts', data)).data,
+  update: async (id, data) => (await api.put(`/api/bank-accounts/bank-accounts/${id}`, data)).data,
+  remove: async (id) => (await api.delete(`/api/bank-accounts/bank-accounts/${id}`)).data,
+  summary: async () => (await api.get('/api/bank-accounts/summary')).data,
 };
 
 export const reportsAPI2 = {
@@ -186,6 +235,15 @@ export const reportsAPI = {
   payablesAging: async () => (await api.get('/api/reports/payables-aging')).data,
   expiryReport: async (days = 90) => (await api.get('/api/reports/expiry-report', { params: { days } })).data,
   vatReturn: async (params = {}) => (await api.get('/api/reports/vat-return', { params })).data,
+  balanceSheet: async (params = {}) => (await api.get('/api/reports/balance-sheet', { params })).data,
+  generalLedger: async (params = {}) => (await api.get('/api/reports/general-ledger', { params })).data,
+  vendorLedger: async (params = {}) => (await api.get('/api/reports/vendor-ledger', { params })).data,
+  allSales: async (params = {}) => (await api.get('/api/reports/all-sales', { params })).data,
+  customerSalesSummary: async (params = {}) => (await api.get('/api/reports/customer-sales-summary', { params })).data,
+  productSales: async (params = {}) => (await api.get('/api/reports/product-sales', { params })).data,
+  allPurchases: async (params = {}) => (await api.get('/api/reports/all-purchases', { params })).data,
+  expenseBreakdown: async (params = {}) => (await api.get('/api/reports/expense-breakdown', { params })).data,
+  salesTax: async (params = {}) => (await api.get('/api/reports/sales-tax', { params })).data,
 };
 
 export const csvImportAPI = {
@@ -210,6 +268,8 @@ export const adminAPI = {
   exportTable: (table) => `${API_BASE_URL}/api/admin/export/${table}`,
   exportableList: async () => (await api.get('/api/admin/export-all')).data,
   exportJSON: async () => (await api.get('/api/admin/export-json')).data,
+  getRoles: async () => (await api.get('/api/admin/roles')).data,
+  updateRoles: async (roles) => (await api.put('/api/admin/roles', { roles })).data,
 };
 
 // ━━ Phase 5b: PDF, FIFO, RBAC ━━
@@ -253,6 +313,35 @@ export const returnsAPI = {
   summary: async () => (await api.get('/api/returns/summary')).data,
 };
 
+export const purchaseReturnsAPI = {
+  list: async (params = {}) => (await api.get('/api/purchase-returns/purchase-returns', { params })).data,
+  get: async (id) => (await api.get(`/api/purchase-returns/purchase-returns/${id}`)).data,
+  create: async (data) => (await api.post('/api/purchase-returns/purchase-returns', data)).data,
+  process: async (id) => (await api.post(`/api/purchase-returns/purchase-returns/${id}/process`)).data,
+  reject: async (id, reason = '') => (await api.post(`/api/purchase-returns/purchase-returns/${id}/reject`, null, { params: { reason } })).data,
+  listDebitNotes: async (params = {}) => (await api.get('/api/purchase-returns/debit-notes', { params })).data,
+  applyDebitNote: async (dnId, invoiceId) => (await api.post(`/api/purchase-returns/debit-notes/${dnId}/apply`, null, { params: { invoice_id: invoiceId } })).data,
+  summary: async () => (await api.get('/api/purchase-returns/summary')).data,
+};
+
+export const billsAPI = {
+  list: async (params = {}) => (await api.get('/api/bills/bills', { params })).data,
+  get: async (id) => (await api.get(`/api/bills/bills/${id}`)).data,
+  create: async (data) => (await api.post('/api/bills/bills', data)).data,
+  update: async (id, data) => (await api.put(`/api/bills/bills/${id}`, data)).data,
+  remove: async (id) => (await api.delete(`/api/bills/bills/${id}`)).data,
+  pay: async (id, data) => (await api.post(`/api/bills/bills/${id}/payment`, data)).data,
+  summary: async () => (await api.get('/api/bills/summary')).data,
+};
+
+export const advancePaymentsAPI = {
+  list: async (params = {}) => (await api.get('/api/advance-payments/advance-payments', { params })).data,
+  get: async (id) => (await api.get(`/api/advance-payments/advance-payments/${id}`)).data,
+  create: async (data) => (await api.post('/api/advance-payments/advance-payments', data)).data,
+  apply: async (id, data) => (await api.post(`/api/advance-payments/advance-payments/${id}/apply`, data)).data,
+  summary: async () => (await api.get('/api/advance-payments/summary')).data,
+};
+
 export const notificationAPI = {
   getSettings: async () => (await api.get('/api/notifications/settings')).data,
   updateSettings: async (settings) => (await api.put('/api/notifications/settings', { settings })).data,
@@ -273,6 +362,11 @@ export const currencyAPI = {
   getRates: async () => (await api.get('/api/currency/rates')).data,
   updateRate: async (currency, rate) => (await api.put(`/api/currency/rates/${currency}`, null, { params: { rate } })).data,
   dashboard: async (currencies = 'OMR,USD') => (await api.get('/api/currency/dashboard', { params: { currencies } })).data,
+};
+
+// ━━ Phase 34: Notifications / Email ━━
+export const notificationsAPI = {
+  emailInvoice: async (invoiceId) => (await api.post('/api/notifications/email-invoice', null, { params: { invoice_id: invoiceId } })).data,
 };
 
 // ━━ Phase 12: Messaging (WhatsApp/SMS) ━━

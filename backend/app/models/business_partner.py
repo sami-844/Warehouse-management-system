@@ -41,15 +41,18 @@ class Supplier(Base):
     
     # Notes
     notes = Column(Text, nullable=True)
-    
+
+    # Vendor classification
+    vendor_type = Column(String(20), default='supplier')  # supplier, delivery_vendor
+
     is_active = Column(Boolean, default=True, nullable=False)
-    
+
     # Audit fields
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     created_by = Column(Integer, nullable=True)
     updated_by = Column(Integer, nullable=True)
-    
+
     def __repr__(self):
         return f"<Supplier {self.code}: {self.name}>"
 

@@ -11,17 +11,19 @@ function SupplierList() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState('');
+  const [vendorFilter, setVendorFilter] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({
     code: '', name: '', contact_person: '', email: '', phone: '', mobile: '',
     address_line1: '', city: '', country: '', payment_terms_days: 30,
-    credit_limit: '', tax_id: '', bank_name: '', bank_account: '', notes: '', opening_balance: ''
+    credit_limit: '', tax_id: '', bank_name: '', bank_account: '', notes: '', opening_balance: '',
+    vendor_type: 'supplier'
   });
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [vendorFilter]);
 
-  const load = async () => { setLoading(true); try { const d = await supplierAPI.list(); setSuppliers(Array.isArray(d) ? d : (d?.items || d?.suppliers || [])); } catch(e) { console.error(e); } finally { setLoading(false); } };
+  const load = async () => { setLoading(true); try { const params = vendorFilter ? { vendor_type: vendorFilter } : {}; const d = await supplierAPI.list(params); setSuppliers(Array.isArray(d) ? d : (d?.items || d?.suppliers || [])); } catch(e) { console.error(e); } finally { setLoading(false); } };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setMessage({ text: '', type: '' });
@@ -37,11 +39,11 @@ function SupplierList() {
   };
 
   const editSupplier = (s) => {
-    setForm({ code: s.code, name: s.name, contact_person: s.contact_person || '', email: s.email || '', phone: s.phone || '', mobile: s.mobile || '', address_line1: s.address_line1 || '', city: s.city || '', country: s.country || '', payment_terms_days: s.payment_terms_days || 30, credit_limit: s.credit_limit || '', tax_id: s.tax_id || '', bank_name: s.bank_name || '', bank_account: s.bank_account || '', notes: s.notes || '' });
+    setForm({ code: s.code, name: s.name, contact_person: s.contact_person || '', email: s.email || '', phone: s.phone || '', mobile: s.mobile || '', address_line1: s.address_line1 || '', city: s.city || '', country: s.country || '', payment_terms_days: s.payment_terms_days || 30, credit_limit: s.credit_limit || '', tax_id: s.tax_id || '', bank_name: s.bank_name || '', bank_account: s.bank_account || '', notes: s.notes || '', vendor_type: s.vendor_type || 'supplier' });
     setEditingId(s.id); setShowForm(true);
   };
 
-  const resetForm = () => setForm({ code: '', name: '', contact_person: '', email: '', phone: '', mobile: '', address_line1: '', city: '', country: '', payment_terms_days: 30, credit_limit: '', tax_id: '', bank_name: '', bank_account: '', notes: '', opening_balance: '' });
+  const resetForm = () => setForm({ code: '', name: '', contact_person: '', email: '', phone: '', mobile: '', address_line1: '', city: '', country: '', payment_terms_days: 30, credit_limit: '', tax_id: '', bank_name: '', bank_account: '', notes: '', opening_balance: '', vendor_type: 'supplier' });
 
   const filtered = suppliers.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.code.toLowerCase().includes(search.toLowerCase()));
 
@@ -49,8 +51,8 @@ function SupplierList() {
     <div className="purchasing-container">
       <div className="page-header">
         <div className="header-content"><div className="header-icon supplier"><Building2 size={20} /></div><div><h1>Suppliers</h1><p>Manage your product suppliers</p></div></div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="action-btn" onClick={() => setShowImport(true)} style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>Import CSV</button>
+        <div className="wms-flex-row">
+          <button className="wms-btn-import" onClick={() => setShowImport(true)}>Import CSV</button>
           <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Supplier'}</button>
         </div>
       </div>
@@ -77,21 +79,29 @@ function SupplierList() {
             <div className="form-row-3">
               <div className="form-group"><label>Code *</label><input value={form.code} onChange={e => setForm(p => ({...p, code: e.target.value}))} required placeholder="SUP-001" disabled={!!editingId} /></div>
               <div className="form-group"><label>Name *</label><input value={form.name} onChange={e => setForm(p => ({...p, name: e.target.value}))} required placeholder="Al Jazira Foods LLC" /></div>
-              <div className="form-group"><label>Contact Person</label><input value={form.contact_person} onChange={e => setForm(p => ({...p, contact_person: e.target.value}))} placeholder="Ahmed" /></div>
+              <div className="form-group"><label>Vendor Type</label>
+                <select value={form.vendor_type} onChange={e => setForm(p => ({...p, vendor_type: e.target.value}))}>
+                  <option value="supplier">Product Supplier</option>
+                  <option value="delivery_vendor">Delivery Vendor</option>
+                </select>
+              </div>
             </div>
             <div className="form-row-3">
+              <div className="form-group"><label>Contact Person</label><input value={form.contact_person} onChange={e => setForm(p => ({...p, contact_person: e.target.value}))} placeholder="Ahmed" /></div>
               <div className="form-group"><label>Email</label><input type="email" value={form.email} onChange={e => setForm(p => ({...p, email: e.target.value}))} placeholder="ahmed@supplier.com" /></div>
               <div className="form-group"><label>Phone</label><input value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} placeholder="+968 2412 3456" /></div>
-              <div className="form-group"><label>Mobile</label><input value={form.mobile} onChange={e => setForm(p => ({...p, mobile: e.target.value}))} placeholder="+968 9123 4567" /></div>
             </div>
             <div className="form-row-3">
+              <div className="form-group"><label>Mobile</label><input value={form.mobile} onChange={e => setForm(p => ({...p, mobile: e.target.value}))} placeholder="+968 9123 4567" /></div>
               <div className="form-group"><label>Address</label><input value={form.address_line1} onChange={e => setForm(p => ({...p, address_line1: e.target.value}))} /></div>
               <div className="form-group"><label>City</label><input value={form.city} onChange={e => setForm(p => ({...p, city: e.target.value}))} placeholder="Dubai" /></div>
-              <div className="form-group"><label>Country</label><input value={form.country} onChange={e => setForm(p => ({...p, country: e.target.value}))} placeholder="UAE" /></div>
             </div>
             <div className="form-row-3">
+              <div className="form-group"><label>Country</label><input value={form.country} onChange={e => setForm(p => ({...p, country: e.target.value}))} placeholder="UAE" /></div>
               <div className="form-group"><label>Payment Terms (days)</label><input type="number" value={form.payment_terms_days} onChange={e => setForm(p => ({...p, payment_terms_days: e.target.value}))} /></div>
               <div className="form-group"><label>Credit Limit (OMR)</label><input type="number" step="0.001" value={form.credit_limit} onChange={e => setForm(p => ({...p, credit_limit: e.target.value}))} /></div>
+            </div>
+            <div className="form-row-3">
               {!editingId ? <div className="form-group"><label>Opening Balance (OMR)</label><input type="number" step="0.001" value={form.opening_balance} onChange={e => setForm(p => ({...p, opening_balance: e.target.value}))} placeholder="0.000" /></div>
               : <div className="form-group"><label>Tax ID / VAT</label><input value={form.tax_id} onChange={e => setForm(p => ({...p, tax_id: e.target.value}))} /></div>}
             </div>
@@ -107,6 +117,12 @@ function SupplierList() {
           </form>
         </div>
       )}
+
+      <div className="tab-bar">
+        {[{ id: '', label: 'All Vendors' }, { id: 'supplier', label: 'Product Suppliers' }, { id: 'delivery_vendor', label: 'Delivery Vendors' }].map(t => (
+          <button key={t.id} onClick={() => setVendorFilter(t.id)} className={`tab-btn ${vendorFilter === t.id ? 'active' : ''}`}>{t.label}</button>
+        ))}
+      </div>
 
       <div className="filter-bar"><input type="text" placeholder="Search suppliers..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" /></div>
 

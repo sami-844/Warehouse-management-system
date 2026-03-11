@@ -1,11 +1,11 @@
 import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
-import { customerAPI, csvImportAPI } from '../services/api';
+import { customerAPI, salesAPI, csvImportAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
 import './Sales.css';
 import { Users } from 'lucide-react';
 
-function CustomerList() {
+function CustomerList({ onNavigate }) {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -20,6 +20,16 @@ function CustomerList() {
     address_line1: '', city: '', area: '', latitude: '', longitude: '',
     payment_terms_days: 7, credit_limit: '', opening_balance: '', preferred_delivery_day: '', delivery_instructions: '', notes: ''
   });
+
+  // Pay Due modal state
+  const [payingCustomer, setPayingCustomer] = useState(null);
+  const [payInvoices, setPayInvoices] = useState([]);
+  const [paySelectedInvoice, setPaySelectedInvoice] = useState('');
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('cash');
+  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [payRef, setPayRef] = useState('');
+  const [payLoading, setPayLoading] = useState(false);
 
   useEffect(() => { load(); loadAreas(); }, [filterArea]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -49,11 +59,62 @@ function CustomerList() {
 
   const filtered = customers.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.code.toLowerCase().includes(search.toLowerCase()) || (c.area || '').toLowerCase().includes(search.toLowerCase()));
 
+  // Open Pay Due modal
+  const openPayDue = async (c) => {
+    setPayingCustomer(c);
+    setPayAmount('');
+    setPayMethod('cash');
+    setPayDate(new Date().toISOString().slice(0, 10));
+    setPayRef('');
+    setPaySelectedInvoice('');
+    setPayLoading(true);
+    try {
+      const res = await salesAPI.listInvoices({ customer_id: c.id });
+      const invoices = Array.isArray(res) ? res : (res?.invoices || []);
+      const unpaid = invoices.filter(inv => inv.status === 'pending' || inv.status === 'partial');
+      setPayInvoices(unpaid);
+      if (unpaid.length > 0) {
+        setPaySelectedInvoice(String(unpaid[0].id));
+        const due = ((unpaid[0].total_amount || 0) - (unpaid[0].amount_paid || 0)).toFixed(3);
+        setPayAmount(due);
+      }
+    } catch (e) { setPayInvoices([]); }
+    setPayLoading(false);
+  };
+
+  // Submit payment
+  const submitPayment = async () => {
+    if (!paySelectedInvoice || !payAmount || parseFloat(payAmount) <= 0) {
+      setMessage({ text: 'Select an invoice and enter amount', type: 'error' }); return;
+    }
+    try {
+      const res = await salesAPI.recordPayment(parseInt(paySelectedInvoice), {
+        amount: parseFloat(payAmount),
+        payment_method: payMethod,
+        payment_date: payDate,
+        bank_reference: payRef || undefined,
+      });
+      setMessage({ text: res.message || `Payment of ${parseFloat(payAmount).toFixed(3)} OMR recorded`, type: 'success' });
+      setPayingCustomer(null);
+      load();
+    } catch (e) {
+      setMessage({ text: e.response?.data?.detail || 'Payment failed', type: 'error' });
+    }
+  };
+
+  // WhatsApp reminder
+  const sendReminder = (c) => {
+    const outstanding = (Number(c.outstanding_balance) || 0).toFixed(3);
+    const phone = (c.mobile || c.phone || '').replace(/[^0-9+]/g, '').replace(/^\+/, '');
+    const msg = `Dear ${c.name}, this is a reminder that you have an outstanding balance of ${outstanding} OMR with AK Al Momaiza Trading. Please contact us to arrange payment. Thank you.`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
   return (
     <div className="sales-container">
       <div className="page-header"><div className="header-content"><div className="header-icon customer"><Users size={20} /></div><div><h1>Customers</h1><p>Manage shops and delivery routes</p></div></div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="action-btn" onClick={() => setShowImport(true)} style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>Import CSV</button>
+        <div className="wms-flex-row">
+          <button className="wms-btn-import" onClick={() => setShowImport(true)}>Import CSV</button>
           <button className="action-btn primary" onClick={() => { resetForm(); setEditingId(null); setShowForm(!showForm); }}>{showForm ? '✕ Cancel' : '+ New Customer'}</button>
         </div>
       </div>
@@ -116,6 +177,70 @@ function CustomerList() {
         </div>
       )}
 
+      {/* Pay Due Modal */}
+      {payingCustomer && (
+        <div className="form-card" style={{ border: '2px solid var(--warehouse-green, #1A7B5B)' }}>
+          <h3>Record Payment -- {payingCustomer.name}</h3>
+          <p style={{ margin: '8px 0', color: '#64748b' }}>
+            Outstanding: <strong style={{ color: '#dc2626' }}>{(Number(payingCustomer.outstanding_balance) || 0).toFixed(3)} OMR</strong>
+          </p>
+          {payLoading ? <LoadingSpinner text="Loading invoices..." /> : (
+            <>
+              {payInvoices.length === 0 ? (
+                <p style={{ color: '#64748b' }}>No unpaid invoices found for this customer.</p>
+              ) : (
+                <>
+                  <div className="form-row-3">
+                    <div className="form-group">
+                      <label>Invoice</label>
+                      <select value={paySelectedInvoice} onChange={e => {
+                        setPaySelectedInvoice(e.target.value);
+                        const inv = payInvoices.find(i => String(i.id) === e.target.value);
+                        if (inv) setPayAmount(((inv.total_amount || 0) - (inv.amount_paid || 0)).toFixed(3));
+                      }}>
+                        {payInvoices.map(inv => (
+                          <option key={inv.id} value={inv.id}>
+                            {inv.invoice_number} -- Due: {((inv.total_amount || 0) - (inv.amount_paid || 0)).toFixed(3)} OMR
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Amount (OMR)</label>
+                      <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} min="0.001" step="0.001" placeholder="0.000" />
+                    </div>
+                    <div className="form-group">
+                      <label>Payment Method</label>
+                      <select value={payMethod} onChange={e => setPayMethod(e.target.value)}>
+                        <option value="cash">Cash</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="cheque">Cheque</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row-3">
+                    <div className="form-group">
+                      <label>Payment Date</label>
+                      <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} />
+                    </div>
+                    <div className="form-group">
+                      <label>Reference / Note</label>
+                      <input value={payRef} onChange={e => setPayRef(e.target.value)} placeholder="Cheque #, transfer ref..." />
+                    </div>
+                  </div>
+                </>
+              )}
+              <div className="wms-flex-row" style={{ marginTop: 12 }}>
+                {payInvoices.length > 0 && (
+                  <button onClick={submitPayment} className="action-btn primary">Record Payment</button>
+                )}
+                <button onClick={() => setPayingCustomer(null)} className="cancel-btn">Cancel</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="filter-bar">
         <input type="text" placeholder="Search name, code, area..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" />
         <select value={filterArea} onChange={e => setFilterArea(e.target.value)} className="filter-select">
@@ -126,13 +251,14 @@ function CustomerList() {
 
       {loading ? <LoadingSpinner /> : (
         <div className="table-container"><table className="data-table">
-          <thead><tr><th>Code</th><th>Shop Name</th><th>Type</th><th>Area</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>Balance</th><th>Orders</th><th>Outstanding</th><th></th></tr></thead>
+          <thead><tr><th>Code</th><th>Shop Name</th><th>Type</th><th>Area</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>Balance</th><th>Orders</th><th>Outstanding</th><th>Actions</th></tr></thead>
           <tbody>
             {filtered.length === 0 ? <tr><td colSpan="11" className="no-data">No customers found</td></tr> :
               filtered.map(c => {
                 const bal = Number(c.current_balance) || 0;
                 const limit = Number(c.credit_limit) || 0;
                 const overLimit = limit > 0 && bal > limit;
+                const outstanding = Number(c.outstanding_balance) || 0;
                 return (
                 <tr key={c.id} className={!c.is_active ? 'inactive' : ''}>
                   <td className="code">{c.code}</td><td className="name">{c.name}</td>
@@ -141,10 +267,19 @@ function CustomerList() {
                   <td>{c.phone || c.mobile || '-'}</td>
                   <td>{c.payment_terms_days === 0 ? 'COD' : `Net ${c.payment_terms_days}d`}</td>
                   <td className="value">{limit > 0 ? limit.toFixed(3) : 'Unlimited'}</td>
-                  <td className={`value ${overLimit ? 'negative' : ''}`} title={overLimit ? 'Exceeds credit limit!' : ''}>{bal > 0 ? bal.toFixed(3) : '-'}{overLimit && <span style={{ color: '#dc2626', fontSize: '0.75rem', marginLeft: 4 }}>!</span>}</td>
+                  <td className={`value ${overLimit ? 'negative' : ''}`} title={overLimit ? 'Exceeds credit limit!' : ''}>{bal > 0 ? bal.toFixed(3) : '-'}{overLimit && <span className="wms-badge unpaid" style={{ marginLeft: 4 }}>!</span>}</td>
                   <td className="center">{c.total_orders}</td>
-                  <td className={`value ${(Number(c.outstanding_balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(c.outstanding_balance) || 0) > 0 ? `${(Number(c.outstanding_balance)).toFixed(3)}` : '-'}</td>
-                  <td><button className="edit-btn" onClick={() => editCustomer(c)}>Edit</button></td>
+                  <td className={`value ${outstanding > 0 ? 'negative' : ''}`}>{outstanding > 0 ? `${outstanding.toFixed(3)}` : '-'}</td>
+                  <td>
+                    <div className="action-cell">
+                      <button className="edit-btn" onClick={() => editCustomer(c)}>Edit</button>
+                      {onNavigate && <button className="wms-btn-action notify" onClick={() => onNavigate('customer-statement')}>Stmt</button>}
+                      {outstanding > 0 && <button className="complete-btn small" onClick={() => openPayDue(c)}>Pay</button>}
+                      {outstanding > 0 && (c.phone || c.mobile) && (
+                        <button className="wms-btn-action notify" onClick={() => sendReminder(c)}>WA</button>
+                      )}
+                    </div>
+                  </td>
                 </tr>);
               })
             }

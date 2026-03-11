@@ -115,4 +115,40 @@ class PricingRule(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
+class Estimate(Base):
+    """Pre-invoice quotation that can be converted to a Sales Order"""
+    __tablename__ = "estimates"
+    __table_args__ = {'extend_existing': True}
+    id = Column(Integer, primary_key=True, index=True)
+    estimate_number = Column(String(50), unique=True, nullable=False)
+    estimate_date = Column(Date, nullable=False)
+    valid_until = Column(Date)
+    customer_id = Column(Integer, ForeignKey('customers.id'))
+    po_number = Column(String(100))
+    notes = Column(Text)
+    terms = Column(Text)
+    subtotal = Column(Numeric(14, 3), default=0)
+    discount_amount = Column(Numeric(14, 3), default=0)
+    tax_amount = Column(Numeric(14, 3), default=0)
+    total_amount = Column(Numeric(14, 3), default=0)
+    status = Column(String(20), default='draft')
+    created_by = Column(Integer)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class EstimateItem(Base):
+    """Line item on an estimate"""
+    __tablename__ = "estimate_items"
+    __table_args__ = {'extend_existing': True}
+    id = Column(Integer, primary_key=True)
+    estimate_id = Column(Integer, ForeignKey('estimates.id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.id'))
+    description = Column(String(500))
+    quantity = Column(Numeric(12, 3), default=1)
+    unit_price = Column(Numeric(12, 3), default=0)
+    discount = Column(Numeric(5, 2), default=0)
+    tax_rate = Column(Numeric(5, 2), default=0)
+    line_total = Column(Numeric(14, 3), default=0)
+
+
 # Payment model is defined in purchase.py to avoid duplicate table conflict

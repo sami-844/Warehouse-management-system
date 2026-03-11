@@ -54,11 +54,11 @@ function PurchaseInvoices() {
           { label: 'Owed', value: outstanding.toFixed(3), unit: 'OMR', color: outstanding > 0 ? '#dc2626' : '#16a34a' },
         ];
         return (
-          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div className="wms-kpi-row">
             {kpis.map(k => (
-              <div key={k.label} style={{ flex: 1, minWidth: 140, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{k.label}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: k.color, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+              <div key={k.label} className="wms-kpi-card">
+                <div className="wms-kpi-label">{k.label}</div>
+                <div className="wms-kpi-value" style={{ color: k.color }}>
                   {k.value}{k.unit && <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, color: '#94a3b8' }}>{k.unit}</span>}
                 </div>
               </div>

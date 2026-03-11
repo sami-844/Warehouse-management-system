@@ -493,6 +493,275 @@
    ============================================================ */
 @media (max-width: 680px) {
   .brand-header { padding: 14px 18px; }
-  .filter-bar, .kpi-section, .charts-section { margin-left: 18px; margin-right: 18px; }
+  .filter-bar, .kpi-section, .charts-section, .widget-section { margin-left: 18px; margin-right: 18px; }
   .dashboard-footer { margin-left: 18px; margin-right: 18px; }
+}
+
+/* ============================================================
+   PHASE 32 — DASHBOARD WIDGET ROWS
+   ============================================================ */
+.widget-section {
+  padding: 0 28px;
+  margin-top: 16px;
+}
+
+.widget-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.widget-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.widget-card {
+  background: var(--ds-surface, #fff);
+  border-radius: var(--ds-r-md, 10px);
+  box-shadow: var(--ds-shadow-card, 0 1px 4px rgba(0,0,0,0.08));
+  padding: 20px;
+  border: 1px solid var(--ds-border, #e5e7eb);
+}
+
+.widget-card-title {
+  font-family: var(--ds-font-ui, 'Figtree', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted, #6b7280);
+}
+
+.widget-big-number {
+  font-family: var(--ds-font-mono, 'JetBrains Mono', monospace);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ds-text, #111827);
+  margin: 6px 0;
+}
+
+.widget-subtitle {
+  font-size: 12px;
+  color: var(--ds-text-muted, #6b7280);
+}
+
+/* Progress bar */
+.progress-bar-bg {
+  height: 6px;
+  background: var(--ds-border, #e5e7eb);
+  border-radius: 100px;
+  margin: 8px 0;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #16a34a;
+  border-radius: 100px;
+  transition: width 0.4s ease;
+}
+
+/* Create buttons */
+.widget-create-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 14px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--ds-font-ui, 'Figtree', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.widget-create-btn:hover {
+  opacity: 0.85;
+}
+
+/* Create links */
+.widget-create-link {
+  font-size: 12px;
+  color: #3b82f6;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.widget-create-link:hover {
+  text-decoration: underline;
+}
+
+.widget-divider {
+  border: none;
+  border-top: 1px solid var(--ds-border, #e5e7eb);
+  margin: 0;
+}
+
+/* Overdue count badge */
+.overdue-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 100px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--ds-font-mono, monospace);
+}
+
+/* Mini tables */
+.widget-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--ds-font-ui, 'Figtree', sans-serif);
+  font-size: 12px;
+}
+
+.widget-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ds-text-muted, #6b7280);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--ds-border, #e5e7eb);
+}
+
+.widget-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--ds-border, #e5e7eb);
+  color: #374151;
+}
+
+.widget-table tr:last-child td {
+  border-bottom: none;
+}
+
+.widget-table tr:hover td {
+  background: #f8fafc;
+}
+
+.overdue-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.view-all-link {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #3b82f6;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+/* Bank balances */
+.bank-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ds-border, #e5e7eb);
+}
+
+.bank-row:last-child {
+  border-bottom: none;
+}
+
+.bank-name {
+  font-weight: 600;
+  color: #111827;
+  font-size: 13px;
+}
+
+.bank-type-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-weight: 600;
+  margin-left: 8px;
+  text-transform: capitalize;
+}
+
+.bank-balance {
+  font-family: var(--ds-font-mono, 'JetBrains Mono', monospace);
+  font-weight: 700;
+  font-size: 14px;
+  color: #111827;
+}
+
+/* Expiry bell */
+.expiry-bell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.expiry-bell:hover {
+  background: rgba(255,255,255,0.22);
+}
+
+.expiry-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Responsive widgets */
+@media (max-width: 1100px) {
+  .widget-grid-3 { grid-template-columns: 1fr; }
+  .widget-grid-2 { grid-template-columns: 1fr; }
+}
+
+/* Print widgets */
+@media print {
+  .widget-create-btn,
+  .widget-create-link,
+  .view-all-link,
+  .expiry-bell { display: none !important; }
+  .widget-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid var(--ds-border, #e5e7eb) !important;
+  }
 }

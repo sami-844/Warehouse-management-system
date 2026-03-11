@@ -1,6 +1,6 @@
 // Product List Component
 import React, { useState, useEffect } from 'react';
-import { productAPI, categoryAPI, csvImportAPI } from '../services/api';
+import { productAPI, categoryAPI, csvImportAPI, brandAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
 import './ProductList.css';
 
@@ -15,6 +15,8 @@ function ProductList() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showImport, setShowImport] = useState(false);
   const [importMessage, setImportMessage] = useState('');
+  const [brands, setBrands] = useState([]);
+  const [avgCosts, setAvgCosts] = useState({});
 
   // Form state
   const [formData, setFormData] = useState({
@@ -31,6 +33,7 @@ function ProductList() {
     minimum_stock: 5,
     is_active: true,
     is_perishable: false,
+    brand_id: '',
   });
 
   useEffect(() => {
@@ -46,6 +49,20 @@ function ProductList() {
       ]);
       setProducts(productsRes.data);
       setCategories(categoriesRes.data);
+      // Load brands
+      try {
+        const b = await brandAPI.list();
+        setBrands((b?.brands || []).filter(br => br.status === 'active'));
+      } catch (e) { /* brands optional */ }
+      // Load avg costs
+      try {
+        const ac = await productAPI.getAll({ avg_costs: true });
+        if (ac?.data?.costs) setAvgCosts(ac.data.costs);
+        else {
+          const acRes = await (await fetch('/api/products/avg-costs')).json();
+          if (acRes?.costs) setAvgCosts(acRes.costs);
+        }
+      } catch (e) { /* avg costs optional */ }
       setError(null);
     } catch (err) {
       console.error('Error loading data:', err);
@@ -82,7 +99,7 @@ function ProductList() {
     e.preventDefault();
     try {
       const cleanData = { ...formData };
-      ['category_id', 'default_supplier_id'].forEach(f => {
+      ['category_id', 'default_supplier_id', 'brand_id'].forEach(f => {
         cleanData[f] = (cleanData[f] === '' || cleanData[f] == null) ? null : parseInt(cleanData[f]) || null;
       });
       ['standard_cost', 'selling_price', 'tax_rate', 'weight', 'volume'].forEach(f => {
@@ -117,6 +134,7 @@ function ProductList() {
       minimum_stock: product.minimum_stock,
       is_active: product.is_active,
       is_perishable: product.is_perishable,
+      brand_id: product.brand_id || '',
     });
     setShowAddForm(true);
   };
@@ -148,6 +166,7 @@ function ProductList() {
       minimum_stock: 5,
       is_active: true,
       is_perishable: false,
+      brand_id: '',
     });
     setEditingProduct(null);
     setShowAddForm(false);
@@ -162,7 +181,7 @@ function ProductList() {
       <div className="product-header">
         <h2>Products</h2>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setShowImport(true)} className="btn-secondary" style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 6, padding: '8px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          <button onClick={() => setShowImport(true)} className="wms-btn-import">
             Import CSV
           </button>
           <button
@@ -173,7 +192,7 @@ function ProductList() {
           </button>
         </div>
       </div>
-      {importMessage && <div style={{ margin: '8px 0', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, color: '#15803d', fontSize: 13 }}>{importMessage}</div>}
+      {importMessage && <div className="wms-import-message">{importMessage}</div>}
       {showImport && (
         <CsvImportModal
           type="products"
@@ -263,6 +282,22 @@ function ProductList() {
                   <option value="liters">Liters</option>
                   <option value="boxes">Boxes</option>
                   <option value="bags">Bags</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Brand</label>
+                <select
+                  name="brand_id"
+                  value={formData.brand_id}
+                  onChange={handleInputChange}
+                >
+                  <option value="">No brand</option>
+                  {brands.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -388,7 +423,22 @@ function ProductList() {
               <p><strong>SKU:</strong> {product.sku}</p>
               {product.barcode && <p><strong>Barcode:</strong> {product.barcode}</p>}
               <p><strong>Price:</strong> OMR {product.selling_price}</p>
+              {avgCosts[product.id] && (
+                <p><strong>Avg Cost:</strong> OMR {Number(avgCosts[product.id].avg_cost).toFixed(3)}</p>
+              )}
               <p><strong>Unit:</strong> {product.unit_of_measure}</p>
+              {product.brand_id && brands.length > 0 && (
+                <p><strong>Brand:</strong> {brands.find(b => b.id === product.brand_id)?.name || '—'}</p>
+              )}
+              {product.stock_on_hand != null && (
+                <p>
+                  <strong>Stock:</strong>{' '}
+                  <span className={`wms-stock-badge ${product.stock_on_hand <= 0 ? 'out' : product.stock_on_hand <= (product.reorder_level || 10) ? 'low' : 'ok'}`}>
+                    {product.stock_on_hand <= 0 ? 'OUT' : product.stock_on_hand <= (product.reorder_level || 10) ? 'LOW' : 'OK'}
+                  </span>
+                  {' '}{product.stock_on_hand}
+                </p>
+              )}
               {product.description && <p className="description">{product.description}</p>}
             </div>
             <div className="product-actions">

@@ -288,6 +288,109 @@ def trigger_expiring_stock():
     return {"message": f"Expiry alert {status}", "batches_count": len(expiring)}
 
 
+# ── Email Invoice to Customer ──
+@router.post("/email-invoice")
+def email_invoice(invoice_id: int = Query(...)):
+    settings = get_smtp_settings()
+    if not settings.get("smtp_host") or not settings.get("smtp_username"):
+        raise HTTPException(400, "SMTP not configured. Go to Admin > Notifications to set up email.")
+
+    # Fetch invoice + customer
+    try:
+        rows = run_q("""
+            SELECT si.invoice_number, si.invoice_date, si.due_date, si.status,
+                   si.total_amount, si.amount_paid,
+                   (si.total_amount - si.amount_paid) as balance,
+                   c.name as customer_name, c.email as customer_email
+            FROM sales_invoices si
+            JOIN customers c ON si.customer_id = c.id
+            WHERE si.id = :iid
+        """, {"iid": invoice_id})
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {str(e)}")
+
+    if not rows:
+        raise HTTPException(404, "Invoice not found")
+
+    inv = rows[0]
+    email = inv.get("customer_email")
+    if not email:
+        raise HTTPException(400, f"No email on file for {inv['customer_name']}")
+
+    # Fetch line items (optional — table may not exist)
+    items_html = ""
+    try:
+        items = run_q("""
+            SELECT sii.quantity, sii.unit_price, sii.discount_percent,
+                   p.name as product_name, p.sku
+            FROM sales_invoice_items sii
+            JOIN products p ON sii.product_id = p.id
+            WHERE sii.invoice_id = :iid
+            ORDER BY sii.id
+        """, {"iid": invoice_id})
+        if items:
+            item_rows = "".join(
+                f"<tr><td>{it['product_name']}</td><td>{it['sku']}</td>"
+                f"<td style='text-align:center'>{it['quantity']}</td>"
+                f"<td style='text-align:right'>{round(float(it['unit_price']), 3)}</td>"
+                f"<td style='text-align:center'>{it.get('discount_percent', 0)}%</td>"
+                f"<td style='text-align:right'>{round(float(it['quantity']) * float(it['unit_price']) * (1 - float(it.get('discount_percent', 0)) / 100), 3)}</td></tr>"
+                for it in items
+            )
+            items_html = f"""
+            <h3 style="color:#1a2332;margin-top:20px">Items</h3>
+            <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:Arial;width:100%">
+            <tr style="background:#f1f5f9"><th>Product</th><th>SKU</th><th>Qty</th><th>Price</th><th>Disc</th><th>Total</th></tr>
+            {item_rows}</table>
+            """
+    except Exception:
+        pass
+
+    total = round(float(inv["total_amount"] or 0), 3)
+    paid = round(float(inv["amount_paid"] or 0), 3)
+    balance = round(float(inv["balance"] or 0), 3)
+
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+    <div style="background:#1a2332;padding:20px;text-align:center">
+        <h1 style="color:#D4A017;margin:0">AK Al Momaiza Trading</h1>
+    </div>
+    <div style="padding:20px;border:1px solid #e2e8f0">
+        <h2 style="color:#1a2332">Invoice {inv['invoice_number']}</h2>
+        <table style="width:100%;font-size:14px;margin-bottom:16px">
+            <tr><td style="padding:4px 0;color:#64748b">Customer:</td><td style="font-weight:600">{inv['customer_name']}</td></tr>
+            <tr><td style="padding:4px 0;color:#64748b">Date:</td><td>{inv['invoice_date']}</td></tr>
+            <tr><td style="padding:4px 0;color:#64748b">Due Date:</td><td>{inv['due_date']}</td></tr>
+            <tr><td style="padding:4px 0;color:#64748b">Status:</td><td style="text-transform:uppercase;font-weight:600">{inv['status']}</td></tr>
+        </table>
+        {items_html}
+        <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:6px">
+            <table style="width:100%;font-size:14px">
+                <tr><td style="padding:4px 0">Total Amount:</td><td style="text-align:right;font-weight:600">{total} OMR</td></tr>
+                <tr><td style="padding:4px 0">Amount Paid:</td><td style="text-align:right;color:#16a34a">{paid} OMR</td></tr>
+                <tr style="font-size:16px"><td style="padding:8px 0;border-top:2px solid #e2e8f0;font-weight:700">Balance Due:</td>
+                    <td style="text-align:right;border-top:2px solid #e2e8f0;font-weight:700;color:{'#dc2626' if balance > 0 else '#16a34a'}">{balance} OMR</td></tr>
+            </table>
+        </div>
+    </div>
+    <div style="padding:12px;text-align:center;color:#94a3b8;font-size:11px">
+        AK Al Momaiza Trading &middot; Oman &middot; Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}
+    </div>
+    </div>
+    """
+
+    subject = f"Invoice {inv['invoice_number']} — {balance} OMR — AK Al Momaiza Trading"
+    result = send_email(settings, [email], subject, html)
+    status = "sent" if result is True else "failed"
+    log_notification("invoice_email", email, subject, html, status,
+                     str(result) if result is not True else "",
+                     "sales_invoice", invoice_id)
+
+    if result is True:
+        return {"message": f"Invoice emailed to {email}", "status": "sent"}
+    raise HTTPException(500, f"Email failed: {result}")
+
+
 # ── Notification Log ──
 @router.get("/log")
 def notification_log(limit: int = 50, notification_type: str = ""):

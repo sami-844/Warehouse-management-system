@@ -1,6 +1,6 @@
 import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
-import { inventoryAPI } from '../services/api';
+import { inventoryAPI, damageItemsAPI } from '../services/api';
 import './ExpiryTracker.css';
 import { Clock } from 'lucide-react';
 
@@ -9,6 +9,16 @@ function ExpiryTracker() {
   const [days, setDays] = useState(90);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [message, setMessage] = useState({ text: '', type: '' });
+
+  const writeOff = async (item) => {
+    if (!window.confirm(`Write off ${item.quantity} × ${item.product_name} (batch: ${item.batch_number || 'N/A'}) as expired?`)) return;
+    try {
+      await damageItemsAPI.create({ product_id: item.product_id, batch_number: item.batch_number || null, quantity: item.quantity, reason: 'Expired stock write-off', damage_date: new Date().toISOString().slice(0, 10) });
+      setMessage({ text: `Written off ${item.quantity} × ${item.product_name}`, type: 'success' });
+      loadData();
+    } catch(e) { setMessage({ text: e.response?.data?.detail || 'Write-off failed', type: 'error' }); }
+  };
 
   useEffect(() => { loadData(); }, [days]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -37,6 +47,8 @@ function ExpiryTracker() {
         <div className="header-actions"><button className="action-btn" onClick={exportCSV}>Export</button><button className="action-btn refresh" onClick={loadData}>Refresh</button></div>
       </div>
 
+      {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
+
       <div className="expiry-summary-cards">
         <div className="exp-card expired" onClick={() => setFilter('EXPIRED')}><div className="exp-num">{data.summary.expired || 0}</div><div className="exp-label">Expired</div></div>
         <div className="exp-card critical" onClick={() => setFilter('CRITICAL')}><div className="exp-num">{data.summary.critical || 0}</div><div className="exp-label">≤30 Days</div></div>
@@ -56,7 +68,7 @@ function ExpiryTracker() {
         <div className="expiry-table-container">
           {filtered.length === 0 ? <div className="no-data-message">No expiry alerts for the selected period. Your stock is fresh!</div> : (
             <table className="expiry-table">
-              <thead><tr><th>Status</th><th>Product</th><th>Batch</th><th>Expiry Date</th><th>Days Left</th><th>Quantity</th><th>Warehouse</th></tr></thead>
+              <thead><tr><th>Status</th><th>Product</th><th>Batch</th><th>Expiry Date</th><th>Days Left</th><th>Quantity</th><th>Warehouse</th><th>Actions</th></tr></thead>
               <tbody>
                 {filtered.map((item, i) => (
                   <tr key={i} style={{ backgroundColor: urgencyBg(item.urgency) }}>
@@ -65,6 +77,7 @@ function ExpiryTracker() {
                     <td>{item.batch_number || '-'}</td><td>{item.expiry_date}</td>
                     <td style={{ color: urgencyColor(item.urgency), fontWeight: 700 }}>{item.days_until_expiry < 0 ? `${Math.abs(item.days_until_expiry)}d overdue` : `${item.days_until_expiry}d`}</td>
                     <td>{item.quantity}</td><td>{item.warehouse_name}</td>
+                    <td>{(item.urgency === 'EXPIRED' || item.urgency === 'CRITICAL') && <button className="wms-btn-action remind" onClick={() => writeOff(item)}>Write Off</button>}</td>
                   </tr>
                 ))}
               </tbody>

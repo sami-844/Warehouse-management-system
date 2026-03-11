@@ -39,6 +39,38 @@ class TransferCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class CashTxCreate(BaseModel):
+    tx_date: Optional[str] = None
+    account_code: str = "1110"  # 1110=Cash, 1120=Bank
+    category: Optional[str] = None
+    amount: float
+    description: str = ""
+    reference: Optional[str] = None
+
+
+class ManualJournalLine(BaseModel):
+    account_code: str
+    description: Optional[str] = None
+    debit: float = 0
+    credit: float = 0
+
+
+class ManualJournalCreate(BaseModel):
+    entry_date: Optional[str] = None
+    description: str = ""
+    reference: Optional[str] = None
+    lines: List[ManualJournalLine]
+
+
+class VATPaymentCreate(BaseModel):
+    period_from: Optional[str] = None
+    period_to: Optional[str] = None
+    vat_amount: float
+    payment_date: Optional[str] = None
+    payment_account: str = "1120"  # Bank account
+    reference: Optional[str] = None
+
+
 # ── Helper ──
 
 def run_q(sql: str, params: dict = {}):
@@ -189,7 +221,7 @@ async def list_transfers(from_date: Optional[str] = None, to_date: Optional[str]
             FROM money_transfers mt
             JOIN accounts fa ON mt.from_account_id = fa.id
             JOIN accounts ta ON mt.to_account_id = ta.id
-            WHERE mt.transfer_date::date BETWEEN :start AND :end
+            WHERE DATE(mt.transfer_date) BETWEEN :start AND :end
             ORDER BY mt.transfer_date DESC
         """, {"start": start, "end": end})
     except Exception:
@@ -290,8 +322,35 @@ async def cash_transactions(from_date: Optional[str] = None, to_date: Optional[s
                 FROM money_transfers mt
                 JOIN accounts fa ON mt.from_account_id = fa.id
                 JOIN accounts ta ON mt.to_account_id = ta.id
-                WHERE mt.transfer_date::date BETWEEN :start AND :end
+                WHERE DATE(mt.transfer_date) BETWEEN :start AND :end
                 ORDER BY mt.transfer_date DESC
+            """, {"start": start, "end": end})
+            transactions.extend(rows)
+        except Exception:
+            pass
+
+    # Cash In/Out from cash_transactions table
+    if not tx_type or tx_type == 'cash_in':
+        try:
+            rows = run_q("""
+                SELECT tx_date as date, 'Cash In' as type,
+                       reference, description,
+                       amount as amount_in, 0 as amount_out
+                FROM cash_transactions
+                WHERE tx_type = 'cash_in' AND tx_date BETWEEN :start AND :end
+            """, {"start": start, "end": end})
+            transactions.extend(rows)
+        except Exception:
+            pass
+
+    if not tx_type or tx_type == 'cash_out':
+        try:
+            rows = run_q("""
+                SELECT tx_date as date, 'Cash Out' as type,
+                       reference, description,
+                       0 as amount_in, amount as amount_out
+                FROM cash_transactions
+                WHERE tx_type = 'cash_out' AND tx_date BETWEEN :start AND :end
             """, {"start": start, "end": end})
             transactions.extend(rows)
         except Exception:
@@ -318,6 +377,245 @@ async def cash_transactions(from_date: Optional[str] = None, to_date: Optional[s
         "net": round(total_in - total_out, 3),
         "period": {"from": start, "to": end},
     }
+
+
+# ── Cash In / Cash Out ──
+
+@router.post("/cash-in", status_code=201)
+async def record_cash_in(data: CashTxCreate,
+                         current_user: User = Depends(get_current_user)):
+    if data.amount <= 0:
+        raise HTTPException(400, "Amount must be positive")
+    tx_date = data.tx_date or date.today().isoformat()
+    amount = round(data.amount, 3)
+
+    # Insert cash transaction
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO cash_transactions (tx_type, tx_date, account_code, category, amount, description, reference, created_by)
+            VALUES ('cash_in', :dt, :acct, :cat, :amt, :desc, :ref, :uid)
+        """), {
+            "dt": tx_date, "acct": data.account_code, "cat": data.category,
+            "amt": amount, "desc": data.description, "ref": data.reference,
+            "uid": current_user.id,
+        })
+
+    # Post journal entry: DR Cash/Bank, CR Income/category
+    try:
+        from app.core.database import SessionLocal
+        from app.services.journal import _next_entry_number
+        from app.models.accounts import JournalEntry, JournalEntryLine
+        from decimal import Decimal
+        db = SessionLocal()
+        try:
+            credit_code = data.category or "4900"
+            credit_name = data.description or "Other Income"
+            acct_name = "Cash on Hand" if data.account_code == "1110" else "Bank Account"
+
+            entry = JournalEntry(
+                entry_number=_next_entry_number(db),
+                entry_date=date.today(),
+                description=f"Cash In — {data.description or 'Received'}",
+                reference_type="CASH_IN",
+                reference_id=0,
+                created_by=current_user.id,
+            )
+            db.add(entry)
+            db.flush()
+            db.add_all([
+                JournalEntryLine(journal_entry_id=entry.id, account_code=data.account_code,
+                                 account_name=acct_name,
+                                 debit_amount=Decimal(str(amount)), credit_amount=0),
+                JournalEntryLine(journal_entry_id=entry.id, account_code=credit_code,
+                                 account_name=credit_name,
+                                 debit_amount=0, credit_amount=Decimal(str(amount))),
+            ])
+            db.commit()
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    return {"message": f"Cash In of {amount:.3f} OMR recorded"}
+
+
+@router.post("/cash-out", status_code=201)
+async def record_cash_out(data: CashTxCreate,
+                          current_user: User = Depends(get_current_user)):
+    if data.amount <= 0:
+        raise HTTPException(400, "Amount must be positive")
+    tx_date = data.tx_date or date.today().isoformat()
+    amount = round(data.amount, 3)
+
+    # Insert cash transaction
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO cash_transactions (tx_type, tx_date, account_code, category, amount, description, reference, created_by)
+            VALUES ('cash_out', :dt, :acct, :cat, :amt, :desc, :ref, :uid)
+        """), {
+            "dt": tx_date, "acct": data.account_code, "cat": data.category,
+            "amt": amount, "desc": data.description, "ref": data.reference,
+            "uid": current_user.id,
+        })
+
+    # Post journal entry: DR Expense/category, CR Cash/Bank
+    try:
+        from app.core.database import SessionLocal
+        from app.services.journal import _next_entry_number
+        from app.models.accounts import JournalEntry, JournalEntryLine
+        from decimal import Decimal
+        db = SessionLocal()
+        try:
+            debit_code = data.category or "6900"
+            debit_name = data.description or "Miscellaneous Expense"
+            acct_name = "Cash on Hand" if data.account_code == "1110" else "Bank Account"
+
+            entry = JournalEntry(
+                entry_number=_next_entry_number(db),
+                entry_date=date.today(),
+                description=f"Cash Out — {data.description or 'Payment'}",
+                reference_type="CASH_OUT",
+                reference_id=0,
+                created_by=current_user.id,
+            )
+            db.add(entry)
+            db.flush()
+            db.add_all([
+                JournalEntryLine(journal_entry_id=entry.id, account_code=debit_code,
+                                 account_name=debit_name,
+                                 debit_amount=Decimal(str(amount)), credit_amount=0),
+                JournalEntryLine(journal_entry_id=entry.id, account_code=data.account_code,
+                                 account_name=acct_name,
+                                 debit_amount=0, credit_amount=Decimal(str(amount))),
+            ])
+            db.commit()
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    return {"message": f"Cash Out of {amount:.3f} OMR recorded"}
+
+
+# ── Manual Journal Entry ──
+
+@router.post("/journal-entries", status_code=201)
+async def create_journal_entry(data: ManualJournalCreate,
+                                current_user: User = Depends(get_current_user)):
+    if not data.lines or len(data.lines) < 2:
+        raise HTTPException(400, "At least 2 lines required")
+
+    total_debit = round(sum(l.debit for l in data.lines), 3)
+    total_credit = round(sum(l.credit for l in data.lines), 3)
+    if abs(total_debit - total_credit) > 0.001:
+        raise HTTPException(400, f"Debits ({total_debit}) must equal Credits ({total_credit})")
+
+    try:
+        from app.core.database import SessionLocal
+        from app.services.journal import _next_entry_number
+        from app.models.accounts import JournalEntry, JournalEntryLine
+        from decimal import Decimal
+
+        entry_date_val = date.fromisoformat(data.entry_date) if data.entry_date else date.today()
+
+        db = SessionLocal()
+        try:
+            entry = JournalEntry(
+                entry_number=_next_entry_number(db),
+                entry_date=entry_date_val,
+                description=data.description or "Manual journal entry",
+                reference_type="MANUAL",
+                reference_id=0,
+                created_by=current_user.id,
+            )
+            db.add(entry)
+            db.flush()
+
+            je_lines = []
+            for line in data.lines:
+                if line.debit == 0 and line.credit == 0:
+                    continue
+                # Look up account name
+                acct_name = line.description or line.account_code
+                try:
+                    acct = run_q("SELECT name FROM accounts WHERE code = :code", {"code": line.account_code})
+                    if acct:
+                        acct_name = acct[0]["name"]
+                except Exception:
+                    pass
+
+                je_lines.append(JournalEntryLine(
+                    journal_entry_id=entry.id,
+                    account_code=line.account_code,
+                    account_name=acct_name,
+                    debit_amount=Decimal(str(round(line.debit, 3))),
+                    credit_amount=Decimal(str(round(line.credit, 3))),
+                    description=line.description or "",
+                ))
+            db.add_all(je_lines)
+            db.commit()
+            return {"message": f"Journal entry {entry.entry_number} created", "entry_number": entry.entry_number}
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(500, f"Failed: {str(e)}")
+        finally:
+            db.close()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to create journal entry: {str(e)}")
+
+
+# ── VAT Payment ──
+
+@router.post("/vat-payment", status_code=201)
+async def record_vat_payment(data: VATPaymentCreate,
+                              current_user: User = Depends(get_current_user)):
+    if data.vat_amount <= 0:
+        raise HTTPException(400, "VAT amount must be positive")
+
+    amount = round(data.vat_amount, 3)
+    pay_date = data.payment_date or date.today().isoformat()
+
+    try:
+        from app.core.database import SessionLocal
+        from app.services.journal import _next_entry_number
+        from app.models.accounts import JournalEntry, JournalEntryLine
+        from decimal import Decimal
+
+        db = SessionLocal()
+        try:
+            acct_name = "Cash on Hand" if data.payment_account == "1110" else "Bank Account"
+
+            entry = JournalEntry(
+                entry_number=_next_entry_number(db),
+                entry_date=date.fromisoformat(pay_date) if isinstance(pay_date, str) else pay_date,
+                description=f"VAT payment to OTA — {data.reference or ''}".strip(),
+                reference_type="VAT_PAYMENT",
+                reference_id=0,
+                created_by=current_user.id,
+            )
+            db.add(entry)
+            db.flush()
+            db.add_all([
+                JournalEntryLine(journal_entry_id=entry.id, account_code="2210",
+                                 account_name="VAT Payable",
+                                 debit_amount=Decimal(str(amount)), credit_amount=0),
+                JournalEntryLine(journal_entry_id=entry.id, account_code=data.payment_account,
+                                 account_name=acct_name,
+                                 debit_amount=0, credit_amount=Decimal(str(amount))),
+            ])
+            db.commit()
+            return {"message": f"VAT payment of {amount:.3f} OMR recorded", "entry_number": entry.entry_number}
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(500, f"Failed: {str(e)}")
+        finally:
+            db.close()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to record VAT payment: {str(e)}")
 
 
 # ── Enhanced P&L ──
@@ -357,7 +655,12 @@ async def profit_loss_detailed(from_date: Optional[str] = None, to_date: Optiona
     purchases_total = run_s(
         "SELECT COALESCE(SUM(total_amount), 0) FROM purchase_orders WHERE order_date BETWEEN :s AND :e AND status NOT IN ('cancelled','draft')",
         {"s": start, "e": end})
-    purchase_returns = 0  # No purchase returns table yet
+    try:
+        purchase_returns = run_s(
+            "SELECT COALESCE(SUM(total_amount), 0) FROM purchase_returns WHERE return_date BETWEEN :s AND :e AND status = 'processed'",
+            {"s": start, "e": end})
+    except Exception:
+        purchase_returns = 0
 
     gross_profit = net_sales - float(cogs)
 
@@ -476,13 +779,13 @@ async def list_journal_entries(from_date: Optional[str] = None, to_date: Optiona
     today = date.today()
     start = from_date or today.replace(month=1, day=1).isoformat()
     end = to_date or today.isoformat()
-    where = ["je.entry_date::date BETWEEN :start AND :end"]
+    where = ["DATE(je.entry_date) BETWEEN :start AND :end"]
     params: dict = {"start": start, "end": end}
     if reference_type:
         where.append("je.reference_type = :rtype")
         params["rtype"] = reference_type
     if search:
-        where.append("(je.entry_number ILIKE :q OR je.description ILIKE :q)")
+        where.append("(je.entry_number LIKE :q OR je.description LIKE :q)")
         params["q"] = f"%{search}%"
     try:
         rows = run_q(f"""
@@ -610,14 +913,14 @@ async def bank_recon_system_records(from_date: str, to_date: str,
     # Money transfers
     try:
         rows = run_q("""
-            SELECT mt.id, mt.transfer_date::date as date, 'TRANSFER' as type,
+            SELECT mt.id, DATE(mt.transfer_date) as date, 'TRANSFER' as type,
                    COALESCE(mt.reference, 'MT-' || mt.id) as reference,
                    COALESCE(fa.name, 'Account') || ' -> ' || COALESCE(ta.name, 'Account') as description,
                    mt.amount, mt.reference as bank_reference, 'transfer' as payment_method
             FROM money_transfers mt
             LEFT JOIN accounts fa ON mt.from_account_id = fa.id
             LEFT JOIN accounts ta ON mt.to_account_id = ta.id
-            WHERE mt.transfer_date::date BETWEEN :s AND :e
+            WHERE DATE(mt.transfer_date) BETWEEN :s AND :e
             ORDER BY mt.transfer_date DESC
         """, {"s": from_date, "e": to_date})
         records.extend(rows)

@@ -76,6 +76,8 @@ function CompanySettings() {
         <button className={`tab-btn ${tab === 'backup' ? 'active' : ''}`} onClick={() => setTab('backup')}>Backup</button>
         <button className={`tab-btn ${tab === 'export' ? 'active' : ''}`} onClick={() => setTab('export')}>Export</button>
         <button className={`tab-btn ${tab === 'activity' ? 'active' : ''}`} onClick={() => setTab('activity')}>Activity Log</button>
+        <button className={`tab-btn ${tab === 'invoice' ? 'active' : ''}`} onClick={() => setTab('invoice')}>Invoice</button>
+        <button className={`tab-btn ${tab === 'vat' ? 'active' : ''}`} onClick={() => setTab('vat')}>VAT</button>
       </div>
 
       {/* Company Tab */}
@@ -238,6 +240,60 @@ function CompanySettings() {
               ))}</tbody>
             </table>
           )}
+        </div>
+      )}
+      {/* Invoice Template Tab */}
+      {tab === 'invoice' && (
+        <div className="tab-content">
+          <h3>Invoice Template Settings</h3>
+          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>Configure how invoices appear when printed or emailed.</p>
+          <div className="settings-form">
+            <div className="form-group"><label>Invoice Footer Note</label>
+              <textarea value={form.invoice_footer || ''} onChange={e => setForm(p => ({...p, invoice_footer: e.target.value}))} rows="2" placeholder="Thank you for your business!" /></div>
+            <div className="form-group"><label>Payment Terms Text</label>
+              <textarea value={form.invoice_payment_terms || ''} onChange={e => setForm(p => ({...p, invoice_payment_terms: e.target.value}))} rows="2" placeholder="Payment due within 30 days of invoice date." /></div>
+            <div className="form-group"><label>Bank Details (shown on invoice)</label>
+              <textarea value={form.invoice_bank_details || ''} onChange={e => setForm(p => ({...p, invoice_bank_details: e.target.value}))} rows="3" placeholder="Bank Muscat | Account: 0123456789 | IBAN: OM00 0000 0000 0000 0000 00" /></div>
+            <div style={{ display: 'flex', gap: 24, margin: '16px 0' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.invoice_show_logo === 'true' || form.invoice_show_logo === true} onChange={e => setForm(p => ({...p, invoice_show_logo: e.target.checked ? 'true' : 'false'}))} /> Show Company Logo
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.invoice_show_signature === 'true' || form.invoice_show_signature === true} onChange={e => setForm(p => ({...p, invoice_show_signature: e.target.checked ? 'true' : 'false'}))} /> Show Signature Line
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.invoice_show_bank === 'true' || form.invoice_show_bank === true} onChange={e => setForm(p => ({...p, invoice_show_bank: e.target.checked ? 'true' : 'false'}))} /> Show Bank Details
+              </label>
+            </div>
+            <button className="submit-btn" onClick={saveSettings}>Save Invoice Settings</button>
+          </div>
+        </div>
+      )}
+
+      {/* VAT & Purchasing Tab */}
+      {tab === 'vat' && (
+        <div className="tab-content">
+          <h3>VAT Registration</h3>
+          <div className="settings-form">
+            <div className="form-row-3">
+              <div className="form-group"><label>VAT Number</label>
+                <input value={form.vat_number || ''} onChange={e => setForm(p => ({...p, vat_number: e.target.value}))} placeholder="OM1234567890" /></div>
+              <div className="form-group"><label>VAT Registration Date</label>
+                <input type="date" value={form.vat_registration_date || ''} onChange={e => setForm(p => ({...p, vat_registration_date: e.target.value}))} /></div>
+              <div className="form-group"><label>Default VAT Rate (%)</label>
+                <input type="number" step="0.1" value={form.tax_rate || ''} onChange={e => setForm(p => ({...p, tax_rate: e.target.value}))} placeholder="5" /></div>
+            </div>
+            <h3 style={{ marginTop: 24 }}>Purchase Settings</h3>
+            <div className="form-row-2">
+              <div className="form-group"><label>Auto-approve POs under (OMR)</label>
+                <input type="number" step="0.001" value={form.po_auto_approve_limit || ''} onChange={e => setForm(p => ({...p, po_auto_approve_limit: e.target.value}))} placeholder="500.000" /></div>
+              <div className="form-group"><label>Default PO Currency</label>
+                <select value={form.po_default_currency || 'OMR'} onChange={e => setForm(p => ({...p, po_default_currency: e.target.value}))}>
+                  <option value="OMR">OMR</option><option value="USD">USD</option><option value="AED">AED</option><option value="EUR">EUR</option>
+                </select></div>
+            </div>
+            <button className="submit-btn" onClick={saveSettings}>Save VAT & Purchase Settings</button>
+          </div>
         </div>
       )}
     </div>

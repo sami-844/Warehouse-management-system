@@ -282,3 +282,68 @@ async def export_json_backup(current_user: User = Depends(get_current_user)):
         media_type="application/json",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+# ===== Roles Management (Phase 35) =====
+DEFAULT_ROLES = [
+    {"id": "admin", "name": "Admin", "permissions": ["dashboard", "sales_orders", "purchase_orders", "invoices", "products", "inventory", "reports", "settings", "finance", "admin", "driver_app"], "is_default": True},
+    {"id": "warehouse_mgr", "name": "Warehouse Manager", "permissions": ["dashboard", "sales_orders", "purchase_orders", "invoices", "products", "inventory", "reports"], "is_default": True},
+    {"id": "sales", "name": "Sales", "permissions": ["dashboard", "sales_orders", "invoices", "products", "reports"], "is_default": True},
+    {"id": "accountant", "name": "Accountant", "permissions": ["dashboard", "invoices", "reports", "finance"], "is_default": True},
+    {"id": "driver", "name": "Driver", "permissions": ["dashboard", "driver_app"], "is_default": True},
+    {"id": "warehouse_staff", "name": "Warehouse Staff", "permissions": ["dashboard", "products", "inventory"], "is_default": True},
+]
+
+ALL_PERMISSIONS = [
+    {"id": "dashboard", "label": "Dashboard"},
+    {"id": "sales_orders", "label": "Sales Orders"},
+    {"id": "purchase_orders", "label": "Purchase Orders"},
+    {"id": "invoices", "label": "Invoices"},
+    {"id": "products", "label": "Products"},
+    {"id": "inventory", "label": "Inventory"},
+    {"id": "reports", "label": "Reports"},
+    {"id": "settings", "label": "Settings"},
+    {"id": "finance", "label": "Finance"},
+    {"id": "admin", "label": "Admin Panel"},
+    {"id": "driver_app", "label": "Driver App"},
+]
+
+
+@router.get("/roles")
+def get_roles(current_user: User = Depends(get_current_user)):
+    """Get all roles (default + custom)"""
+    custom_roles = []
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT setting_value FROM company_settings WHERE setting_key = 'custom_roles'"))
+            row = result.fetchone()
+            if row and row[0]:
+                custom_roles = json.loads(row[0])
+    except Exception:
+        pass
+    return {
+        "roles": DEFAULT_ROLES + custom_roles,
+        "permissions": ALL_PERMISSIONS,
+    }
+
+
+class RolesUpdate(BaseModel):
+    roles: list
+
+
+@router.put("/roles")
+def update_roles(data: RolesUpdate, current_user: User = Depends(get_current_user)):
+    """Save custom roles (default roles cannot be modified)"""
+    # Filter out default role IDs
+    default_ids = {r["id"] for r in DEFAULT_ROLES}
+    custom = [r for r in data.roles if r.get("id") not in default_ids]
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
+                INSERT INTO company_settings (setting_key, setting_value)
+                VALUES ('custom_roles', :val)
+                ON CONFLICT(setting_key) DO UPDATE SET setting_value = :val
+            """), {"val": json.dumps(custom)})
+        return {"message": f"Saved {len(custom)} custom role(s)", "roles": DEFAULT_ROLES + custom}
+    except Exception as e:
+        raise HTTPException(500, f"Failed to save roles: {str(e)}")

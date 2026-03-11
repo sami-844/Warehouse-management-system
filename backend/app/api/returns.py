@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date
 from sqlalchemy import text
-from app.core.database import engine
+from app.core.database import engine, SessionLocal
 
 router = APIRouter()
 
@@ -241,6 +241,28 @@ def process_return(return_id: int):
             conn.execute(text(
                 "UPDATE returns SET status = 'processed', updated_at = CURRENT_TIMESTAMP WHERE id = :id"
             ), {"id": return_id})
+
+        # Post journal entry: DR Sales Revenue + DR VAT, CR AR
+        try:
+            customer_name = "Unknown"
+            try:
+                cust_rows = run_q("SELECT name FROM customers WHERE id = :id", {"id": ret["customer_id"]})
+                if cust_rows:
+                    customer_name = cust_rows[0]["name"]
+            except Exception:
+                pass
+            from app.services.journal import post_sales_return
+            db = SessionLocal()
+            try:
+                post_sales_return(
+                    db, return_id, customer_name,
+                    float(ret["subtotal"]), float(ret["tax_amount"]),
+                    float(ret["total_amount"])
+                )
+            finally:
+                db.close()
+        except Exception:
+            pass  # Journal entry is best-effort
 
         return {
             "message": f"Return processed. Credit note {cn_number} issued.",

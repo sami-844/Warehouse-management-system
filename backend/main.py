@@ -108,6 +108,13 @@ try:
 except ImportError:
     pass
 
+# ── Estimates ──
+try:
+    from app.api.estimates import router as estimates_router
+    app.include_router(estimates_router, prefix="/api/estimates", tags=["Estimates"])
+except ImportError:
+    pass
+
 # ── Phase 4: Financial & Admin ──
 from app.api.financial import router as financial_router
 from app.api.reports import router as reports_router
@@ -138,6 +145,22 @@ try:
     print("  ✅ Returns module loaded")
 except ImportError as e:
     print(f"  ⚠️  Returns module: {e}")
+
+# ── Phase 24: Purchase Returns & Debit Notes ──
+try:
+    from app.api.purchase_returns import router as purchase_returns_router
+    app.include_router(purchase_returns_router, prefix="/api/purchase-returns", tags=["Purchase Returns"])
+    print("  ✅ Purchase Returns module loaded")
+except ImportError as e:
+    print(f"  ⚠️  Purchase Returns module: {e}")
+
+# ── Phase 25: Bills ──
+try:
+    from app.api.bills import router as bills_router
+    app.include_router(bills_router, prefix="/api/bills", tags=["Bills"])
+    print("  ✅ Bills module loaded")
+except ImportError as e:
+    print(f"  ⚠️  Bills module: {e}")
 
 # ── Phase 5c: Email Notifications ──
 try:
@@ -186,6 +209,51 @@ try:
     print("  ✅ Messaging module loaded")
 except ImportError as e:
     print(f"  ⚠️  Messaging module: {e}")
+
+# ── Phase 26: Advance Payments ──
+try:
+    from app.api.advance_payments import router as advance_payments_router
+    app.include_router(advance_payments_router, prefix="/api/advance-payments", tags=["Advance Payments"])
+    print("  ✅ Advance Payments module loaded")
+except ImportError as e:
+    print(f"  ⚠️  Advance Payments module: {e}")
+
+try:
+    from app.api.bank_accounts import router as bank_accounts_router
+    app.include_router(bank_accounts_router, prefix="/api/bank-accounts", tags=["Bank Accounts"])
+    print("  ✅ Bank Accounts module loaded")
+except ImportError as e:
+    print(f"  ⚠️  Bank Accounts module: {e}")
+
+# ── Phase 31: Brands + Variations + Damage Items ──
+try:
+    from app.api.brands import router as brands_router
+    app.include_router(brands_router, prefix="/api", tags=["Brands"])
+    print("  ✅ Brands module loaded")
+except ImportError as e:
+    print(f"  ⚠️  Brands module: {e}")
+
+try:
+    from app.api.variations import router as variations_router
+    app.include_router(variations_router, prefix="/api", tags=["Variations"])
+    print("  ✅ Variations module loaded")
+except ImportError as e:
+    print(f"  ⚠️  Variations module: {e}")
+
+try:
+    from app.api.damage_items import router as damage_items_router
+    app.include_router(damage_items_router, prefix="/api", tags=["Damage Items"])
+    print("  ✅ Damage Items module loaded")
+except ImportError as e:
+    print(f"  ⚠️  Damage Items module: {e}")
+
+# ── Phase 32: Dashboard Summary ──
+try:
+    from app.api.dashboard import router as dashboard_router
+    app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"])
+    print("  \u2705 Dashboard Summary module loaded")
+except ImportError as e:
+    print(f"  \u26a0\ufe0f  Dashboard Summary module: {e}")
 
 # ── RBAC Navigation Helper ──
 @app.get("/api/rbac/nav-items")

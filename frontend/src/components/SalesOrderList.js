@@ -89,10 +89,13 @@ function SalesOrderList({ onViewOrder }) {
           <form onSubmit={handleCreate}>
             <div className="form-row-3">
               <div className="form-group"><label>Customer *</label>
-                <select value={form.customer_id} onChange={e => onCustomerSelect(e.target.value)} required>
+                <div className="wms-flex-row">
+                <select value={form.customer_id} onChange={e => onCustomerSelect(e.target.value)} required style={{ flex: 1 }}>
                   <option value="">Select customer...</option>
                   {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.area || c.code})</option>)}
-                </select></div>
+                </select>
+                <button type="button" className="wms-btn-action walkin" onClick={() => { const w = customers.find(c => c.code === 'WALKIN' || c.name === 'Walk-in Customer'); if (w) onCustomerSelect(String(w.id)); }}>Walk-in</button>
+                </div></div>
               <div className="form-group"><label>Order Date *</label><input type="date" value={form.order_date} onChange={e => setForm(p => ({...p, order_date: e.target.value}))} required /></div>
               <div className="form-group"><label>Required Date</label><input type="date" value={form.required_date} onChange={e => setForm(p => ({...p, required_date: e.target.value}))} /></div>
             </div>
@@ -114,7 +117,7 @@ function SalesOrderList({ onViewOrder }) {
                 </select>
                 <input type="number" placeholder="Qty" value={newItem.quantity_ordered} onChange={e => setNewItem(p => ({...p, quantity_ordered: e.target.value}))} min="1" />
                 <input type="number" placeholder="Price" step="0.001" value={newItem.unit_price} onChange={e => setNewItem(p => ({...p, unit_price: e.target.value}))} />
-                <input type="number" placeholder="Disc %" step="0.1" value={newItem.discount_percent} onChange={e => setNewItem(p => ({...p, discount_percent: e.target.value}))} min="0" max="100" style={{width: '80px'}} />
+                <input type="number" placeholder="Disc %" step="0.1" value={newItem.discount_percent} onChange={e => setNewItem(p => ({...p, discount_percent: e.target.value}))} min="0" max="100" className="wms-input-discount" />
                 <button type="button" className="add-item-btn" onClick={addLineItem}>+ Add</button>
               </div>
               {lineItems.length > 0 && (

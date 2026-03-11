@@ -84,6 +84,51 @@ def get_category(
     return category
 
 
+@router.put("/categories/{category_id}", response_model=CategorySchema)
+def update_category(
+    category_id: int,
+    category_update: ProductCategoryUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update a product category."""
+    db_cat = db.query(ProductCategory).filter(ProductCategory.id == category_id).first()
+    if not db_cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    update_data = category_update.dict(exclude_unset=True)
+    if "name" in update_data and update_data["name"] != db_cat.name:
+        existing = db.query(ProductCategory).filter(ProductCategory.name == update_data["name"]).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Category name already exists")
+    for field, value in update_data.items():
+        setattr(db_cat, field, value)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Category name already exists")
+    db.refresh(db_cat)
+    return db_cat
+
+
+@router.delete("/categories/{category_id}", status_code=204)
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Soft-delete a product category. Blocks if products are assigned."""
+    db_cat = db.query(ProductCategory).filter(ProductCategory.id == category_id).first()
+    if not db_cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    product_count = db.query(Product).filter(Product.category_id == category_id, Product.is_active == True).count()
+    if product_count > 0:
+        raise HTTPException(status_code=400, detail=f"Cannot delete: {product_count} active products assigned")
+    db_cat.is_active = False
+    db.commit()
+    return None
+
+
 # ==================== PRODUCTS ====================
 
 @router.get("/products", response_model=List[ProductSchema])
@@ -319,3 +364,29 @@ def import_products(
         db.rollback()
         raise HTTPException(status_code=400, detail="Import failed — database constraint error")
     return {"created": created, "skipped": skipped, "errors": errors[:10]}
+
+
+@router.get("/products/avg-costs")
+def product_avg_costs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Average cost per product from purchase order items."""
+    from sqlalchemy import text
+    from app.core.database import engine
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
+                SELECT poi.product_id,
+                       ROUND(COALESCE(SUM(poi.quantity * poi.unit_price), 0) /
+                             NULLIF(COALESCE(SUM(poi.quantity), 0), 0), 3) as avg_cost,
+                       COALESCE(SUM(poi.quantity), 0) as total_qty
+                FROM purchase_order_items poi
+                GROUP BY poi.product_id
+            """))
+            keys = rows.keys()
+            data = {r[0]: {"avg_cost": float(r[1] or 0), "total_qty": int(r[2] or 0)}
+                    for r in rows.fetchall()}
+        return {"costs": data}
+    except Exception:
+        return {"costs": {}}

@@ -1,20 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import LoadingSpinner from './LoadingSpinner';
-import { financialAPI } from '../services/api';
+import { financialAPI, bankAccountsAPI } from '../services/api';
 import './AdminPanel.css';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Banknote, Landmark, CreditCard, Smartphone } from 'lucide-react';
 
 function FinancialDashboard() {
   const [data, setData] = useState(null);
   const [pnl, setPnl] = useState(null);
   const [pnlPeriod, setPnlPeriod] = useState('month');
   const [loading, setLoading] = useState(true);
+  const [wallets, setWallets] = useState([]);
 
   useEffect(() => { load(); }, []);
   useEffect(() => { loadPnl(); }, [pnlPeriod]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const load = async () => { setLoading(true); try { setData(await financialAPI.dashboard()); } catch(e) { console.error(e); } finally { setLoading(false); } };
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [dashData, walletData] = await Promise.all([
+        financialAPI.dashboard(),
+        bankAccountsAPI.list().catch(() => ({ accounts: [] })),
+      ]);
+      setData(dashData);
+      setWallets(walletData.accounts || []);
+    } catch(e) { console.error(e); }
+    finally { setLoading(false); }
+  };
   const loadPnl = async () => { try { setPnl(await financialAPI.profitLoss({ period: pnlPeriod })); } catch(e) { console.error(e); } };
+
+  const walletIcon = (type) => {
+    const icons = { cash: Banknote, bank: Landmark, credit_card: CreditCard, mobile_wallet: Smartphone };
+    const I = icons[type] || Landmark;
+    return <I size={18} />;
+  };
+  const walletColor = (type) => ({
+    cash: { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
+    bank: { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af' },
+    credit_card: { bg: '#fdf4ff', border: '#e9d5ff', text: '#7e22ce' },
+    mobile_wallet: { bg: '#fff7ed', border: '#fed7aa', text: '#c2410c' },
+  }[type] || { bg: '#f8fafc', border: '#e2e8f0', text: '#334155' });
 
   if (loading || !data) return <div className="admin-container"><LoadingSpinner text="Loading financial data..." /></div>;
 
@@ -32,6 +56,45 @@ function FinancialDashboard() {
   return (
     <div className="admin-container">
       <div className="page-header"><div className="header-content"><div className="header-icon finance"><TrendingUp size={20} /></div><div><h1>Financial Dashboard</h1><p>Business overview at a glance</p></div></div></div>
+
+      {/* My Wallets */}
+      {wallets.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#334155', marginBottom: 10 }}>My Wallets</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {/* Total */}
+            <div style={{
+              padding: '14px 20px', background: '#0c4a6e', borderRadius: 10,
+              minWidth: 160, flex: '0 0 auto', color: '#fff',
+            }}>
+              <div style={{ fontSize: 11, opacity: 0.7, fontWeight: 600 }}>Total Balance</div>
+              <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--ds-font-mono)' }}>
+                {n(wallets.reduce((s, w) => s + (Number(w.current_balance) || 0), 0))}
+              </div>
+              <div style={{ fontSize: 11, opacity: 0.6 }}>OMR across {wallets.length} account{wallets.length > 1 ? 's' : ''}</div>
+            </div>
+            {/* Individual accounts */}
+            {wallets.map(w => {
+              const wc = walletColor(w.account_type);
+              return (
+                <div key={w.id} style={{
+                  padding: '14px 20px', background: wc.bg, borderRadius: 10,
+                  border: `1px solid ${wc.border}`, minWidth: 160, flex: '1 1 auto',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{ color: wc.text }}>{walletIcon(w.account_type)}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: wc.text }}>{w.account_name}</span>
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, fontFamily: 'var(--ds-font-mono)', color: '#0c4a6e' }}>
+                    {n(w.current_balance)}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#6b7280' }}>{w.currency || 'OMR'}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="kpi-grid">

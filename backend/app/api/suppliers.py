@@ -31,6 +31,7 @@ class SupplierCreate(BaseModel):
     bank_account: Optional[str] = None
     notes: Optional[str] = None
     opening_balance: Optional[float] = None
+    vendor_type: Optional[str] = "supplier"
 
 class SupplierUpdate(BaseModel):
     name: Optional[str] = None
@@ -49,12 +50,15 @@ class SupplierUpdate(BaseModel):
     bank_account: Optional[str] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None
+    vendor_type: Optional[str] = None
 
 @router.get("")
-async def list_suppliers(active_only: bool = False, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def list_suppliers(active_only: bool = False, vendor_type: Optional[str] = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     query = db.query(Supplier)
     if active_only:
         query = query.filter(Supplier.is_active == True)
+    if vendor_type:
+        query = query.filter(Supplier.vendor_type == vendor_type)
     suppliers = query.order_by(Supplier.name).all()
     result = []
     for s in suppliers:
@@ -72,6 +76,7 @@ async def list_suppliers(active_only: bool = False, db: Session = Depends(get_db
             "credit_limit": float(s.credit_limit) if s.credit_limit else None,
             "tax_id": s.tax_id, "bank_name": s.bank_name, "bank_account": s.bank_account,
             "notes": s.notes, "is_active": s.is_active,
+            "vendor_type": getattr(s, 'vendor_type', 'supplier') or 'supplier',
             "total_orders": po_count,
             "total_ordered_value": round(float(total_ordered), 3),
             "outstanding_balance": round(float(outstanding), 3),

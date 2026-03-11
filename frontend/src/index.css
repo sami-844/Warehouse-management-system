@@ -8,3 +8,182 @@ body {
 /* Tailwind utilities (preflight disabled — no CSS reset) */
 @tailwind components;
 @tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════
+   Design System V2 — Shared Component Classes (wms-*)
+   Phase 33: Replace inline styles across 7 components
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── KPI Summary Cards ── */
+.wms-kpi-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.wms-kpi-card {
+  flex: 1;
+  min-width: 140px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.wms-kpi-label {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.wms-kpi-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.wms-kpi-value.green { color: #16a34a; }
+.wms-kpi-value.red { color: #dc2626; }
+.wms-kpi-value.blue { color: #2563eb; }
+.wms-kpi-value.amber { color: #d97706; }
+
+/* ── Import CSV Button ── */
+.wms-btn-import {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.wms-btn-import:hover {
+  background: #dcfce7;
+}
+
+/* ── Import Message ── */
+.wms-import-message {
+  margin: 8px 0;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  color: #15803d;
+  font-size: 13px;
+}
+
+/* ── Small Action Buttons (invoice rows) ── */
+.wms-btn-action {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  border: none;
+  transition: opacity 0.15s;
+}
+.wms-btn-action:hover { opacity: 0.85; }
+.wms-btn-action.notify {
+  background: #dcfce7;
+  color: #15803d;
+}
+.wms-btn-action.remind {
+  background: #fef3c7;
+  color: #92400e;
+}
+.wms-btn-action.xml {
+  background: #1a2332;
+  color: #fff;
+}
+.wms-btn-action.walkin {
+  background: #6C757D;
+  color: #fff;
+}
+.wms-btn-action.whatsapp {
+  background: #25D366;
+  color: #fff;
+}
+.wms-btn-action.email {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* ── Status Badges ── */
+.wms-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.wms-badge.paid { background: #dcfce7; color: #15803d; }
+.wms-badge.partial { background: #fef3c7; color: #92400e; }
+.wms-badge.unpaid { background: #fee2e2; color: #dc2626; }
+.wms-badge.active { background: #dbeafe; color: #1d4ed8; }
+.wms-badge.inactive { background: #f1f5f9; color: #64748b; }
+.wms-badge.overdue { background: #fee2e2; color: #dc2626; }
+.wms-badge.pending { background: #fef3c7; color: #92400e; }
+.wms-badge.completed { background: #dcfce7; color: #15803d; }
+.wms-badge.cancelled { background: #f1f5f9; color: #64748b; }
+
+/* ── Stock Level Badges ── */
+.wms-stock-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+.wms-stock-badge.out { background: #dc2626; }
+.wms-stock-badge.low { background: #f59e0b; }
+.wms-stock-badge.ok  { background: #16a34a; }
+
+/* ── Button Variants ── */
+.wms-btn-edit {
+  background: #3498db;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.wms-btn-edit:hover { background: #2980b9; }
+.wms-btn-delete {
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.wms-btn-delete:hover { background: #c0392b; }
+
+/* ── Inline Flex Helpers ── */
+.wms-flex-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.wms-flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ── Payment Modal ── */
+.wms-modal-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ── Discount Input ── */
+.wms-input-discount {
+  width: 70px;
+}

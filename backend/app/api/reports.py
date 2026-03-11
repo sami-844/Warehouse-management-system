@@ -17,6 +17,238 @@ def run_q(sql: str, params: dict = {}):
         return [dict(zip(keys, row)) for row in result.fetchall()]
 
 
+def run_s(sql: str, params: dict = {}):
+    with engine.connect() as conn:
+        result = conn.execute(text(sql), params)
+        row = result.fetchone()
+        return row[0] if row and row[0] is not None else 0
+
+
+# ── Balance Sheet ──
+@router.get("/balance-sheet")
+async def balance_sheet(as_of_date: Optional[str] = None,
+                        current_user: User = Depends(get_current_user)):
+    """Balance Sheet as of a given date — Assets = Liabilities + Equity"""
+    as_of = as_of_date or date.today().isoformat()
+
+    def account_balance(account_type: str):
+        """Sum journal entry lines for all accounts of a given type up to as_of date."""
+        rows = run_q("""
+            SELECT a.code, a.name,
+                   COALESCE(SUM(jel.debit_amount), 0) as total_debit,
+                   COALESCE(SUM(jel.credit_amount), 0) as total_credit
+            FROM accounts a
+            LEFT JOIN journal_entry_lines jel ON jel.account_code = a.code
+            LEFT JOIN journal_entries je ON je.id = jel.journal_entry_id
+                AND DATE(je.entry_date) <= :as_of
+            WHERE a.account_type = :atype AND a.is_active = 1
+            GROUP BY a.code, a.name
+            ORDER BY a.code
+        """, {"atype": account_type, "as_of": as_of})
+        return rows
+
+    try:
+        # Assets: debit-normal (balance = debits - credits)
+        asset_rows = account_balance("Asset")
+        assets = []
+        total_assets = 0
+        for r in asset_rows:
+            bal = round(float(r["total_debit"] or 0) - float(r["total_credit"] or 0), 3)
+            assets.append({"code": r["code"], "name": r["name"], "balance": bal})
+            total_assets += bal
+
+        # COGS: debit-normal
+        cogs_rows = account_balance("COGS")
+        for r in cogs_rows:
+            bal = round(float(r["total_debit"] or 0) - float(r["total_credit"] or 0), 3)
+            # COGS doesn't go on balance sheet, but we include for retained earnings calc
+
+        # Liabilities: credit-normal (balance = credits - debits)
+        liability_rows = account_balance("Liability")
+        liabilities = []
+        total_liabilities = 0
+        for r in liability_rows:
+            bal = round(float(r["total_credit"] or 0) - float(r["total_debit"] or 0), 3)
+            liabilities.append({"code": r["code"], "name": r["name"], "balance": bal})
+            total_liabilities += bal
+
+        # Equity: credit-normal
+        equity_rows = account_balance("Equity")
+        equity_items = []
+        total_equity_direct = 0
+        for r in equity_rows:
+            bal = round(float(r["total_credit"] or 0) - float(r["total_debit"] or 0), 3)
+            equity_items.append({"code": r["code"], "name": r["name"], "balance": bal})
+            total_equity_direct += bal
+
+        # Retained Earnings = Income - Expenses - COGS (up to as_of date)
+        income_rows = account_balance("Income")
+        total_income = sum(round(float(r["total_credit"] or 0) - float(r["total_debit"] or 0), 3) for r in income_rows)
+
+        expense_rows = account_balance("Expense")
+        total_expenses = sum(round(float(r["total_debit"] or 0) - float(r["total_credit"] or 0), 3) for r in expense_rows)
+
+        total_cogs = sum(round(float(r["total_debit"] or 0) - float(r["total_credit"] or 0), 3) for r in cogs_rows)
+
+        retained_earnings = round(total_income - total_expenses - total_cogs, 3)
+        equity_items.append({"code": "RE", "name": "Retained Earnings", "balance": retained_earnings})
+
+        total_equity = round(total_equity_direct + retained_earnings, 3)
+
+        return {
+            "as_of_date": as_of,
+            "assets": assets,
+            "total_assets": round(total_assets, 3),
+            "liabilities": liabilities,
+            "total_liabilities": round(total_liabilities, 3),
+            "equity": equity_items,
+            "total_equity": total_equity,
+            "total_liabilities_equity": round(total_liabilities + total_equity, 3),
+            "is_balanced": abs(total_assets - (total_liabilities + total_equity)) < 0.01,
+        }
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(500, f"Failed to generate balance sheet: {str(e)}")
+
+
+# ── General Ledger ──
+@router.get("/general-ledger")
+async def general_ledger(account_code: str = Query(...),
+                         from_date: Optional[str] = None, to_date: Optional[str] = None,
+                         current_user: User = Depends(get_current_user)):
+    """Transaction history for a single account with running balance."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+
+    try:
+        # Verify account exists
+        acct = run_q("SELECT code, name, account_type FROM accounts WHERE code = :code", {"code": account_code})
+        if not acct:
+            from fastapi import HTTPException
+            raise HTTPException(404, "Account not found")
+        account = acct[0]
+        is_debit_normal = account["account_type"] in ("Asset", "COGS", "Expense")
+
+        # Opening balance: sum of all JE lines before start date
+        opening_rows = run_q("""
+            SELECT COALESCE(SUM(jel.debit_amount), 0) as total_debit,
+                   COALESCE(SUM(jel.credit_amount), 0) as total_credit
+            FROM journal_entry_lines jel
+            JOIN journal_entries je ON je.id = jel.journal_entry_id
+            WHERE jel.account_code = :code AND DATE(je.entry_date) < :start
+        """, {"code": account_code, "start": start})
+
+        if opening_rows:
+            ob_debit = float(opening_rows[0]["total_debit"] or 0)
+            ob_credit = float(opening_rows[0]["total_credit"] or 0)
+        else:
+            ob_debit = ob_credit = 0
+        opening_balance = round((ob_debit - ob_credit) if is_debit_normal else (ob_credit - ob_debit), 3)
+
+        # Transactions in period
+        rows = run_q("""
+            SELECT je.entry_number, je.entry_date, je.description as je_description,
+                   je.reference_type, jel.description as line_description,
+                   jel.debit_amount as debit, jel.credit_amount as credit
+            FROM journal_entry_lines jel
+            JOIN journal_entries je ON je.id = jel.journal_entry_id
+            WHERE jel.account_code = :code
+              AND DATE(je.entry_date) BETWEEN :start AND :end
+            ORDER BY je.entry_date ASC, je.id ASC
+        """, {"code": account_code, "start": start, "end": end})
+
+        running = opening_balance
+        transactions = []
+        for r in rows:
+            debit = round(float(r["debit"] or 0), 3)
+            credit = round(float(r["credit"] or 0), 3)
+            if is_debit_normal:
+                running = round(running + debit - credit, 3)
+            else:
+                running = round(running + credit - debit, 3)
+            transactions.append({
+                "entry_number": r["entry_number"],
+                "date": str(r["entry_date"])[:10],
+                "description": r["line_description"] or r["je_description"] or "",
+                "reference_type": r["reference_type"] or "",
+                "debit": debit,
+                "credit": credit,
+                "balance": running,
+            })
+
+        total_debit = sum(t["debit"] for t in transactions)
+        total_credit = sum(t["credit"] for t in transactions)
+
+        return {
+            "account": {"code": account["code"], "name": account["name"], "type": account["account_type"]},
+            "period": {"from": start, "to": end},
+            "opening_balance": opening_balance,
+            "closing_balance": running,
+            "total_debit": round(total_debit, 3),
+            "total_credit": round(total_credit, 3),
+            "transactions": transactions,
+        }
+    except Exception as e:
+        if "HTTPException" in type(e).__name__:
+            raise
+        from fastapi import HTTPException
+        raise HTTPException(500, f"Failed to load general ledger: {str(e)}")
+
+
+# ── Vendor / Supplier Ledger ──
+@router.get("/vendor-ledger")
+async def vendor_ledger(supplier_id: int = Query(...),
+                        from_date: Optional[str] = None, to_date: Optional[str] = None,
+                        current_user: User = Depends(get_current_user)):
+    """Per-supplier purchase invoices and payment history."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+
+    try:
+        supplier = run_q("SELECT id, code, name FROM suppliers WHERE id = :id", {"id": supplier_id})
+        if not supplier:
+            from fastapi import HTTPException
+            raise HTTPException(404, "Supplier not found")
+        sup = supplier[0]
+
+        rows = run_q("""
+            SELECT pi.invoice_number, pi.invoice_date as date,
+                   pi.total_amount as total, pi.amount_paid as paid,
+                   (pi.total_amount - pi.amount_paid) as balance,
+                   pi.status
+            FROM purchase_invoices pi
+            WHERE pi.supplier_id = :sid AND pi.invoice_date BETWEEN :start AND :end
+            ORDER BY pi.invoice_date ASC
+        """, {"sid": supplier_id, "start": start, "end": end})
+
+        grand_total = sum(float(r["total"] or 0) for r in rows)
+        grand_paid = sum(float(r["paid"] or 0) for r in rows)
+
+        data = [{
+            "invoice": r["invoice_number"], "date": str(r["date"])[:10],
+            "total": round(float(r["total"] or 0), 3),
+            "paid": round(float(r["paid"] or 0), 3),
+            "balance": round(float(r["balance"] or 0), 3),
+            "status": r["status"],
+        } for r in rows]
+
+        return {
+            "supplier": {"id": sup["id"], "code": sup["code"], "name": sup["name"]},
+            "period": {"from": start, "to": end},
+            "data": data,
+            "grand_total": round(grand_total, 3),
+            "grand_paid": round(grand_paid, 3),
+            "grand_balance": round(grand_total - grand_paid, 3),
+        }
+    except Exception as e:
+        if "HTTPException" in type(e).__name__:
+            raise
+        from fastapi import HTTPException
+        raise HTTPException(500, f"Failed to load vendor ledger: {str(e)}")
+
+
 @router.get("/sales-by-customer")
 async def sales_by_customer(from_date: Optional[str] = None, to_date: Optional[str] = None,
                             current_user: User = Depends(get_current_user)):
@@ -603,4 +835,413 @@ async def vat_return(start_date: str, end_date: str,
         "box6_net_vat_payable": round(box6, 3),
         "total_sales": round(box1 + box2, 3),
         "total_purchases": round(box4, 3),
+    }
+
+
+# ── All Sales Report ──
+@router.get("/all-sales")
+async def all_sales_report(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                           current_user: User = Depends(get_current_user)):
+    """All sales invoices with KPI totals."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    try:
+        rows = run_q("""
+            SELECT si.invoice_number, si.invoice_date, c.name as customer,
+                   si.subtotal, si.tax_amount, si.discount_amount,
+                   si.total_amount, si.amount_paid,
+                   (si.total_amount - si.amount_paid) as balance,
+                   si.status
+            FROM sales_invoices si
+            LEFT JOIN customers c ON si.customer_id = c.id
+            WHERE si.invoice_date BETWEEN :start AND :end
+            ORDER BY si.invoice_date DESC
+        """, {"start": start, "end": end})
+    except Exception:
+        rows = []
+
+    total_sales = sum(float(r['total_amount'] or 0) for r in rows)
+    total_collected = sum(float(r['amount_paid'] or 0) for r in rows)
+    total_discount = sum(float(r['discount_amount'] or 0) for r in rows)
+    total_tax = sum(float(r['tax_amount'] or 0) for r in rows)
+    total_due = total_sales - total_collected
+
+    # Count returns
+    try:
+        ret = run_s("""
+            SELECT COALESCE(SUM(ri.quantity * ri.unit_price), 0)
+            FROM return_items ri
+            JOIN returns r ON ri.return_id = r.id
+            WHERE r.return_type = 'sales' AND r.return_date BETWEEN :start AND :end
+        """, {"start": start, "end": end})
+        total_returns = round(float(ret), 3)
+    except Exception:
+        total_returns = 0
+
+    data = [{
+        "invoice": r['invoice_number'], "date": str(r['invoice_date'])[:10],
+        "customer": r['customer'] or '', "subtotal": round(float(r['subtotal'] or 0), 3),
+        "tax": round(float(r['tax_amount'] or 0), 3),
+        "discount": round(float(r['discount_amount'] or 0), 3),
+        "total": round(float(r['total_amount'] or 0), 3),
+        "paid": round(float(r['amount_paid'] or 0), 3),
+        "balance": round(float(r['balance'] or 0), 3),
+        "status": r['status'],
+    } for r in rows]
+
+    return {
+        "period": {"from": start, "to": end},
+        "total_sales": round(total_sales, 3),
+        "total_collected": round(total_collected, 3),
+        "total_returns": total_returns,
+        "total_due": round(total_due, 3),
+        "total_discount": round(total_discount, 3),
+        "total_tax": round(total_tax, 3),
+        "invoice_count": len(data),
+        "data": data,
+    }
+
+
+# ── Customer Sales Summary ──
+@router.get("/customer-sales-summary")
+async def customer_sales_summary(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                                  current_user: User = Depends(get_current_user)):
+    """Per-customer sales totals from sales invoices."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    try:
+        rows = run_q("""
+            SELECT c.code, c.name, c.area,
+                   COUNT(si.id) as invoice_count,
+                   COALESCE(SUM(si.total_amount), 0) as total_invoiced,
+                   COALESCE(SUM(si.amount_paid), 0) as total_paid,
+                   COALESCE(SUM(si.total_amount - si.amount_paid), 0) as total_due
+            FROM customers c
+            LEFT JOIN sales_invoices si ON c.id = si.customer_id
+                AND si.invoice_date BETWEEN :start AND :end
+            WHERE c.is_active = true
+            GROUP BY c.id, c.code, c.name, c.area
+            HAVING COUNT(si.id) > 0
+            ORDER BY total_invoiced DESC
+        """, {"start": start, "end": end})
+    except Exception:
+        rows = []
+
+    grand_invoiced = sum(float(r['total_invoiced'] or 0) for r in rows)
+    grand_paid = sum(float(r['total_paid'] or 0) for r in rows)
+    grand_due = sum(float(r['total_due'] or 0) for r in rows)
+
+    data = [{
+        "code": r['code'], "name": r['name'], "area": r['area'] or '',
+        "invoice_count": r['invoice_count'],
+        "total_invoiced": round(float(r['total_invoiced'] or 0), 3),
+        "total_paid": round(float(r['total_paid'] or 0), 3),
+        "total_due": round(float(r['total_due'] or 0), 3),
+    } for r in rows]
+
+    return {
+        "period": {"from": start, "to": end},
+        "customer_count": len(data),
+        "grand_invoiced": round(grand_invoiced, 3),
+        "grand_paid": round(grand_paid, 3),
+        "grand_due": round(grand_due, 3),
+        "data": data,
+    }
+
+
+# ── Product Sales Report ──
+@router.get("/product-sales")
+async def product_sales_report(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                                product_id: Optional[int] = None,
+                                current_user: User = Depends(get_current_user)):
+    """Product-wise sales breakdown from sales order items."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+
+    where = ["so.order_date BETWEEN :start AND :end"]
+    params: dict = {"start": start, "end": end}
+    if product_id:
+        where.append("p.id = :product_id")
+        params["product_id"] = product_id
+    wc = " AND ".join(where)
+
+    try:
+        rows = run_q(f"""
+            SELECT p.sku, p.name,
+                   COALESCE(SUM(soi.quantity_ordered), 0) as sales_qty,
+                   COALESCE(SUM(soi.total_price), 0) as total_amount,
+                   COALESCE(SUM(soi.quantity_ordered * COALESCE(soi.unit_cost, 0)), 0) as total_cost,
+                   COALESCE(SUM(soi.quantity_ordered * soi.unit_price * soi.discount_percent / 100), 0) as total_discount
+            FROM products p
+            LEFT JOIN sales_order_items soi ON p.id = soi.product_id
+            LEFT JOIN sales_orders so ON soi.sales_order_id = so.id AND {wc}
+            WHERE p.is_active = true
+            GROUP BY p.id, p.sku, p.name
+            HAVING COALESCE(SUM(soi.quantity_ordered), 0) > 0
+            ORDER BY total_amount DESC
+        """, params)
+    except Exception:
+        rows = []
+
+    # Return quantities
+    try:
+        ret_rows = run_q("""
+            SELECT ri.product_id, COALESCE(SUM(ri.quantity), 0) as return_qty
+            FROM return_items ri
+            JOIN returns r ON ri.return_id = r.id
+            WHERE r.return_type = 'sales' AND r.return_date BETWEEN :start AND :end
+            GROUP BY ri.product_id
+        """, {"start": start, "end": end})
+        return_map = {r['product_id']: int(r['return_qty'] or 0) for r in ret_rows}
+    except Exception:
+        return_map = {}
+
+    grand_qty = sum(int(r['sales_qty'] or 0) for r in rows)
+    grand_amount = sum(float(r['total_amount'] or 0) for r in rows)
+    grand_discount = sum(float(r['total_discount'] or 0) for r in rows)
+    grand_return_qty = sum(return_map.values())
+
+    data = [{
+        "sku": r['sku'], "name": r['name'],
+        "sales_qty": int(r['sales_qty'] or 0),
+        "return_qty": return_map.get(r.get('id'), 0),
+        "total_amount": round(float(r['total_amount'] or 0), 3),
+        "total_cost": round(float(r['total_cost'] or 0), 3),
+        "total_discount": round(float(r['total_discount'] or 0), 3),
+        "profit": round(float(r['total_amount'] or 0) - float(r['total_cost'] or 0), 3),
+    } for r in rows]
+
+    return {
+        "period": {"from": start, "to": end},
+        "grand_qty": grand_qty,
+        "grand_return_qty": grand_return_qty,
+        "grand_amount": round(grand_amount, 3),
+        "grand_discount": round(grand_discount, 3),
+        "data": data,
+    }
+
+
+# ── All Purchases Report ──
+@router.get("/all-purchases")
+async def all_purchases_report(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                                current_user: User = Depends(get_current_user)):
+    """All purchase invoices with vendor summary."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    try:
+        rows = run_q("""
+            SELECT pi.invoice_number, pi.invoice_date, s.name as vendor,
+                   pi.subtotal, pi.tax_amount,
+                   pi.total_amount, pi.amount_paid,
+                   (pi.total_amount - pi.amount_paid) as balance,
+                   pi.status
+            FROM purchase_invoices pi
+            LEFT JOIN suppliers s ON pi.supplier_id = s.id
+            WHERE pi.invoice_date BETWEEN :start AND :end
+            ORDER BY pi.invoice_date DESC
+        """, {"start": start, "end": end})
+    except Exception:
+        rows = []
+
+    total_purchases = sum(float(r['total_amount'] or 0) for r in rows)
+    total_paid = sum(float(r['amount_paid'] or 0) for r in rows)
+    total_due = total_purchases - total_paid
+
+    data = [{
+        "invoice": r['invoice_number'], "date": str(r['invoice_date'])[:10],
+        "vendor": r['vendor'] or '', "subtotal": round(float(r['subtotal'] or 0), 3),
+        "tax": round(float(r['tax_amount'] or 0), 3),
+        "total": round(float(r['total_amount'] or 0), 3),
+        "paid": round(float(r['amount_paid'] or 0), 3),
+        "balance": round(float(r['balance'] or 0), 3),
+        "status": r['status'],
+    } for r in rows]
+
+    # Vendor summary
+    try:
+        vendor_rows = run_q("""
+            SELECT s.code, s.name,
+                   COUNT(pi.id) as invoice_count,
+                   COALESCE(SUM(pi.total_amount), 0) as total,
+                   COALESCE(SUM(pi.amount_paid), 0) as paid,
+                   COALESCE(SUM(pi.total_amount - pi.amount_paid), 0) as due
+            FROM suppliers s
+            LEFT JOIN purchase_invoices pi ON s.id = pi.supplier_id
+                AND pi.invoice_date BETWEEN :start AND :end
+            WHERE s.is_active = true
+            GROUP BY s.id, s.code, s.name
+            HAVING COUNT(pi.id) > 0
+            ORDER BY total DESC
+        """, {"start": start, "end": end})
+    except Exception:
+        vendor_rows = []
+
+    vendor_summary = [{
+        "code": r['code'], "name": r['name'],
+        "invoice_count": r['invoice_count'],
+        "total": round(float(r['total'] or 0), 3),
+        "paid": round(float(r['paid'] or 0), 3),
+        "due": round(float(r['due'] or 0), 3),
+    } for r in vendor_rows]
+
+    return {
+        "period": {"from": start, "to": end},
+        "total_purchases": round(total_purchases, 3),
+        "total_paid": round(total_paid, 3),
+        "total_due": round(total_due, 3),
+        "invoice_count": len(data),
+        "data": data,
+        "vendor_summary": vendor_summary,
+    }
+
+
+# ── Expense Breakdown ──
+@router.get("/expense-breakdown")
+async def expense_breakdown(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                             current_user: User = Depends(get_current_user)):
+    """Expenses grouped by account category from journal entries."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+    try:
+        rows = run_q("""
+            SELECT jel.account_code, jel.account_name,
+                   a.account_type,
+                   COALESCE(SUM(jel.debit_amount), 0) as total_debit,
+                   COALESCE(SUM(jel.credit_amount), 0) as total_credit
+            FROM journal_entry_lines jel
+            JOIN journal_entries je ON je.id = jel.journal_entry_id
+            LEFT JOIN accounts a ON a.code = jel.account_code
+            WHERE DATE(je.entry_date) BETWEEN :start AND :end
+              AND (a.account_type IN ('Expense', 'COGS') OR jel.account_code LIKE '5%' OR jel.account_code LIKE '6%')
+            GROUP BY jel.account_code, jel.account_name, a.account_type
+            ORDER BY jel.account_code
+        """, {"start": start, "end": end})
+    except Exception:
+        rows = []
+
+    # Also pull bills as a separate expense source
+    try:
+        bill_rows = run_q("""
+            SELECT b.expense_account as account_code,
+                   COALESCE(a.name, b.description) as account_name,
+                   'Expense' as account_type,
+                   COALESCE(SUM(b.total_amount), 0) as total
+            FROM bills b
+            LEFT JOIN accounts a ON a.code = b.expense_account
+            WHERE b.bill_date BETWEEN :start AND :end AND b.status != 'cancelled'
+            GROUP BY b.expense_account, a.name, b.description
+        """, {"start": start, "end": end})
+    except Exception:
+        bill_rows = []
+
+    total_expenses = 0
+    total_cogs = 0
+    data = []
+    for r in rows:
+        amount = round(float(r['total_debit'] or 0) - float(r['total_credit'] or 0), 3)
+        atype = r['account_type'] or 'Expense'
+        if atype == 'COGS':
+            total_cogs += amount
+        else:
+            total_expenses += amount
+        data.append({
+            "account_code": r['account_code'],
+            "account_name": r['account_name'] or r['account_code'],
+            "account_type": atype,
+            "amount": amount,
+        })
+
+    return {
+        "period": {"from": start, "to": end},
+        "total_expenses": round(total_expenses, 3),
+        "total_cogs": round(total_cogs, 3),
+        "grand_total": round(total_expenses + total_cogs, 3),
+        "data": data,
+    }
+
+
+# ── Sales Tax Report ──
+@router.get("/sales-tax")
+async def sales_tax_report(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                            current_user: User = Depends(get_current_user)):
+    """Tax summary — taxable vs zero-rated sales and purchases."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+
+    # Sales tax breakdown
+    try:
+        taxable_sales = run_q("""
+            SELECT COALESCE(SUM(si.subtotal), 0) as sales_amount,
+                   COALESCE(SUM(si.tax_amount), 0) as tax_amount,
+                   COUNT(*) as invoice_count
+            FROM sales_invoices si
+            WHERE si.invoice_date BETWEEN :start AND :end AND si.tax_amount > 0
+        """, {"start": start, "end": end})
+    except Exception:
+        taxable_sales = [{"sales_amount": 0, "tax_amount": 0, "invoice_count": 0}]
+
+    try:
+        zero_sales = run_q("""
+            SELECT COALESCE(SUM(si.subtotal), 0) as sales_amount,
+                   COUNT(*) as invoice_count
+            FROM sales_invoices si
+            WHERE si.invoice_date BETWEEN :start AND :end
+              AND (si.tax_amount = 0 OR si.tax_amount IS NULL)
+        """, {"start": start, "end": end})
+    except Exception:
+        zero_sales = [{"sales_amount": 0, "invoice_count": 0}]
+
+    # Purchase tax breakdown
+    try:
+        taxable_purchases = run_q("""
+            SELECT COALESCE(SUM(pi.subtotal), 0) as purchase_amount,
+                   COALESCE(SUM(pi.tax_amount), 0) as tax_amount,
+                   COUNT(*) as invoice_count
+            FROM purchase_invoices pi
+            WHERE pi.invoice_date BETWEEN :start AND :end AND pi.tax_amount > 0
+        """, {"start": start, "end": end})
+    except Exception:
+        taxable_purchases = [{"purchase_amount": 0, "tax_amount": 0, "invoice_count": 0}]
+
+    try:
+        zero_purchases = run_q("""
+            SELECT COALESCE(SUM(pi.subtotal), 0) as purchase_amount,
+                   COUNT(*) as invoice_count
+            FROM purchase_invoices pi
+            WHERE pi.invoice_date BETWEEN :start AND :end
+              AND (pi.tax_amount = 0 OR pi.tax_amount IS NULL)
+        """, {"start": start, "end": end})
+    except Exception:
+        zero_purchases = [{"purchase_amount": 0, "invoice_count": 0}]
+
+    ts = taxable_sales[0] if taxable_sales else {}
+    zs = zero_sales[0] if zero_sales else {}
+    tp = taxable_purchases[0] if taxable_purchases else {}
+    zp = zero_purchases[0] if zero_purchases else {}
+
+    output_vat = round(float(ts.get('tax_amount', 0)), 3)
+    input_vat = round(float(tp.get('tax_amount', 0)), 3)
+    net_vat = round(output_vat - input_vat, 3)
+
+    return {
+        "period": {"from": start, "to": end},
+        "taxable_sales": round(float(ts.get('sales_amount', 0)), 3),
+        "taxable_sales_count": int(ts.get('invoice_count', 0)),
+        "output_vat": output_vat,
+        "zero_rated_sales": round(float(zs.get('sales_amount', 0)), 3),
+        "zero_rated_sales_count": int(zs.get('invoice_count', 0)),
+        "taxable_purchases": round(float(tp.get('purchase_amount', 0)), 3),
+        "taxable_purchases_count": int(tp.get('invoice_count', 0)),
+        "input_vat": input_vat,
+        "zero_rated_purchases": round(float(zp.get('purchase_amount', 0)), 3),
+        "zero_rated_purchases_count": int(zp.get('invoice_count', 0)),
+        "net_vat_payable": net_vat,
+        "total_sales": round(float(ts.get('sales_amount', 0)) + float(zs.get('sales_amount', 0)), 3),
+        "total_purchases": round(float(tp.get('purchase_amount', 0)) + float(zp.get('purchase_amount', 0)), 3),
     }

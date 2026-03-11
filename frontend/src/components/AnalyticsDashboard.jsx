@@ -1,11 +1,13 @@
 /**
- * AnalyticsDashboard — main page
+ * AnalyticsDashboard — main page (Phase 32 Mega-Upgrade)
  * Features: branded header, alerts, filters, 8 KPIs,
+ *           invoice/counts/expense widgets, overdue/payable tables,
+ *           cash flow bar chart, bank balances,
  *           2 donut charts, trend line chart, category bar chart,
- *           CSV + PDF export
+ *           expiry bell, CSV + PDF export
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { analyticsAPI } from '../services/api';
+import { analyticsAPI, dashboardAPI } from '../services/api';
 
 import KPICard            from './KPICard';
 import DonutChart         from './DonutChart';
@@ -14,6 +16,8 @@ import CategoryBarChart   from './CategoryBarChart';
 import FilterBar          from './FilterBar';
 import AlertsPanel        from './AlertsPanel';
 import { exportToCSV, exportToPDF } from '../utils/ExportUtils';
+import { Bell } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 import './AnalyticsDashboard.css';
 
@@ -35,13 +39,31 @@ const KPI_ACCENTS = {
   rate_of_return:            'red',
 };
 
-const AnalyticsDashboard = () => {
+const fmt = (v) => (Number(v) || 0).toFixed(3);
+
+/* ── Cash Flow Tooltip ── */
+const CashFlowTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', fontSize: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{ color: p.color, fontFamily: 'var(--ds-font-mono)' }}>
+          {p.name}: {fmt(p.value)} OMR
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const AnalyticsDashboard = ({ onNavigate }) => {
   /* ---- state ---- */
   const [dashboardData, setDashboardData] = useState(null);
   const [trendsData,    setTrendsData]    = useState([]);
   const [categoryData,  setCategoryData]  = useState([]);
   const [alertsData,    setAlertsData]    = useState({ summary: {}, alerts: [] });
   const [categories,    setCategories]    = useState([]);
+  const [summaryData,   setSummaryData]   = useState(null);
 
   const [loading,           setLoading]           = useState(true);
   const [error,             setError]             = useState(null);
@@ -49,6 +71,8 @@ const AnalyticsDashboard = () => {
   const [selectedCategory,  setSelectedCategory]  = useState('');
   const [alertsExpanded,    setAlertsExpanded]    = useState(false);
   const [isRefreshing,      setIsRefreshing]      = useState(false);
+
+  const nav = (page) => onNavigate?.(page);
 
   /* ---- fetch all data in parallel; gracefully degrade on new endpoints ---- */
   const fetchAllData = useCallback(async () => {
@@ -63,6 +87,7 @@ const AnalyticsDashboard = () => {
         analyticsAPI.categoryBreakdown(selectedPeriod),
         analyticsAPI.alerts(),
         analyticsAPI.categories(),
+        dashboardAPI.summary(),
       ]);
 
       const val = (i) => results[i]?.status === 'fulfilled' ? results[i].value : null;
@@ -74,6 +99,7 @@ const AnalyticsDashboard = () => {
       if (val(2))  setCategoryData(val(2).categories || []);
       if (val(3))  setAlertsData(val(3));
       if (val(4))  setCategories(val(4).categories || []);
+      if (val(5))  setSummaryData(val(5));
 
     } catch (err) {
       setError('Failed to load dashboard data. Please check your backend is running.');
@@ -102,7 +128,7 @@ const AnalyticsDashboard = () => {
       <div className="loading-container">
         <div className="loading-content">
           <div className="spinner"></div>
-          <p className="loading-text">Loading dashboard…</p>
+          <p className="loading-text">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -143,6 +169,16 @@ const AnalyticsDashboard = () => {
     { name: 'Dead Stock',   value: inventory_status.dead_stock_items || 0 },
   ];
 
+  /* ---- Phase 32 summary data ---- */
+  const inv = summaryData?.invoice_summary || {};
+  const counts = summaryData?.counts || {};
+  const expenses = summaryData?.expense_breakdown || { total: 0, items: [] };
+  const overdueInvs = summaryData?.overdue_invoices || [];
+  const payableBills = summaryData?.payable_bills || [];
+  const cashFlowData = summaryData?.cash_flow || [];
+  const bankBalances = summaryData?.bank_balances || [];
+  const expiryCount = summaryData?.expiry_alerts_count || 0;
+
   /* ============================================================
      RENDER
      ============================================================ */
@@ -156,10 +192,16 @@ const AnalyticsDashboard = () => {
             <div className="brand-icon"></div>
             <div>
               <h1 className="brand-title">Wholesale Distribution</h1>
-              <span className="brand-tagline">Inventory Management &amp; Analytics · Oman</span>
+              <span className="brand-tagline">Inventory Management &amp; Analytics - Oman</span>
             </div>
           </div>
           <div className="brand-header-actions no-print">
+            {expiryCount > 0 && (
+              <div className="expiry-bell" onClick={() => nav('expiry-tracker')} title={`${expiryCount} expiring items`}>
+                <Bell size={18} />
+                <span className="expiry-badge">{expiryCount}</span>
+              </div>
+            )}
             <button className="export-btn" onClick={handleExportCSV}>CSV</button>
             <button className="export-btn" onClick={handleExportPDF}>PDF</button>
             <button className={`refresh-btn ${isRefreshing ? 'spinning' : ''}`}
@@ -196,6 +238,190 @@ const AnalyticsDashboard = () => {
         </div>
       </div>
 
+      {/* ══════════════════════════════════════════════════════════
+          Phase 32 — NEW WIDGET ROWS
+          ══════════════════════════════════════════════════════════ */}
+
+      {summaryData && (
+        <>
+          {/* ──── ROW 1: Invoice + Counts + Expenses (3-col) ──── */}
+          <div className="widget-section">
+            <div className="widget-grid-3">
+              {/* Invoice Summary */}
+              <div className="widget-card">
+                <div className="widget-card-title">Invoices</div>
+                <div className="widget-big-number">{fmt(inv.total_amount)} <span style={{ fontSize: 14, fontWeight: 500 }}>OMR</span></div>
+                <div className="widget-subtitle">{inv.count || 0} total invoices</div>
+                <div className="progress-bar-bg">
+                  <div className="progress-bar-fill" style={{ width: `${Math.min(inv.paid_pct || 0, 100)}%` }}></div>
+                </div>
+                <div className="widget-subtitle">Collected: {fmt(inv.paid_amount)} OMR ({inv.paid_pct || 0}%)</div>
+                <button className="widget-create-btn no-print" onClick={() => nav('sales-invoices')}>+ Create Invoice</button>
+              </div>
+
+              {/* Customers / Vendors / Items */}
+              <div className="widget-card">
+                <div className="widget-card-title">Business Overview</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--ds-font-mono)' }}>{counts.customers || 0}</div>
+                      <div className="widget-subtitle">Customers</div>
+                    </div>
+                    <span className="widget-create-link no-print" onClick={() => nav('customers')}>+ New</span>
+                  </div>
+                  <hr className="widget-divider" />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--ds-font-mono)' }}>{counts.vendors || 0}</div>
+                      <div className="widget-subtitle">Vendors</div>
+                    </div>
+                    <span className="widget-create-link no-print" onClick={() => nav('suppliers')}>+ New</span>
+                  </div>
+                  <hr className="widget-divider" />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--ds-font-mono)' }}>{counts.products || 0}</div>
+                      <div className="widget-subtitle">Products</div>
+                    </div>
+                    <span className="widget-create-link no-print" onClick={() => nav('products')}>+ New</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expense Breakdown */}
+              <div className="widget-card">
+                <div className="widget-card-title">Expenses (30 Days)</div>
+                <div className="widget-big-number">{fmt(expenses.total)} <span style={{ fontSize: 14, fontWeight: 500 }}>OMR</span></div>
+                {expenses.items.length > 0 ? (
+                  <div style={{ marginTop: 8 }}>
+                    {expenses.items.map((e, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--ds-border, #e5e7eb)', fontSize: 12 }}>
+                        <span style={{ color: '#374151' }}>{e.category}</span>
+                        <span style={{ fontFamily: 'var(--ds-font-mono)', fontWeight: 600 }}>{fmt(e.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="widget-subtitle" style={{ marginTop: 8 }}>No expenses recorded</div>
+                )}
+                <button className="widget-create-btn no-print" onClick={() => nav('cash-transactions')} style={{ background: '#7c3aed' }}>+ Add Expense</button>
+              </div>
+            </div>
+          </div>
+
+          {/* ──── ROW 2: Overdue Invoices + Payable Bills (2-col) ──── */}
+          <div className="widget-section">
+            <div className="widget-grid-2">
+              {/* Overdue Invoices */}
+              <div className="widget-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div className="widget-card-title">Overdue Invoices</div>
+                  <span className="overdue-count-badge">{overdueInvs.length}</span>
+                </div>
+                {overdueInvs.length > 0 ? (
+                  <table className="widget-table">
+                    <thead>
+                      <tr><th>Customer</th><th>Invoice</th><th>Overdue</th><th style={{ textAlign: 'right' }}>Amount</th></tr>
+                    </thead>
+                    <tbody>
+                      {overdueInvs.map((r, i) => (
+                        <tr key={i}>
+                          <td style={{ fontWeight: 500 }}>{r.customer_name}</td>
+                          <td style={{ fontFamily: 'var(--ds-font-mono)', fontSize: 11 }}>{r.invoice_number}</td>
+                          <td><span className="overdue-badge">{r.days_overdue}d</span></td>
+                          <td style={{ textAlign: 'right', fontFamily: 'var(--ds-font-mono)', fontWeight: 600 }}>{fmt(r.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: 24, color: '#6b7280', fontSize: 13 }}>No overdue invoices</div>
+                )}
+                <span className="view-all-link no-print" onClick={() => nav('sales-invoices')}>View All Invoices</span>
+              </div>
+
+              {/* Payable Bills */}
+              <div className="widget-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div className="widget-card-title">Payable Bills</div>
+                  <span className="overdue-count-badge" style={{ background: '#fff7ed', color: '#c2410c' }}>{payableBills.length}</span>
+                </div>
+                {payableBills.length > 0 ? (
+                  <table className="widget-table">
+                    <thead>
+                      <tr><th>Vendor</th><th>Bill #</th><th>Due</th><th style={{ textAlign: 'right' }}>Amount</th></tr>
+                    </thead>
+                    <tbody>
+                      {payableBills.map((r, i) => (
+                        <tr key={i}>
+                          <td style={{ fontWeight: 500 }}>{r.vendor_name}</td>
+                          <td style={{ fontFamily: 'var(--ds-font-mono)', fontSize: 11 }}>{r.bill_number}</td>
+                          <td style={{ fontSize: 11, color: '#6b7280' }}>{r.due_date}</td>
+                          <td style={{ textAlign: 'right', fontFamily: 'var(--ds-font-mono)', fontWeight: 600 }}>{fmt(r.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: 24, color: '#6b7280', fontSize: 13 }}>No pending bills</div>
+                )}
+                <span className="view-all-link no-print" onClick={() => nav('purchase-invoices')}>View All Bills</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ──── ROW 3: Cash Flow Chart + Bank Balances ──── */}
+          <div className="widget-section">
+            <div className="widget-grid-2">
+              {/* Cash Flow Bar Chart */}
+              <div className="widget-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div className="widget-card-title">Cash Flow</div>
+                  <span style={{ fontSize: 11, color: '#6b7280' }}>Last 12 months</span>
+                </div>
+                {cashFlowData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={cashFlowData} margin={{ top: 8, right: 10, left: 0, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                      <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#6B7280' }} />
+                      <YAxis tick={{ fontSize: 10, fill: '#6B7280' }} tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v} width={45} />
+                      <Tooltip content={<CashFlowTooltip />} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="cash_in" name="Cash In" fill="#16a34a" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="cash_out" name="Cash Out" fill="#dc2626" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: 40, color: '#6b7280', fontSize: 13 }}>No cash flow data</div>
+                )}
+              </div>
+
+              {/* Bank Balances */}
+              <div className="widget-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div className="widget-card-title">Cash & Bank Balances</div>
+                  <span className="widget-create-link no-print" onClick={() => nav('bank-accounts')}>View All</span>
+                </div>
+                {bankBalances.length > 0 ? (
+                  bankBalances.map((b, i) => (
+                    <div className="bank-row" key={i}>
+                      <div>
+                        <span className="bank-name">{b.name}</span>
+                        <span className="bank-type-badge">{b.type}</span>
+                      </div>
+                      <div className="bank-balance">{fmt(b.balance)} <span style={{ fontSize: 11, fontWeight: 400, color: '#6b7280' }}>OMR</span></div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', padding: 24, color: '#6b7280', fontSize: 13 }}>No bank accounts configured</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* ──── Donut Charts ──── */}
       <div className="charts-section">
         <div className="charts-grid">
@@ -217,7 +443,7 @@ const AnalyticsDashboard = () => {
         <span className="footer-updated no-print">
           Last updated: {new Date().toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </span>
-        <span className="footer-brand">Wholesale Distribution · Oman</span>
+        <span className="footer-brand">Wholesale Distribution - Oman</span>
       </div>
     </div>
   );

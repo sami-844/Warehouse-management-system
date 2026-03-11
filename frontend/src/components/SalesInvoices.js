@@ -1,6 +1,6 @@
 import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
-import { salesAPI, messagingAPI } from '../services/api';
+import { salesAPI, messagingAPI, notificationsAPI } from '../services/api';
 import './Sales.css';
 import { Receipt } from 'lucide-react';
 
@@ -47,6 +47,34 @@ function SalesInvoices() {
     } catch(e) { setMessage({ text: e.response?.data?.detail || 'Failed to send reminder', type: 'error' }); }
   };
 
+  const emailInvoice = async (inv) => {
+    try {
+      const res = await notificationsAPI.emailInvoice(inv.id);
+      setMessage({ text: res.message || `Invoice emailed successfully`, type: 'success' });
+    } catch(e) { setMessage({ text: e.response?.data?.detail || 'Failed to send email', type: 'error' }); }
+  };
+
+  const shareWhatsApp = (inv) => {
+    const balance = (Number(inv.balance) || 0).toFixed(3);
+    const total = (Number(inv.total_amount) || 0).toFixed(3);
+    const lines = [
+      `*Invoice from AK Al Momaiza Trading*`,
+      ``,
+      `Invoice #: ${inv.invoice_number}`,
+      `Date: ${inv.invoice_date}`,
+      `Amount: ${total} OMR`,
+      `Balance Due: ${balance} OMR`,
+      `Status: ${inv.status}`,
+      ``,
+      `Please contact us for payment or queries.`,
+    ].join('\n');
+    const phone = (inv.customer_phone || '').replace(/[^0-9+]/g, '').replace(/^\+/, '');
+    const url = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(lines)}`
+      : `https://wa.me/?text=${encodeURIComponent(lines)}`;
+    window.open(url, '_blank');
+  };
+
   const statusColor = (s) => ({ pending: '#d97706', partial: '#2563eb', paid: '#16a34a' }[s] || '#6b7280');
 
   return (
@@ -68,11 +96,11 @@ function SalesInvoices() {
           { label: 'Outstanding', value: outstanding.toFixed(3), unit: 'OMR', color: outstanding > 0 ? '#dc2626' : '#16a34a' },
         ];
         return (
-          <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div className="wms-kpi-row">
             {kpis.map(k => (
-              <div key={k.label} style={{ flex: 1, minWidth: 140, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{k.label}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: k.color, fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+              <div key={k.label} className="wms-kpi-card">
+                <div className="wms-kpi-label">{k.label}</div>
+                <div className="wms-kpi-value" style={{ color: k.color }}>
                   {k.value}{k.unit && <span style={{ fontSize: 12, fontWeight: 600, marginLeft: 4, color: '#94a3b8' }}>{k.unit}</span>}
                 </div>
               </div>
@@ -165,11 +193,13 @@ function SalesInvoices() {
                   <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(inv.balance) || 0).toFixed(3)}</td>
                   <td className={inv.days_overdue > 0 ? 'negative' : ''}>{inv.days_overdue > 0 ? `${inv.days_overdue}d` : '-'}</td>
                   <td><span className="status-pill" style={{ backgroundColor: statusColor(inv.status) }}>{inv.status}</span></td>
-                  <td style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <td className="wms-flex-row">
                     {inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPayForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>Pay</button>}
-                    <button onClick={() => sendInvoiceMsg(inv)} title="Send invoice notification" style={{ padding: '4px 8px', fontSize: 11, background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}>Notify</button>
-                    {inv.days_overdue > 0 && <button onClick={() => sendReminder(inv)} title="Send payment reminder" style={{ padding: '4px 8px', fontSize: 11, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}>Remind</button>}
-                    <button onClick={() => salesAPI.downloadFawtaraXML(inv.id)} title="Download Fawtara UBL 2.1 XML" style={{ padding: '4px 8px', fontSize: 11, background: '#1A3A5C', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', whiteSpace: 'nowrap' }}>XML</button>
+                    <button className="wms-btn-action notify" onClick={() => sendInvoiceMsg(inv)} title="Send invoice notification">Notify</button>
+                    {inv.days_overdue > 0 && <button className="wms-btn-action remind" onClick={() => sendReminder(inv)} title="Send payment reminder">Remind</button>}
+                    <button className="wms-btn-action xml" onClick={() => salesAPI.downloadFawtaraXML(inv.id)} title="Download Fawtara UBL 2.1 XML">XML</button>
+                    <button className="wms-btn-action whatsapp" onClick={() => shareWhatsApp(inv)} title="Share via WhatsApp">WA</button>
+                    <button className="wms-btn-action email" onClick={() => emailInvoice(inv)} title="Email invoice to customer">Email</button>
                   </td>
                 </tr>
               ))
