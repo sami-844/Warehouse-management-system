@@ -1,7 +1,7 @@
 """
 User model - System users with authentication and roles
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, Text
 from sqlalchemy.sql import func
 import enum
 from app.core.database import Base
@@ -34,7 +34,14 @@ class User(Base):
     
     phone = Column(String(20), nullable=True)
     employee_id = Column(String(50), nullable=True)
-    
+
+    # Phase 37: Additional user fields
+    profile_picture = Column(Text, nullable=True)
+    default_warehouse_id = Column(Integer, nullable=True)
+    warehouse_group = Column(Text, default="")
+    last_active_at = Column(DateTime(timezone=True), nullable=True)
+    login_count = Column(Integer, default=0)
+
     # Audit fields
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

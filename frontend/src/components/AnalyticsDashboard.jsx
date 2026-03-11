@@ -20,7 +20,16 @@ import { Bell } from 'lucide-react';
 import { fmtOMR, fmtNumber } from '../utils/format';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
+import { PERMISSIONS } from '../constants/permissions';
 import './AnalyticsDashboard.css';
+
+/* ── Permission helper ── */
+const userRole = localStorage.getItem('userRole') || '';
+const userPerms = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+const can = (perm) => {
+  if (userRole.toLowerCase() === 'admin') return true;
+  return userPerms.includes(perm);
+};
 
 /* --------------------------------------------------------
    BRAND COLOURS — tweak accent / logo text here
@@ -226,18 +235,20 @@ const AnalyticsDashboard = ({ onNavigate }) => {
       </div>
 
       {/* ──── KPI Cards ──── */}
-      <div className="kpi-section">
-        <div className="kpi-grid">
-          <KPICard title="Inventory Turnover"   value={kpis.inventory_turnover_ratio}   icon="" accent={KPI_ACCENTS.inventory_turnover_ratio} />
-          <KPICard title="Avg. Inventory"       value={kpis.average_inventory}          unit="OMR"  icon="" accent={KPI_ACCENTS.average_inventory} />
-          <KPICard title="COGS"                 value={kpis.cost_of_goods_sold}         unit="OMR"  icon="" accent={KPI_ACCENTS.cost_of_goods_sold} />
-          <KPICard title="Service Level"        value={kpis.service_level}              unit="%"    icon="" accent={KPI_ACCENTS.service_level} />
-          <KPICard title="Days to Sell"         value={kpis.days_to_sell_inventory}     unit="days" icon="" accent={KPI_ACCENTS.days_to_sell_inventory} />
-          <KPICard title="Lead Time"            value={kpis.lead_time}                  unit="days" icon="" accent={KPI_ACCENTS.lead_time} />
-          <KPICard title="Perfect Order Rate"  value={kpis.perfect_order_rate}         unit="%"    icon="" accent={KPI_ACCENTS.perfect_order_rate} />
-          <KPICard title="Return Rate"         value={kpis.rate_of_return}             unit="%"    icon="" accent={KPI_ACCENTS.rate_of_return} />
+      {can(PERMISSIONS.DASHBOARD.WIDGET_INVENTORY) && (
+        <div className="kpi-section">
+          <div className="kpi-grid">
+            <KPICard title="Inventory Turnover"   value={kpis.inventory_turnover_ratio}   icon="" accent={KPI_ACCENTS.inventory_turnover_ratio} />
+            <KPICard title="Avg. Inventory"       value={kpis.average_inventory}          unit="OMR"  icon="" accent={KPI_ACCENTS.average_inventory} />
+            <KPICard title="COGS"                 value={kpis.cost_of_goods_sold}         unit="OMR"  icon="" accent={KPI_ACCENTS.cost_of_goods_sold} />
+            <KPICard title="Service Level"        value={kpis.service_level}              unit="%"    icon="" accent={KPI_ACCENTS.service_level} />
+            <KPICard title="Days to Sell"         value={kpis.days_to_sell_inventory}     unit="days" icon="" accent={KPI_ACCENTS.days_to_sell_inventory} />
+            <KPICard title="Lead Time"            value={kpis.lead_time}                  unit="days" icon="" accent={KPI_ACCENTS.lead_time} />
+            <KPICard title="Perfect Order Rate"  value={kpis.perfect_order_rate}         unit="%"    icon="" accent={KPI_ACCENTS.perfect_order_rate} />
+            <KPICard title="Return Rate"         value={kpis.rate_of_return}             unit="%"    icon="" accent={KPI_ACCENTS.rate_of_return} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════
           Phase 32 — NEW WIDGET ROWS
@@ -249,7 +260,7 @@ const AnalyticsDashboard = ({ onNavigate }) => {
           <div className="widget-section">
             <div className="widget-grid-3">
               {/* Invoice Summary */}
-              <div className="widget-card">
+              {can(PERMISSIONS.DASHBOARD.WIDGET_SALES) && <div className="widget-card">
                 <div className="widget-card-title">Invoices</div>
                 <div className="widget-big-number">{fmt(inv.total_amount)} <span style={{ fontSize: 14, fontWeight: 500 }}>OMR</span></div>
                 <div className="widget-subtitle">{inv.count || 0} total invoices</div>
@@ -258,10 +269,10 @@ const AnalyticsDashboard = ({ onNavigate }) => {
                 </div>
                 <div className="widget-subtitle">Collected: {fmt(inv.paid_amount)} OMR ({inv.paid_pct || 0}%)</div>
                 <button className="widget-create-btn no-print" onClick={() => nav('sales-invoices')}>+ Create Invoice</button>
-              </div>
+              </div>}
 
               {/* Customers / Vendors / Items */}
-              <div className="widget-card">
+              {can(PERMISSIONS.DASHBOARD.WIDGET_PURCHASES) && <div className="widget-card">
                 <div className="widget-card-title">Business Overview</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -288,10 +299,10 @@ const AnalyticsDashboard = ({ onNavigate }) => {
                     <span className="widget-create-link no-print" onClick={() => nav('products')}>+ New</span>
                   </div>
                 </div>
-              </div>
+              </div>}
 
               {/* Expense Breakdown */}
-              <div className="widget-card">
+              {can(PERMISSIONS.DASHBOARD.WIDGET_CASH_FLOW) && <div className="widget-card">
                 <div className="widget-card-title">Expenses (30 Days)</div>
                 <div className="widget-big-number">{fmt(expenses.total)} <span style={{ fontSize: 14, fontWeight: 500 }}>OMR</span></div>
                 {expenses.items.length > 0 ? (
@@ -307,7 +318,7 @@ const AnalyticsDashboard = ({ onNavigate }) => {
                   <div className="widget-subtitle" style={{ marginTop: 8 }}>No expenses recorded</div>
                 )}
                 <button className="widget-create-btn no-print" onClick={() => nav('cash-transactions')} style={{ background: '#7c3aed' }}>+ Add Expense</button>
-              </div>
+              </div>}
             </div>
           </div>
 
@@ -315,7 +326,7 @@ const AnalyticsDashboard = ({ onNavigate }) => {
           <div className="widget-section">
             <div className="widget-grid-2">
               {/* Overdue Invoices */}
-              <div className="widget-card">
+              {can(PERMISSIONS.DASHBOARD.WIDGET_OVERDUE) && <div className="widget-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div className="widget-card-title">Overdue Invoices</div>
                   <span className="overdue-count-badge">{overdueInvs.length}</span>
@@ -340,10 +351,10 @@ const AnalyticsDashboard = ({ onNavigate }) => {
                   <div style={{ textAlign: 'center', padding: 24, color: '#6b7280', fontSize: 13 }}>No overdue invoices</div>
                 )}
                 <span className="view-all-link no-print" onClick={() => nav('sales-invoices')}>View All Invoices</span>
-              </div>
+              </div>}
 
               {/* Payable Bills */}
-              <div className="widget-card">
+              {can(PERMISSIONS.DASHBOARD.WIDGET_PAYABLE_BILLS) && <div className="widget-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div className="widget-card-title">Payable Bills</div>
                   <span className="overdue-count-badge" style={{ background: '#fff7ed', color: '#c2410c' }}>{payableBills.length}</span>
@@ -368,7 +379,7 @@ const AnalyticsDashboard = ({ onNavigate }) => {
                   <div style={{ textAlign: 'center', padding: 24, color: '#6b7280', fontSize: 13 }}>No pending bills</div>
                 )}
                 <span className="view-all-link no-print" onClick={() => nav('purchase-invoices')}>View All Bills</span>
-              </div>
+              </div>}
             </div>
           </div>
 
@@ -376,7 +387,7 @@ const AnalyticsDashboard = ({ onNavigate }) => {
           <div className="widget-section">
             <div className="widget-grid-2">
               {/* Cash Flow Bar Chart */}
-              <div className="widget-card">
+              {can(PERMISSIONS.DASHBOARD.WIDGET_CASH_FLOW) && <div className="widget-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <div className="widget-card-title">Cash Flow</div>
                   <span style={{ fontSize: 11, color: '#6b7280' }}>Last 12 months</span>
@@ -396,10 +407,10 @@ const AnalyticsDashboard = ({ onNavigate }) => {
                 ) : (
                   <div style={{ textAlign: 'center', padding: 40, color: '#6b7280', fontSize: 13 }}>No cash flow data</div>
                 )}
-              </div>
+              </div>}
 
               {/* Bank Balances */}
-              <div className="widget-card">
+              {can(PERMISSIONS.DASHBOARD.WIDGET_WALLETS) && <div className="widget-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div className="widget-card-title">Cash & Bank Balances</div>
                   <span className="widget-create-link no-print" onClick={() => nav('bank-accounts')}>View All</span>
@@ -417,7 +428,7 @@ const AnalyticsDashboard = ({ onNavigate }) => {
                 ) : (
                   <div style={{ textAlign: 'center', padding: 24, color: '#6b7280', fontSize: 13 }}>No bank accounts configured</div>
                 )}
-              </div>
+              </div>}
             </div>
           </div>
         </>
@@ -426,18 +437,20 @@ const AnalyticsDashboard = ({ onNavigate }) => {
       {/* ──── Donut Charts ──── */}
       <div className="charts-section">
         <div className="charts-grid">
-          <DonutChart title="Sales Orders"    data={salesChartData}      colors={SALES_COLORS} />
-          <DonutChart title="Inventory Status" data={inventoryChartData} colors={INVENTORY_COLORS} />
+          {can(PERMISSIONS.DASHBOARD.WIDGET_SALES) && <DonutChart title="Sales Orders"    data={salesChartData}      colors={SALES_COLORS} />}
+          {can(PERMISSIONS.DASHBOARD.WIDGET_INVENTORY) && <DonutChart title="Inventory Status" data={inventoryChartData} colors={INVENTORY_COLORS} />}
         </div>
       </div>
 
       {/* ──── Trend + Category Charts ──── */}
-      <div className="charts-section">
-        <div className="charts-grid">
-          <TrendLineChart    data={trendsData}   period={selectedPeriod} />
-          <CategoryBarChart  data={categoryData} />
+      {can(PERMISSIONS.DASHBOARD.WIDGET_SALES) && (
+        <div className="charts-section">
+          <div className="charts-grid">
+            <TrendLineChart    data={trendsData}   period={selectedPeriod} />
+            <CategoryBarChart  data={categoryData} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ──── Footer ──── */}
       <div className="dashboard-footer">

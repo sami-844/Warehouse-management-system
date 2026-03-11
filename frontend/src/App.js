@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
-import { authAPI } from './services/api';
+import { authAPI, adminAPI } from './services/api';
 import './App.css';
 
 // ── Phase 1-4: Core Components ──
@@ -68,6 +68,7 @@ import ProductBrands from './components/ProductBrands';
 import VariationTemplates from './components/VariationTemplates';
 import DamageItems from './components/DamageItems';
 import DeletedItems from './components/DeletedItems';
+import AdminMasterPanel from './components/AdminMasterPanel';
 import VanSalesEntry from './components/VanSalesEntry';
 import DriverDueSummary from './components/DriverDueSummary';
 import NotificationSettings from './components/NotificationSettings';
@@ -181,6 +182,7 @@ const PAGE_ROLE_MAP = {
   'variations':         ['ADMIN'],
   'damage-items':       ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
   'deleted-items':      ['ADMIN'],
+  'admin-master-panel': ['ADMIN'],
 };
 
 function canAccessPage(page, role) {
@@ -253,6 +255,14 @@ function App() {
         id: payload?.user_id || payload?.id,
       };
       localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('userRole', userData.role || '');
+      // Fetch and store role permissions for widget/feature guards
+      try {
+        const permRes = await adminAPI.getRolePermissions(userData.role);
+        localStorage.setItem('userPermissions', JSON.stringify(permRes.permissions || []));
+      } catch (e) {
+        localStorage.setItem('userPermissions', '[]');
+      }
       setUser(userData);
       setCurrentPage(userData?.role?.toUpperCase() === 'DELIVERY_DRIVER' ? 'driver-app' : 'dashboard');
     } catch (err) {
@@ -407,6 +417,7 @@ function App() {
       case 'variations':           return <VariationTemplates />;
       case 'damage-items':         return <DamageItems />;
       case 'deleted-items':        return <DeletedItems />;
+      case 'admin-master-panel':   return <AdminMasterPanel />;
 
       // ── PDF Print (hidden pages, accessed via buttons) ──
       case 'print-invoice':        return <InvoicePDF orderId={printInvoiceOrderId} onClose={closePDF} />;

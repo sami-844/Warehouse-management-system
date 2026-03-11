@@ -5,6 +5,7 @@ from app.models.product import Product, ProductCategory
 from app.models.business_partner import Supplier, Customer
 from app.models.inventory import Warehouse, InventoryTransaction, StockLevel
 from app.models.admin import ActivityLog, CompanySettings
+from app.models.role import Role as RoleModel, UserActivityLog
 
 try:
     from app.models.sales import SalesOrder, SalesOrderItem, Delivery, SalesInvoice, PricingRule, Payment
@@ -26,5 +27,5 @@ except ImportError:
 __all__ = [
     "Base", "User", "UserRole", "Product", "ProductCategory",
     "Supplier", "Customer", "Warehouse", "InventoryTransaction", "StockLevel",
-    "ActivityLog", "CompanySettings",
+    "ActivityLog", "CompanySettings", "RoleModel", "UserActivityLog",
 ]

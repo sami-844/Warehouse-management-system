@@ -283,7 +283,8 @@ export const adminAPI = {
   exportableList: async () => (await api.get('/api/admin/export-all')).data,
   exportJSON: async () => (await api.get('/api/admin/export-json')).data,
   getRoles: async () => (await api.get('/api/admin/roles')).data,
-  updateRoles: async (roles) => (await api.put('/api/admin/roles', { roles })).data,
+  updateRole: async (id, data) => (await api.put(`/api/admin/roles/${id}`, data)).data,
+  getRolePermissions: async (roleName) => (await api.get(`/api/admin/roles/${roleName}/permissions`)).data,
 };
 
 // ━━ Phase 5b: PDF, FIFO, RBAC ━━

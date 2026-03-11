@@ -2,9 +2,17 @@ import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
 import React, { useState, useEffect } from 'react';
 import { salesAPI, customerAPI, productAPI, inventoryAPI } from '../services/api';
+import { PERMISSIONS } from '../constants/permissions';
 import './Sales.css';
 import { ShoppingCart } from 'lucide-react';
 import { fmtOMR, fmtDate } from '../utils/format';
+
+/* ── Permission helper ── */
+const _role = (localStorage.getItem('userRole') || '').toLowerCase();
+const _perms = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+const can = (perm) => _role === 'admin' || _perms.includes(perm);
+const canViewCostPrice = can(PERMISSIONS.SALES.VIEW_COST_PRICE);
+const priceEditingDisabled = can(PERMISSIONS.SALES.DISABLE_PRICE_EDIT);
 
 function SalesOrderList({ onViewOrder }) {
   const [orders, setOrders] = useState([]);
@@ -120,12 +128,16 @@ function SalesOrderList({ onViewOrder }) {
                   {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku}) — Stock: {getStock(p.id)}</option>)}
                 </select>
                 <input type="number" placeholder="Qty" value={newItem.quantity_ordered} onChange={e => setNewItem(p => ({...p, quantity_ordered: e.target.value}))} min="1" />
-                <input type="number" placeholder="Price" step="0.001" value={newItem.unit_price} onChange={e => setNewItem(p => ({...p, unit_price: e.target.value}))} />
+                <input type="number" placeholder="Price" step="0.001" value={newItem.unit_price}
+                  onChange={e => setNewItem(p => ({...p, unit_price: e.target.value}))}
+                  disabled={priceEditingDisabled}
+                  style={priceEditingDisabled ? { background: '#F8F9FA', cursor: 'not-allowed', color: '#6C757D' } : {}}
+                  title={priceEditingDisabled ? 'Price editing is locked for your role' : ''} />
                 <input type="number" placeholder="Disc %" step="0.1" value={newItem.discount_percent} onChange={e => setNewItem(p => ({...p, discount_percent: e.target.value}))} min="0" max="100" className="wms-input-discount" />
                 <button type="button" className="add-item-btn" onClick={addLineItem}>+ Add</button>
               </div>
               {lineItems.length > 0 && (
-                <table className="items-table"><thead><tr><th>Product</th><th>Stock</th><th>Qty</th><th>Price</th><th>Disc%</th><th>Total</th><th></th></tr></thead>
+                <table className="items-table"><thead><tr><th>Product</th><th>Stock</th><th>Qty</th><th>Price</th><th>Disc%</th><th>Total</th>{canViewCostPrice && <th>Cost</th>}{canViewCostPrice && <th>Profit</th>}<th></th></tr></thead>
                   <tbody>
                     {lineItems.map((item, idx) => {
                       const lineTotal = item.quantity_ordered * item.unit_price * (1 - item.discount_percent / 100);
@@ -134,14 +146,17 @@ function SalesOrderList({ onViewOrder }) {
                           <td>{item.product_name}</td>
                           <td className={item.available_stock < item.quantity_ordered ? 'negative' : 'positive'}>{item.available_stock}</td>
                           <td>{item.quantity_ordered}</td><td>{(Number(item.unit_price) || 0).toFixed(3)}</td><td>{item.discount_percent}%</td>
-                          <td>{(lineTotal || 0).toFixed(3)}</td><td><button type="button" className="remove-btn" onClick={() => removeItem(idx)}>✕</button></td>
+                          <td>{(lineTotal || 0).toFixed(3)}</td>
+                          {canViewCostPrice && <td>{(Number(item.cost_price) || 0).toFixed(3)}</td>}
+                          {canViewCostPrice && <td style={{color: (lineTotal - (Number(item.cost_price) || 0) * item.quantity_ordered) >= 0 ? '#28A745' : '#DC3545'}}>{(lineTotal - (Number(item.cost_price) || 0) * item.quantity_ordered).toFixed(3)}</td>}
+                          <td><button type="button" className="remove-btn" onClick={() => removeItem(idx)}>✕</button></td>
                         </tr>
                       );
                     })}
-                    <tr className="totals-row"><td colSpan="5">Subtotal</td><td>{subtotal.toFixed(3)}</td><td></td></tr>
-                    {totalDiscount > 0 && <tr className="totals-row"><td colSpan="5">Discount</td><td className="negative">-{totalDiscount.toFixed(3)}</td><td></td></tr>}
-                    <tr className="totals-row"><td colSpan="5">VAT ({form.tax_rate}%)</td><td>{tax.toFixed(3)}</td><td></td></tr>
-                    <tr className="totals-row grand"><td colSpan="5">Total</td><td>{(netSubtotal + tax).toFixed(3)} OMR</td><td></td></tr>
+                    <tr className="totals-row"><td colSpan={canViewCostPrice ? 7 : 5}>Subtotal</td><td>{subtotal.toFixed(3)}</td><td></td></tr>
+                    {totalDiscount > 0 && <tr className="totals-row"><td colSpan={canViewCostPrice ? 7 : 5}>Discount</td><td className="negative">-{totalDiscount.toFixed(3)}</td><td></td></tr>}
+                    <tr className="totals-row"><td colSpan={canViewCostPrice ? 7 : 5}>VAT ({form.tax_rate}%)</td><td>{tax.toFixed(3)}</td><td></td></tr>
+                    <tr className="totals-row grand"><td colSpan={canViewCostPrice ? 7 : 5}>Total</td><td>{(netSubtotal + tax).toFixed(3)} OMR</td><td></td></tr>
                   </tbody>
                 </table>
               )}

@@ -88,6 +88,12 @@ async def startup_event():
         ("deliveries", "pod_photo_base64", "TEXT"),
         ("deliveries", "pod_captured_at", "DATETIME"),
         ("deliveries", "route_area", "VARCHAR(100)"),
+        # Phase 37: User fields for roles & permissions
+        ("users", "profile_picture", "TEXT"),
+        ("users", "default_warehouse_id", "INTEGER"),
+        ("users", "warehouse_group", "TEXT DEFAULT ''"),
+        ("users", "last_active_at", "TIMESTAMP"),
+        ("users", "login_count", "INTEGER DEFAULT 0"),
     ]
     with engine.connect() as conn:
         for table, col, col_type in _migrations:
@@ -99,6 +105,27 @@ async def startup_event():
                     conn.commit()
                 except Exception:
                     conn.rollback()
+    # ── Phase 37: Seed system roles ──
+    _system_roles = [
+        ("ADMIN", "Administrator", "Full system access", "system"),
+        ("WAREHOUSE_MANAGER", "Warehouse Manager", "Manage inventory, purchasing, and warehouse operations", "system"),
+        ("WAREHOUSE_STAFF", "Warehouse Staff", "Basic inventory and stock operations", "system"),
+        ("SALES_STAFF", "Sales Staff", "Sales orders, customers, and invoicing", "system"),
+        ("DELIVERY_DRIVER", "Delivery Driver", "Delivery management and driver app", "system"),
+        ("ACCOUNTANT", "Accountant", "Financial reports, invoices, and accounting", "system"),
+    ]
+    with engine.connect() as conn:
+        for role_name, display, desc, rtype in _system_roles:
+            try:
+                result = conn.execute(text("SELECT id FROM roles WHERE name = :name"), {"name": role_name})
+                if not result.fetchone():
+                    conn.execute(text(
+                        "INSERT INTO roles (name, display_name, description, role_type, permissions_json, is_active) "
+                        "VALUES (:name, :display, :desc, :rtype, :perms, 1)"
+                    ), {"name": role_name, "display": display, "desc": desc, "rtype": rtype, "perms": "{}"})
+                    conn.commit()
+            except Exception:
+                conn.rollback()
     # Fix any lowercase enum values in inventory_transactions
     with engine.connect() as conn:
         try:

@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import func, text, String
 from typing import Optional
 from pydantic import BaseModel
 from datetime import date, datetime
@@ -11,6 +11,7 @@ from app.core.security import get_password_hash
 from app.api.auth import get_current_user
 from app.models.user import User, UserRole
 from app.models.admin import ActivityLog, CompanySettings
+from app.models.role import Role as RoleModel, UserActivityLog
 import os, csv, io, json
 
 router = APIRouter()
@@ -32,6 +33,8 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     employee_id: Optional[str] = None
     is_active: Optional[bool] = None
+    default_warehouse_id: Optional[int] = None
+    warehouse_group: Optional[str] = None
 
 class PasswordChange(BaseModel):
     new_password: str
@@ -58,7 +61,10 @@ async def list_users(db: Session = Depends(get_db), current_user: User = Depends
         "phone": u.phone, "employee_id": u.employee_id,
         "is_active": u.is_active, "is_superuser": u.is_superuser,
         "created_at": str(u.created_at) if u.created_at else None,
-        "last_login": str(u.last_login) if hasattr(u, 'last_login') and u.last_login else None,
+        "default_warehouse_id": u.default_warehouse_id,
+        "warehouse_group": u.warehouse_group or '',
+        "last_active_at": str(u.last_active_at) if u.last_active_at else None,
+        "login_count": u.login_count or 0,
     } for u in users]
 
 @router.get("/users/{user_id}")
@@ -75,6 +81,10 @@ async def get_user(user_id: int, db: Session = Depends(get_db), current_user: Us
         "phone": u.phone, "employee_id": u.employee_id,
         "is_active": u.is_active, "is_superuser": u.is_superuser,
         "created_at": str(u.created_at) if u.created_at else None,
+        "default_warehouse_id": u.default_warehouse_id,
+        "warehouse_group": u.warehouse_group or '',
+        "last_active_at": str(u.last_active_at) if u.last_active_at else None,
+        "login_count": u.login_count or 0,
         "recent_activity": [{
             "action": a.action, "entity_type": a.entity_type,
             "description": a.description, "date": str(a.created_at)
@@ -284,66 +294,77 @@ async def export_json_backup(current_user: User = Depends(get_current_user)):
     )
 
 
-# ===== Roles Management (Phase 35) =====
-DEFAULT_ROLES = [
-    {"id": "admin", "name": "Admin", "permissions": ["dashboard", "sales_orders", "purchase_orders", "invoices", "products", "inventory", "reports", "settings", "finance", "admin", "driver_app"], "is_default": True},
-    {"id": "warehouse_mgr", "name": "Warehouse Manager", "permissions": ["dashboard", "sales_orders", "purchase_orders", "invoices", "products", "inventory", "reports"], "is_default": True},
-    {"id": "sales", "name": "Sales", "permissions": ["dashboard", "sales_orders", "invoices", "products", "reports"], "is_default": True},
-    {"id": "accountant", "name": "Accountant", "permissions": ["dashboard", "invoices", "reports", "finance"], "is_default": True},
-    {"id": "driver", "name": "Driver", "permissions": ["dashboard", "driver_app"], "is_default": True},
-    {"id": "warehouse_staff", "name": "Warehouse Staff", "permissions": ["dashboard", "products", "inventory"], "is_default": True},
-]
+# ===== Roles Management (Phase 37 — Granular Permissions) =====
 
-ALL_PERMISSIONS = [
-    {"id": "dashboard", "label": "Dashboard"},
-    {"id": "sales_orders", "label": "Sales Orders"},
-    {"id": "purchase_orders", "label": "Purchase Orders"},
-    {"id": "invoices", "label": "Invoices"},
-    {"id": "products", "label": "Products"},
-    {"id": "inventory", "label": "Inventory"},
-    {"id": "reports", "label": "Reports"},
-    {"id": "settings", "label": "Settings"},
-    {"id": "finance", "label": "Finance"},
-    {"id": "admin", "label": "Admin Panel"},
-    {"id": "driver_app", "label": "Driver App"},
-]
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    display_name: Optional[str] = None
+    description: Optional[str] = ''
+    is_active: Optional[bool] = True
+    permissions: Optional[list] = []
 
 
 @router.get("/roles")
-def get_roles(current_user: User = Depends(get_current_user)):
-    """Get all roles (default + custom)"""
-    custom_roles = []
-    try:
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT setting_value FROM company_settings WHERE setting_key = 'custom_roles'"))
-            row = result.fetchone()
-            if row and row[0]:
-                custom_roles = json.loads(row[0])
-    except Exception:
-        pass
-    return {
-        "roles": DEFAULT_ROLES + custom_roles,
-        "permissions": ALL_PERMISSIONS,
-    }
+def get_roles(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get all roles from DB with user counts and granular permissions"""
+    roles = db.query(RoleModel).order_by(RoleModel.id).all()
+    result = []
+    for role in roles:
+        perms = []
+        if role.permissions_json:
+            try:
+                perms = json.loads(role.permissions_json)
+            except Exception:
+                perms = []
+        result.append({
+            'id': role.id,
+            'name': role.name,
+            'display_name': role.display_name or role.name,
+            'description': role.description or '',
+            'is_active': role.is_active if role.is_active is not None else True,
+            'role_type': role.role_type or 'custom',
+            'permissions': perms,
+            'user_count': db.query(User).filter(
+                func.upper(func.cast(User.role, String)) == role.name.upper()
+            ).count(),
+        })
+    return result
 
 
-class RolesUpdate(BaseModel):
-    roles: list
+@router.put("/roles/{role_id}")
+def update_role(role_id: int, data: RoleUpdate, db: Session = Depends(get_db),
+                current_user: User = Depends(get_current_user)):
+    """Update a role's display name, description, status, and granular permissions"""
+    role = db.query(RoleModel).filter(RoleModel.id == role_id).first()
+    if not role:
+        raise HTTPException(status_code=404, detail='Role not found')
+    if data.display_name is not None:
+        role.display_name = data.display_name
+    if data.description is not None:
+        role.description = data.description
+    if data.is_active is not None:
+        role.is_active = data.is_active
+    if data.permissions is not None:
+        role.permissions_json = json.dumps(data.permissions)
+    db.commit()
+    log_activity(db, current_user, "update_role", "role", role.id,
+                 f"Updated role {role.name}")
+    return {'message': 'Role updated', 'id': role.id}
 
 
-@router.put("/roles")
-def update_roles(data: RolesUpdate, current_user: User = Depends(get_current_user)):
-    """Save custom roles (default roles cannot be modified)"""
-    # Filter out default role IDs
-    default_ids = {r["id"] for r in DEFAULT_ROLES}
-    custom = [r for r in data.roles if r.get("id") not in default_ids]
-    try:
-        with engine.begin() as conn:
-            conn.execute(text("""
-                INSERT INTO company_settings (setting_key, setting_value)
-                VALUES ('custom_roles', :val)
-                ON CONFLICT(setting_key) DO UPDATE SET setting_value = :val
-            """), {"val": json.dumps(custom)})
-        return {"message": f"Saved {len(custom)} custom role(s)", "roles": DEFAULT_ROLES + custom}
-    except Exception as e:
-        raise HTTPException(500, f"Failed to save roles: {str(e)}")
+@router.get("/roles/{role_name}/permissions")
+def get_role_permissions(role_name: str, db: Session = Depends(get_db),
+                         current_user: User = Depends(get_current_user)):
+    """Get granular permissions for a specific role by name"""
+    role = db.query(RoleModel).filter(
+        func.upper(RoleModel.name) == role_name.upper()
+    ).first()
+    if not role:
+        return {'permissions': []}
+    perms = []
+    if role.permissions_json:
+        try:
+            perms = json.loads(role.permissions_json)
+        except Exception:
+            perms = []
+    return {'permissions': perms}

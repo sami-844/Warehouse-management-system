@@ -1,7 +1,14 @@
 import LoadingSpinner from './LoadingSpinner';
 import React, { useState, useEffect } from 'react';
 import { salesAPI } from '../services/api';
+import { PERMISSIONS } from '../constants/permissions';
 import './Sales.css';
+
+/* ── Permission helper ── */
+const _role = (localStorage.getItem('userRole') || '').toLowerCase();
+const _perms = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+const can = (perm) => _role === 'admin' || _perms.includes(perm);
+const canViewCostPrice = can(PERMISSIONS.SALES.VIEW_COST_PRICE);
 
 function SalesOrderDetail({ soId, onBack }) {
   const [so, setSo] = useState(null);
@@ -98,7 +105,7 @@ function SalesOrderDetail({ soId, onBack }) {
       <div className="tab-content">
         <h4>Order Items</h4>
         <table className="data-table">
-          <thead><tr><th>Product</th><th>SKU</th><th>Ordered</th><th>Shipped</th><th>Price</th><th>Disc%</th><th>Total</th></tr></thead>
+          <thead><tr><th>Product</th><th>SKU</th><th>Ordered</th><th>Shipped</th><th>Price</th><th>Disc%</th><th>Total</th>{canViewCostPrice && <th>Cost</th>}{canViewCostPrice && <th>Profit</th>}</tr></thead>
           <tbody>
             {(so.items || []).map(i => (
               <tr key={i.id}>
@@ -107,6 +114,8 @@ function SalesOrderDetail({ soId, onBack }) {
                 <td className={i.quantity_shipped < i.quantity_ordered ? 'negative' : 'positive'}>{i.quantity_shipped}</td>
                 <td>{(Number(i.unit_price) || 0).toFixed(3)}</td><td>{i.discount_percent || 0}%</td>
                 <td className="value">{(Number(i.total_price) || 0).toFixed(3)}</td>
+                {canViewCostPrice && <td>{(Number(i.cost_price) || 0).toFixed(3)}</td>}
+                {canViewCostPrice && <td style={{color: ((Number(i.total_price) || 0) - (Number(i.cost_price) || 0) * (i.quantity_ordered || 0)) >= 0 ? '#28A745' : '#DC3545'}}>{((Number(i.total_price) || 0) - (Number(i.cost_price) || 0) * (i.quantity_ordered || 0)).toFixed(3)}</td>}
               </tr>
             ))}
           </tbody>

@@ -1,7 +1,16 @@
 // Dashboard Component
 import React, { useState, useEffect } from 'react';
 import { productAPI, categoryAPI } from '../services/api';
+import { PERMISSIONS } from '../constants/permissions';
 import './Dashboard.css';
+
+/* ── Permission helper ── */
+const userRole = localStorage.getItem('userRole') || '';
+const userPerms = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+const can = (perm) => {
+  if (userRole.toLowerCase() === 'admin') return true;
+  return userPerms.includes(perm);
+};
 
 function Dashboard({ user }) {
   const [stats, setStats] = useState({
@@ -73,39 +82,41 @@ function Dashboard({ user }) {
         <div><h1 className="page-title">Dashboard</h1><p className="page-subtitle">Welcome back, {user.full_name}!</p></div>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon"></div>
-          <div className="stat-content">
-            <h3>{stats.totalProducts}</h3>
-            <p>Total Products</p>
+      {can(PERMISSIONS.DASHBOARD.WIDGET_INVENTORY) && (
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon"></div>
+            <div className="stat-content">
+              <h3>{stats.totalProducts}</h3>
+              <p>Total Products</p>
+            </div>
           </div>
-        </div>
 
-        <div className="stat-card">
-          <div className="stat-icon"></div>
-          <div className="stat-content">
-            <h3>{stats.totalCategories}</h3>
-            <p>Categories</p>
+          <div className="stat-card">
+            <div className="stat-icon"></div>
+            <div className="stat-content">
+              <h3>{stats.totalCategories}</h3>
+              <p>Categories</p>
+            </div>
           </div>
-        </div>
 
-        <div className="stat-card">
-          <div className="stat-icon"></div>
-          <div className="stat-content">
-            <h3>{stats.activeProducts}</h3>
-            <p>Active Products</p>
+          <div className="stat-card">
+            <div className="stat-icon"></div>
+            <div className="stat-content">
+              <h3>{stats.activeProducts}</h3>
+              <p>Active Products</p>
+            </div>
           </div>
-        </div>
 
-        <div className="stat-card">
-          <div className="stat-icon"></div>
-          <div className="stat-content">
-            <h3>{stats.lowStockProducts}</h3>
-            <p>Need Reorder</p>
+          <div className="stat-card">
+            <div className="stat-icon"></div>
+            <div className="stat-content">
+              <h3>{stats.lowStockProducts}</h3>
+              <p>Need Reorder</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="quick-actions">
         <h3>Quick Actions</h3>

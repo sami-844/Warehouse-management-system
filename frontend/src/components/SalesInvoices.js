@@ -2,9 +2,15 @@ import LoadingSpinner from './LoadingSpinner';
 import EmptyState from './EmptyState';
 import React, { useState, useEffect } from 'react';
 import { salesAPI, messagingAPI, notificationsAPI } from '../services/api';
+import { PERMISSIONS } from '../constants/permissions';
 import './Sales.css';
 import { Receipt } from 'lucide-react';
 import { fmtNumber, fmtDate } from '../utils/format';
+
+/* ── Permission helper ── */
+const _role = (localStorage.getItem('userRole') || '').toLowerCase();
+const _perms = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+const can = (perm) => _role === 'admin' || _perms.includes(perm);
 
 function SalesInvoices() {
   const [invoices, setInvoices] = useState([]);
