@@ -195,8 +195,17 @@ def create_product(
         if existing_barcode:
             raise HTTPException(status_code=400, detail="Barcode already exists")
     
-    # Create product
-    db_product = Product(**product.dict(), created_by=current_user.id)
+    # Create product — coerce nulls to defaults for non-nullable fields
+    product_data = product.dict()
+    if product_data.get('tax_rate') is None:
+        product_data['tax_rate'] = 0.00
+    if product_data.get('reorder_level') is None:
+        product_data['reorder_level'] = 10
+    if product_data.get('minimum_stock') is None:
+        product_data['minimum_stock'] = 5
+    # Remove brand_id if present (not a DB column yet in some environments)
+    product_data.pop('brand_id', None)
+    db_product = Product(**product_data, created_by=current_user.id)
     db.add(db_product)
     try:
         db.commit()
@@ -205,6 +214,55 @@ def create_product(
         raise HTTPException(status_code=400, detail="SKU or barcode already exists")
     db.refresh(db_product)
     return db_product
+
+
+@router.get("/products/avg-costs")
+def product_avg_costs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Average cost per product from purchase order items."""
+    from sqlalchemy import text
+    from app.core.database import engine
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
+                SELECT poi.product_id,
+                       ROUND(COALESCE(SUM(poi.quantity * poi.unit_price), 0) /
+                             NULLIF(COALESCE(SUM(poi.quantity), 0), 0), 3) as avg_cost,
+                       COALESCE(SUM(poi.quantity), 0) as total_qty
+                FROM purchase_order_items poi
+                GROUP BY poi.product_id
+            """))
+            keys = rows.keys()
+            data = {r[0]: {"avg_cost": float(r[1] or 0), "total_qty": int(r[2] or 0)}
+                    for r in rows.fetchall()}
+        return {"costs": data}
+    except Exception:
+        return {"costs": {}}
+
+
+@router.get("/products/deleted")
+def list_deleted_products(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all deleted items from the audit log."""
+    items = db.query(DeletedItemsLog).filter(
+        DeletedItemsLog.is_restored == False
+    ).order_by(DeletedItemsLog.deleted_at.desc()).all()
+    return [
+        {
+            "id": i.id, "item_type": i.item_type, "item_id": i.item_id,
+            "item_name": i.item_name, "item_sku": i.item_sku,
+            "item_data": i.item_data,
+            "deleted_by_id": i.deleted_by_id, "deleted_by_name": i.deleted_by_name,
+            "deleted_at": i.deleted_at.isoformat() if i.deleted_at else None,
+            "deleted_reason": i.deleted_reason,
+            "is_restored": i.is_restored,
+        }
+        for i in items
+    ]
 
 
 @router.get("/products/{product_id}", response_model=ProductSchema)
@@ -351,29 +409,6 @@ def delete_product(
     return {"message": f"Product '{product.name}' deleted successfully"}
 
 
-@router.get("/products/deleted")
-def list_deleted_products(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get all deleted items from the audit log."""
-    items = db.query(DeletedItemsLog).filter(
-        DeletedItemsLog.is_restored == False
-    ).order_by(DeletedItemsLog.deleted_at.desc()).all()
-    return [
-        {
-            "id": i.id, "item_type": i.item_type, "item_id": i.item_id,
-            "item_name": i.item_name, "item_sku": i.item_sku,
-            "item_data": i.item_data,
-            "deleted_by_id": i.deleted_by_id, "deleted_by_name": i.deleted_by_name,
-            "deleted_at": i.deleted_at.isoformat() if i.deleted_at else None,
-            "deleted_reason": i.deleted_reason,
-            "is_restored": i.is_restored,
-        }
-        for i in items
-    ]
-
-
 @router.post("/products/{product_id}/restore")
 def restore_product(
     product_id: int,
@@ -452,29 +487,3 @@ def import_products(
         db.rollback()
         raise HTTPException(status_code=400, detail="Import failed — database constraint error")
     return {"created": created, "skipped": skipped, "errors": errors[:10]}
-
-
-@router.get("/products/avg-costs")
-def product_avg_costs(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Average cost per product from purchase order items."""
-    from sqlalchemy import text
-    from app.core.database import engine
-    try:
-        with engine.connect() as conn:
-            rows = conn.execute(text("""
-                SELECT poi.product_id,
-                       ROUND(COALESCE(SUM(poi.quantity * poi.unit_price), 0) /
-                             NULLIF(COALESCE(SUM(poi.quantity), 0), 0), 3) as avg_cost,
-                       COALESCE(SUM(poi.quantity), 0) as total_qty
-                FROM purchase_order_items poi
-                GROUP BY poi.product_id
-            """))
-            keys = rows.keys()
-            data = {r[0]: {"avg_cost": float(r[1] or 0), "total_qty": int(r[2] or 0)}
-                    for r in rows.fetchall()}
-        return {"costs": data}
-    except Exception:
-        return {"costs": {}}

@@ -48,9 +48,9 @@ class ProductBase(BaseModel):
     unit_of_measure: str = Field(default="pieces", max_length=20)
     standard_cost: Optional[Decimal] = None
     selling_price: Optional[Decimal] = None
-    tax_rate: Decimal = Field(default=0.00, ge=0, le=100)
-    reorder_level: int = Field(default=10, ge=0)
-    minimum_stock: int = Field(default=5, ge=0)
+    tax_rate: Optional[Decimal] = Field(default=0.00, ge=0, le=100)
+    reorder_level: Optional[int] = Field(default=10, ge=0)
+    minimum_stock: Optional[int] = Field(default=5, ge=0)
     maximum_stock: Optional[int] = None
     weight: Optional[Decimal] = None
     volume: Optional[Decimal] = None

@@ -64,6 +64,21 @@ async def startup_event():
             except ProgrammingError:
                 conn.rollback()
     Base.metadata.create_all(bind=engine, checkfirst=True)
+    # Ensure soft-delete columns exist on products table (ALTER TABLE for existing DBs)
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("SELECT is_deleted FROM products LIMIT 1"))
+        except Exception:
+            try:
+                conn.execute(text("ALTER TABLE products ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE"))
+                conn.execute(text("ALTER TABLE products ADD COLUMN deleted_at TIMESTAMP"))
+                conn.execute(text("ALTER TABLE products ADD COLUMN deleted_by INTEGER"))
+                conn.execute(text("ALTER TABLE products ADD COLUMN deleted_reason TEXT"))
+                conn.commit()
+                print("Added soft-delete columns to products table")
+            except Exception as e:
+                conn.rollback()
+                print(f"Soft-delete column migration note: {e}")
     print("Database tables verified — All Phase 5c modules active")
 
 @app.on_event("shutdown")
