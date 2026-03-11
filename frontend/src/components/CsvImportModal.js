@@ -6,10 +6,10 @@ import { X, Upload, Download, FileText } from 'lucide-react';
 const COLUMN_GUIDES = {
   products: [
     { col: 'name',           required: true,  desc: 'Product / display name' },
-    { col: 'sku',            required: true,  desc: 'Unique stock-keeping unit code' },
+    { col: 'sku',            required: false, desc: 'Unique stock-keeping unit code (auto-generated if empty)' },
     { col: 'category',       required: false, desc: 'Category name (must exist in system)' },
     { col: 'unit',           required: false, desc: 'Unit of measure — PCS, KG, Liter, etc.' },
-    { col: 'selling_price',  required: true,  desc: 'Retail selling price (OMR)' },
+    { col: 'selling_price',  required: false, desc: 'Retail selling price (OMR, defaults to 0)' },
     { col: 'standard_cost',  required: false, desc: 'Purchase / cost price (OMR)' },
     { col: 'barcode',        required: false, desc: 'EAN / barcode number' },
     { col: 'description',    required: false, desc: 'Short product description' },
@@ -24,8 +24,8 @@ const COLUMN_GUIDES = {
     { col: 'credit_limit', required: false, desc: 'Credit limit in OMR' },
   ],
   suppliers: [
-    { col: 'name',           required: true,  desc: 'Supplier company name' },
-    { col: 'code',           required: true,  desc: 'Unique supplier code, e.g. SUP-001' },
+    { col: 'name',           required: false, desc: 'Supplier company name (auto-named if empty)' },
+    { col: 'code',           required: false, desc: 'Unique supplier code (auto-generated if empty)' },
     { col: 'contact_person', required: false, desc: 'Primary contact name' },
     { col: 'phone',          required: false, desc: 'Phone number' },
     { col: 'email',          required: false, desc: 'Email address' },
@@ -126,7 +126,7 @@ function validateRows(type, rows) {
 }
 
 // ─── Main Modal ────────────────────────────────────────────────────────────────
-function CsvImportModal({ type = 'products', onClose, onImport }) {
+function CsvImportModal({ type = 'products', onClose, onImport, onImportFile }) {
   const fileInputRef = useRef(null);
   const [parsedResult, setParsedResult] = useState(null); // { headers, rows }
   const [validationErrors, setValidationErrors] = useState([]);
@@ -135,6 +135,7 @@ function CsvImportModal({ type = 'products', onClose, onImport }) {
   const [importDone, setImportDone] = useState(false);
   const [importCount, setImportCount] = useState(0);
   const [importError, setImportError] = useState('');
+  const [excelFile, setExcelFile] = useState(null); // raw File for Excel upload
 
   const guide = COLUMN_GUIDES[type] || [];
   const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
@@ -160,6 +161,18 @@ function CsvImportModal({ type = 'products', onClose, onImport }) {
     setFileName(file.name);
     setImportDone(false);
     setImportError('');
+    setExcelFile(null);
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'xlsx' || ext === 'xls') {
+      // Excel file — will be uploaded directly to backend
+      setExcelFile(file);
+      setParsedResult({ headers: ['(Excel file)'], rows: [{ info: 'Excel files are parsed on the server' }] });
+      setValidationErrors([]);
+      return;
+    }
+
+    // CSV — parse in browser
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target.result;
@@ -185,8 +198,14 @@ function CsvImportModal({ type = 'products', onClose, onImport }) {
     setImporting(true);
     setImportError('');
     try {
-      await onImport(parsedResult.rows);
-      setImportCount(parsedResult.rows.length);
+      if (excelFile && onImportFile) {
+        // Excel file — upload to backend
+        const result = await onImportFile(excelFile);
+        setImportCount(result?.created || 0);
+      } else {
+        await onImport(parsedResult.rows);
+        setImportCount(parsedResult.rows.length);
+      }
       setImportDone(true);
     } catch (err) {
       setImportError(err?.message || 'Import failed. Check console for details.');
@@ -197,7 +216,7 @@ function CsvImportModal({ type = 'products', onClose, onImport }) {
 
   const previewRows = parsedResult ? parsedResult.rows.slice(0, 5) : [];
   const hasErrors = validationErrors.length > 0;
-  const canImport = parsedResult && parsedResult.rows.length > 0 && !hasErrors && !importing && !importDone;
+  const canImport = (parsedResult && parsedResult.rows.length > 0 && !hasErrors && !importing && !importDone) || (excelFile && !importing && !importDone);
 
   return (
     <div
@@ -243,10 +262,10 @@ function CsvImportModal({ type = 'products', onClose, onImport }) {
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: 'var(--ds-text-lg)', color: 'var(--ds-text)' }}>
-                Import {typeLabel} from CSV
+                Import {typeLabel} from CSV / Excel
               </div>
               <div style={{ fontSize: 'var(--ds-text-xs)', color: 'var(--ds-text-muted)', marginTop: 1 }}>
-                Upload a .csv file to bulk-import records
+                Upload a .csv or .xlsx file to bulk-import records
               </div>
             </div>
           </div>
@@ -389,10 +408,10 @@ function CsvImportModal({ type = 'products', onClose, onImport }) {
               <Upload size={28} color="var(--ds-text-muted)" />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, color: 'var(--ds-text-sub)', fontSize: 'var(--ds-text-sm)' }}>
-                  {fileName ? fileName : 'Click to choose a .csv file'}
+                  {fileName ? fileName : 'Click to choose a .csv or .xlsx file'}
                 </div>
                 <div style={{ fontSize: 'var(--ds-text-xs)', color: 'var(--ds-text-muted)', marginTop: 2 }}>
-                  Only .csv files are accepted. UTF-8 encoding recommended.
+                  Accepts .csv and .xlsx files. UTF-8 encoding recommended for CSV.
                 </div>
               </div>
               {fileName && (
@@ -409,7 +428,7 @@ function CsvImportModal({ type = 'products', onClose, onImport }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv"
+              accept=".csv,.xlsx,.xls"
               style={{ display: 'none' }}
               onChange={handleFileChange}
             />

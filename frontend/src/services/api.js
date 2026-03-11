@@ -252,6 +252,16 @@ export const csvImportAPI = {
   importProducts: async (rows) => (await api.post('/api/products/import', rows)).data,
   importCustomers: async (rows) => (await api.post('/api/customers/import', rows)).data,
   importSuppliers: async (rows) => (await api.post('/api/suppliers/import', rows)).data,
+  importProductsFile: async (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return (await api.post('/api/products/import-file', fd, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+  },
+  importSuppliersFile: async (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return (await api.post('/api/suppliers/import-file', fd, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+  },
 };
 
 export const adminAPI = {

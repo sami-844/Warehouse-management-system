@@ -2,7 +2,7 @@
 Product Management API endpoints
 Create, Read, Update, Delete products
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
@@ -452,15 +452,88 @@ def import_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Bulk import products from CSV rows. Skips rows with duplicate SKU."""
+    """Bulk import products from CSV/Excel rows. Only 'name' is required. Auto-generates SKU if missing."""
+    import uuid
     created, skipped, errors = 0, 0, []
     for i, row in enumerate(rows):
         try:
-            sku = str(row.get('sku', '') or '').strip()
             name = str(row.get('name', '') or '').strip()
-            if not sku or not name:
+            if not name:
                 skipped += 1
                 continue
+            sku = str(row.get('sku', '') or '').strip()
+            if not sku:
+                sku = f"SKU-{str(uuid.uuid4())[:8].upper()}"
+            if db.query(Product).filter(Product.sku == sku).first():
+                skipped += 1
+                continue
+            barcode = str(row.get('barcode', '') or '').strip() or None
+            if barcode and db.query(Product).filter(Product.barcode == barcode).first():
+                barcode = None
+            p = Product(
+                sku=sku, name=name,
+                unit=str(row.get('unit', 'PCS') or 'PCS').strip(),
+                selling_price=float(row.get('selling_price', 0) or 0),
+                standard_cost=float(row.get('standard_cost', 0) or 0),
+                barcode=barcode,
+                description=str(row.get('description', '') or '').strip() or None,
+                is_active=True, created_by=current_user.id
+            )
+            db.add(p)
+            created += 1
+        except Exception as e:
+            errors.append(f"Row {i+1}: {str(e)}")
+            skipped += 1
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Import failed — database constraint error")
+    return {"created": created, "skipped": skipped, "errors": errors[:10]}
+
+
+@router.post("/products/import-file", status_code=201)
+async def import_products_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Import products from an uploaded CSV or Excel file."""
+    import uuid, csv, io
+    content = await file.read()
+    fname = (file.filename or '').lower()
+
+    rows = []
+    if fname.endswith('.xlsx') or fname.endswith('.xls'):
+        from openpyxl import load_workbook
+        wb = load_workbook(filename=io.BytesIO(content), read_only=True)
+        ws = wb.active
+        data = list(ws.iter_rows(values_only=True))
+        if len(data) < 2:
+            return {"created": 0, "skipped": 0, "errors": ["File has no data rows"]}
+        headers = [str(h or '').strip().lower().replace(' ', '_') for h in data[0]]
+        for vals in data[1:]:
+            row = {}
+            for j, h in enumerate(headers):
+                row[h] = str(vals[j]) if j < len(vals) and vals[j] is not None else ''
+            rows.append(row)
+        wb.close()
+    else:
+        text = content.decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(text))
+        for r in reader:
+            rows.append({k.strip().lower().replace(' ', '_'): (v or '').strip() for k, v in r.items()})
+
+    created, skipped, errors = 0, 0, []
+    for i, row in enumerate(rows):
+        try:
+            name = str(row.get('name', '') or '').strip()
+            if not name:
+                skipped += 1
+                continue
+            sku = str(row.get('sku', '') or '').strip()
+            if not sku:
+                sku = f"SKU-{str(uuid.uuid4())[:8].upper()}"
             if db.query(Product).filter(Product.sku == sku).first():
                 skipped += 1
                 continue

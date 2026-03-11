@@ -70,6 +70,14 @@ function SupplierList() {
               setShowImport(false); load();
             } catch(e) { setMessage({ text: 'Import failed: ' + (e.response?.data?.detail || e.message), type: 'error' }); setShowImport(false); }
           }}
+          onImportFile={async (file) => {
+            try {
+              const res = await csvImportAPI.importSuppliersFile(file);
+              setMessage({ text: `Imported ${res.created} suppliers. Skipped: ${res.skipped}.`, type: 'success' });
+              setShowImport(false); load();
+              return res;
+            } catch(e) { setMessage({ text: 'Import failed: ' + (e.response?.data?.detail || e.message), type: 'error' }); setShowImport(false); throw e; }
+          }}
         />
       )}
 

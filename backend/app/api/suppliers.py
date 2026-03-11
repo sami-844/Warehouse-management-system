@@ -1,5 +1,5 @@
 """Suppliers CRUD API"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, List
@@ -133,16 +133,91 @@ async def update_supplier(supplier_id: int, data: SupplierUpdate, db: Session = 
 
 @router.post("/import", status_code=201)
 async def import_suppliers(rows: List[dict], db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Bulk import suppliers from CSV rows. Skips rows with duplicate code."""
+    """Bulk import suppliers from CSV/Excel rows. No required fields — auto-generates code and name if missing."""
+    import uuid
     from sqlalchemy.exc import IntegrityError
     created, skipped, errors = 0, 0, []
     for i, row in enumerate(rows):
         try:
-            code = str(row.get('code', '') or '').strip()
             name = str(row.get('name', '') or '').strip()
-            if not code or not name:
+            code = str(row.get('code', '') or '').strip()
+            if not name and not code:
                 skipped += 1
                 continue
+            if not name:
+                name = f"Supplier-{code}"
+            if not code:
+                code = f"SUP-{str(uuid.uuid4())[:8].upper()}"
+            if db.query(Supplier).filter(Supplier.code == code).first():
+                skipped += 1
+                continue
+            s = Supplier(
+                code=code, name=name,
+                contact_person=str(row.get('contact_person', '') or '').strip() or None,
+                phone=str(row.get('phone', '') or '').strip() or None,
+                email=str(row.get('email', '') or '').strip() or None,
+                city=str(row.get('city', '') or '').strip() or None,
+                payment_terms_days=int(row.get('payment_terms_days', 30) or 30),
+                is_active=True, created_by=current_user.id
+            )
+            db.add(s)
+            created += 1
+        except Exception as e:
+            errors.append(f"Row {i+1}: {str(e)}")
+            skipped += 1
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Import failed — database constraint error")
+    return {"created": created, "skipped": skipped, "errors": errors[:10]}
+
+
+@router.post("/import-file", status_code=201)
+async def import_suppliers_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Import suppliers from an uploaded CSV or Excel file."""
+    import uuid, csv, io
+    from sqlalchemy.exc import IntegrityError
+    content = await file.read()
+    fname = (file.filename or '').lower()
+
+    rows = []
+    if fname.endswith('.xlsx') or fname.endswith('.xls'):
+        from openpyxl import load_workbook
+        wb = load_workbook(filename=io.BytesIO(content), read_only=True)
+        ws = wb.active
+        data = list(ws.iter_rows(values_only=True))
+        if len(data) < 2:
+            return {"created": 0, "skipped": 0, "errors": ["File has no data rows"]}
+        headers = [str(h or '').strip().lower().replace(' ', '_') for h in data[0]]
+        for vals in data[1:]:
+            row = {}
+            for j, h in enumerate(headers):
+                row[h] = str(vals[j]) if j < len(vals) and vals[j] is not None else ''
+            rows.append(row)
+        wb.close()
+    else:
+        text = content.decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(text))
+        for r in reader:
+            rows.append({k.strip().lower().replace(' ', '_'): (v or '').strip() for k, v in r.items()})
+
+    created, skipped, errors = 0, 0, []
+    for i, row in enumerate(rows):
+        try:
+            name = str(row.get('name', '') or '').strip()
+            code = str(row.get('code', '') or '').strip()
+            if not name and not code:
+                skipped += 1
+                continue
+            if not name:
+                name = f"Supplier-{code}"
+            if not code:
+                code = f"SUP-{str(uuid.uuid4())[:8].upper()}"
             if db.query(Supplier).filter(Supplier.code == code).first():
                 skipped += 1
                 continue
