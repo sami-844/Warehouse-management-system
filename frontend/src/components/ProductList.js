@@ -1,5 +1,6 @@
 // Product List Component
 import React, { useState, useEffect } from 'react';
+import EmptyState from './EmptyState';
 import { productAPI, categoryAPI, csvImportAPI, brandAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
 import './ProductList.css';
@@ -178,18 +179,11 @@ function ProductList() {
 
   return (
     <div className="product-list-container">
-      <div className="product-header">
-        <h2>Products</h2>
+      <div className="page-header">
+        <div><h1 className="page-title">Products</h1><p className="page-subtitle">Manage your product catalog</p></div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setShowImport(true)} className="wms-btn-import">
-            Import CSV
-          </button>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="btn-primary"
-          >
-            {showAddForm ? 'Cancel' : 'Add Product'}
-          </button>
+          <button onClick={() => setShowImport(true)} className="wms-btn-import">Import CSV</button>
+          <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">{showAddForm ? 'Cancel' : 'Add Product'}</button>
         </div>
       </div>
       {importMessage && <div className="wms-import-message">{importMessage}</div>}
@@ -454,9 +448,7 @@ function ProductList() {
       </div>
 
       {filteredProducts.length === 0 && (
-        <div className="no-products">
-          <p>No products found</p>
-        </div>
+        <EmptyState title="No products found" hint="Click '+ Add Product' or import from CSV to get started" />
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import LoadingSpinner from './LoadingSpinner';
+import EmptyState from './EmptyState';
 import React, { useState, useEffect } from 'react';
 import { purchaseAPI, supplierAPI, productAPI } from '../services/api';
 import './Purchasing.css';
@@ -16,6 +17,7 @@ function PurchaseOrderList({ onViewOrder }) {
   const [form, setForm] = useState({ supplier_id: '', order_date: new Date().toISOString().slice(0, 10), expected_delivery_date: '', container_reference: '', currency: 'OMR', exchange_rate: 1, tax_rate: 0, notes: '' });
   const [lineItems, setLineItems] = useState([]);
   const [newItem, setNewItem] = useState({ product_id: '', quantity: '', unit_price: '' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { load(); loadSuppliers(); loadProducts(); }, [filterStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -37,6 +39,7 @@ function PurchaseOrderList({ onViewOrder }) {
   const handleCreate = async (e) => {
     e.preventDefault();
     if (lineItems.length === 0) { setMessage({ text: 'Add at least one item', type: 'error' }); return; }
+    setSaving(true);
     try {
       const result = await purchaseAPI.createOrder({
         supplier_id: parseInt(form.supplier_id), order_date: form.order_date,
@@ -48,7 +51,7 @@ function PurchaseOrderList({ onViewOrder }) {
       });
       setMessage({ text: `${result.po_number} created! Total: ${result.total_amount} OMR`, type: 'success' });
       setShowCreate(false); setLineItems([]); load();
-    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); } finally { setSaving(false); }
   };
 
   const sendPO = async (id) => { try { await purchaseAPI.sendOrder(id); load(); } catch(e) { setMessage({ text: e.response?.data?.detail || e.message, type: 'error' }); } };
@@ -114,7 +117,7 @@ function PurchaseOrderList({ onViewOrder }) {
               )}
             </div>
             <div className="form-group"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows="2" /></div>
-            <button type="submit" className="submit-btn" disabled={lineItems.length === 0}>Create Purchase Order</button>
+            <button type="submit" className="submit-btn" disabled={lineItems.length === 0 || saving}>{saving ? 'Creating...' : 'Create Purchase Order'}</button>
           </form>
         </div>
       )}
@@ -131,7 +134,7 @@ function PurchaseOrderList({ onViewOrder }) {
           <table className="data-table">
             <thead><tr><th>PO #</th><th>Supplier</th><th>Date</th><th>Expected</th><th>Container</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
-              {orders.length === 0 ? <tr><td colSpan="8" className="no-data">No purchase orders yet</td></tr> :
+              {orders.length === 0 ? <EmptyState colSpan={8} title="No purchase orders yet" hint="Click '+ New PO' to create your first purchase order" /> :
                 orders.map(o => (
                   <tr key={o.id}>
                     <td className="code">{o.po_number}</td><td>{o.supplier_name}</td>

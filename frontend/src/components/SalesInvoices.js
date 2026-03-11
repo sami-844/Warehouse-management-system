@@ -1,8 +1,10 @@
 import LoadingSpinner from './LoadingSpinner';
+import EmptyState from './EmptyState';
 import React, { useState, useEffect } from 'react';
 import { salesAPI, messagingAPI, notificationsAPI } from '../services/api';
 import './Sales.css';
 import { Receipt } from 'lucide-react';
+import { fmtNumber, fmtDate } from '../utils/format';
 
 function SalesInvoices() {
   const [invoices, setInvoices] = useState([]);
@@ -13,6 +15,7 @@ function SalesInvoices() {
   const [payingInvoice, setPayingInvoice] = useState(null);
   const [payForm, setPayForm] = useState({ amount: '', payment_method: 'cash', payment_date: new Date().toISOString().slice(0, 10), bank_reference: '', notes: '' });
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [saving, setSaving] = useState(false);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); loadAging(); loadOverdue(); }, [filterStatus]);
@@ -23,6 +26,7 @@ function SalesInvoices() {
 
   const submitPayment = async () => {
     if (!payForm.amount || !payingInvoice) return;
+    setSaving(true);
     try {
       const result = await salesAPI.recordPayment(payingInvoice.id, {
         amount: parseFloat(payForm.amount), payment_method: payForm.payment_method,
@@ -30,7 +34,7 @@ function SalesInvoices() {
       });
       setMessage({ text: `Payment recorded! Balance: ${result.new_balance} OMR`, type: 'success' });
       setPayingInvoice(null); load(); loadAging(); loadOverdue();
-    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); } finally { setSaving(false); }
   };
 
   const sendInvoiceMsg = async (inv) => {
@@ -165,7 +169,7 @@ function SalesInvoices() {
               <div className="form-group"><label>Reference</label><input value={payForm.bank_reference} onChange={e => setPayForm(p => ({...p, bank_reference: e.target.value}))} placeholder="Cheque # or bank ref" /></div>
             </div>
             <div className="modal-actions">
-              <button className="submit-btn" onClick={submitPayment}>Record Payment</button>
+              <button className="submit-btn" onClick={submitPayment} disabled={saving}>{saving ? 'Recording...' : 'Record Payment'}</button>
               <button className="cancel-btn" onClick={() => setPayingInvoice(null)}>Cancel</button>
             </div>
           </div>
@@ -182,15 +186,15 @@ function SalesInvoices() {
         <div className="table-container"><table className="data-table">
           <thead><tr><th>Invoice #</th><th>Customer</th><th>Area</th><th>Date</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Overdue</th><th>Status</th><th></th></tr></thead>
           <tbody>
-            {invoices.length === 0 ? <tr><td colSpan="11" className="no-data">No invoices</td></tr> :
+            {invoices.length === 0 ? <EmptyState colSpan={11} title="No invoices found" hint="Create a sales order and generate an invoice to get started" /> :
               invoices.map(inv => (
                 <tr key={inv.id} className={inv.days_overdue > 0 ? 'overdue-row' : ''}>
                   <td className="code">{inv.invoice_number}</td><td>{inv.customer_name}</td>
                   <td><span className="area-badge">{inv.area || '-'}</span></td>
-                  <td>{inv.invoice_date}</td><td>{inv.due_date}</td>
-                  <td className="value">{(Number(inv.total_amount) || 0).toFixed(3)}</td>
-                  <td className="positive">{(Number(inv.amount_paid) || 0).toFixed(3)}</td>
-                  <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(inv.balance) || 0).toFixed(3)}</td>
+                  <td>{fmtDate(inv.invoice_date)}</td><td>{fmtDate(inv.due_date)}</td>
+                  <td className="value">{fmtNumber(inv.total_amount)}</td>
+                  <td className="positive">{fmtNumber(inv.amount_paid)}</td>
+                  <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{fmtNumber(inv.balance)}</td>
                   <td className={inv.days_overdue > 0 ? 'negative' : ''}>{inv.days_overdue > 0 ? `${inv.days_overdue}d` : '-'}</td>
                   <td><span className="status-pill" style={{ backgroundColor: statusColor(inv.status) }}>{inv.status}</span></td>
                   <td className="wms-flex-row">

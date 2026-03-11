@@ -1,9 +1,11 @@
 import LoadingSpinner from './LoadingSpinner';
+import EmptyState from './EmptyState';
 import React, { useState, useEffect } from 'react';
 import { customerAPI, salesAPI, csvImportAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
 import './Sales.css';
 import { Users } from 'lucide-react';
+import { fmtOMR } from '../utils/format';
 
 function CustomerList({ onNavigate }) {
   const [customers, setCustomers] = useState([]);
@@ -14,6 +16,7 @@ function CustomerList({ onNavigate }) {
   const [filterArea, setFilterArea] = useState('');
   const [areas, setAreas] = useState([]);
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({
     code: '', name: '', business_type: 'Grocery', contact_person: '', email: '', phone: '', mobile: '',
@@ -38,6 +41,7 @@ function CustomerList({ onNavigate }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
     try {
       const data = { ...form, payment_terms_days: parseInt(form.payment_terms_days) || 7 };
       if (data.credit_limit) data.credit_limit = parseFloat(data.credit_limit); else delete data.credit_limit;
@@ -47,7 +51,7 @@ function CustomerList({ onNavigate }) {
       if (editingId) { await customerAPI.update(editingId, data); setMessage({ text: 'Customer updated!', type: 'success' }); }
       else { await customerAPI.create(data); setMessage({ text: 'Customer created!', type: 'success' }); }
       setShowForm(false); setEditingId(null); resetForm(); load(); loadAreas();
-    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); } finally { setSaving(false); }
   };
 
   const editCustomer = (c) => {
@@ -172,7 +176,7 @@ function CustomerList({ onNavigate }) {
               <div className="form-group"><label>GPS Longitude</label><input type="number" step="any" value={form.longitude} onChange={e => setForm(p => ({...p, longitude: e.target.value}))} placeholder="58.3829" /></div>
             </div>
             <div className="form-group"><label>Delivery Instructions</label><textarea value={form.delivery_instructions} onChange={e => setForm(p => ({...p, delivery_instructions: e.target.value}))} rows="2" placeholder="Back entrance, ask for manager..." /></div>
-            <button type="submit" className="submit-btn">{editingId ? 'Update' : 'Create Customer'}</button>
+            <button type="submit" className="submit-btn" disabled={saving}>{saving ? 'Saving...' : (editingId ? 'Update' : 'Create Customer')}</button>
           </form>
         </div>
       )}
@@ -253,7 +257,7 @@ function CustomerList({ onNavigate }) {
         <div className="table-container"><table className="data-table">
           <thead><tr><th>Code</th><th>Shop Name</th><th>Type</th><th>Area</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>Balance</th><th>Orders</th><th>Outstanding</th><th>Actions</th></tr></thead>
           <tbody>
-            {filtered.length === 0 ? <tr><td colSpan="11" className="no-data">No customers found</td></tr> :
+            {filtered.length === 0 ? <EmptyState colSpan={11} title="No customers found" hint="Click '+ New Customer' to add your first customer" /> :
               filtered.map(c => {
                 const bal = Number(c.current_balance) || 0;
                 const limit = Number(c.credit_limit) || 0;

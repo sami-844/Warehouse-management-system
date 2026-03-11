@@ -17,6 +17,7 @@ import FilterBar          from './FilterBar';
 import AlertsPanel        from './AlertsPanel';
 import { exportToCSV, exportToPDF } from '../utils/ExportUtils';
 import { Bell } from 'lucide-react';
+import { fmtOMR, fmtNumber } from '../utils/format';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 import './AnalyticsDashboard.css';
@@ -39,7 +40,7 @@ const KPI_ACCENTS = {
   rate_of_return:            'red',
 };
 
-const fmt = (v) => (Number(v) || 0).toFixed(3);
+const fmt = (v) => fmtNumber(v);
 
 /* ── Cash Flow Tooltip ── */
 const CashFlowTooltip = ({ active, payload, label }) => {

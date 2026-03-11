@@ -1,8 +1,10 @@
 import LoadingSpinner from './LoadingSpinner';
+import EmptyState from './EmptyState';
 import React, { useState, useEffect } from 'react';
 import { purchaseAPI } from '../services/api';
 import './Purchasing.css';
 import { FileText } from 'lucide-react';
+import { fmtNumber, fmtDate } from '../utils/format';
 
 function PurchaseInvoices() {
   const [invoices, setInvoices] = useState([]);
@@ -12,6 +14,7 @@ function PurchaseInvoices() {
   const [payingInvoice, setPayingInvoice] = useState(null);
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: 'bank_transfer', payment_date: new Date().toISOString().slice(0, 10), bank_reference: '', notes: '' });
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [saving, setSaving] = useState(false);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); loadAging(); }, [filterStatus]);
@@ -21,6 +24,7 @@ function PurchaseInvoices() {
 
   const submitPayment = async () => {
     if (!paymentForm.amount || !payingInvoice) return;
+    setSaving(true);
     try {
       const result = await purchaseAPI.recordPayment(payingInvoice.id, {
         amount: parseFloat(paymentForm.amount), payment_method: paymentForm.payment_method,
@@ -30,7 +34,7 @@ function PurchaseInvoices() {
       setMessage({ text: `Payment of ${paymentForm.amount} OMR recorded. New balance: ${result.new_balance} OMR`, type: 'success' });
       setPayingInvoice(null); setPaymentForm({ amount: '', payment_method: 'bank_transfer', payment_date: new Date().toISOString().slice(0, 10), bank_reference: '', notes: '' });
       load(); loadAging();
-    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); } finally { setSaving(false); }
   };
 
   const statusColor = (s) => ({ pending: '#d97706', partial: '#2563eb', paid: '#16a34a', overdue: '#dc2626' }[s] || '#6b7280');
@@ -106,7 +110,7 @@ function PurchaseInvoices() {
               <div className="form-group"><label>Bank Ref</label><input value={paymentForm.bank_reference} onChange={e => setPaymentForm(p => ({...p, bank_reference: e.target.value}))} /></div>
             </div>
             <div className="modal-actions">
-              <button className="submit-btn" onClick={submitPayment}>Record Payment</button>
+              <button className="submit-btn" onClick={submitPayment} disabled={saving}>{saving ? 'Recording...' : 'Record Payment'}</button>
               <button className="cancel-btn" onClick={() => setPayingInvoice(null)}>Cancel</button>
             </div>
           </div>
@@ -124,14 +128,14 @@ function PurchaseInvoices() {
           <table className="data-table">
             <thead><tr><th>Invoice #</th><th>Supplier</th><th>Date</th><th>Due Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Overdue</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
-              {invoices.length === 0 ? <tr><td colSpan="10" className="no-data">No invoices found</td></tr> :
+              {invoices.length === 0 ? <EmptyState colSpan={10} title="No purchase invoices" hint="Record supplier invoices to track payables" /> :
                 invoices.map(inv => (
                   <tr key={inv.id} className={inv.days_overdue > 0 ? 'overdue-row' : ''}>
                     <td className="code">{inv.invoice_number}</td><td>{inv.supplier_name}</td>
-                    <td>{inv.invoice_date}</td><td>{inv.due_date}</td>
-                    <td className="value">{(Number(inv.total_amount) || 0).toFixed(3)}</td>
-                    <td className="positive">{(Number(inv.amount_paid) || 0).toFixed(3)}</td>
-                    <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{(Number(inv.balance) || 0).toFixed(3)}</td>
+                    <td>{fmtDate(inv.invoice_date)}</td><td>{fmtDate(inv.due_date)}</td>
+                    <td className="value">{fmtNumber(inv.total_amount)}</td>
+                    <td className="positive">{fmtNumber(inv.amount_paid)}</td>
+                    <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{fmtNumber(inv.balance)}</td>
                     <td className={inv.days_overdue > 0 ? 'negative' : ''}>{inv.days_overdue > 0 ? `${inv.days_overdue}d` : '-'}</td>
                     <td><span className="status-pill" style={{ backgroundColor: statusColor(inv.status) }}>{inv.status}</span></td>
                     <td>{inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPaymentForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>Pay</button>}</td>

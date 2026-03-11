@@ -69,9 +69,8 @@ function Dashboard({ user }) {
 
   return (
     <div className="dashboard">
-      <div className="dashboard-header">
-        <h2>Dashboard</h2>
-        <p>Welcome back, {user.full_name}!</p>
+      <div className="page-header">
+        <div><h1 className="page-title">Dashboard</h1><p className="page-subtitle">Welcome back, {user.full_name}!</p></div>
       </div>
 
       <div className="stats-grid">

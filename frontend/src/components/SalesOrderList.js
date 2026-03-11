@@ -1,8 +1,10 @@
 import LoadingSpinner from './LoadingSpinner';
+import EmptyState from './EmptyState';
 import React, { useState, useEffect } from 'react';
 import { salesAPI, customerAPI, productAPI, inventoryAPI } from '../services/api';
 import './Sales.css';
 import { ShoppingCart } from 'lucide-react';
+import { fmtOMR, fmtDate } from '../utils/format';
 
 function SalesOrderList({ onViewOrder }) {
   const [orders, setOrders] = useState([]);
@@ -16,6 +18,7 @@ function SalesOrderList({ onViewOrder }) {
   const [form, setForm] = useState({ customer_id: '', order_date: new Date().toISOString().slice(0, 10), required_date: '', driver_name: '', vehicle: '', route_area: '', tax_rate: 5, notes: '' });
   const [lineItems, setLineItems] = useState([]);
   const [newItem, setNewItem] = useState({ product_id: '', quantity_ordered: '', unit_price: '', discount_percent: '0' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { load(); loadCustomers(); loadProducts(); loadStock(); }, [filterStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -55,6 +58,7 @@ function SalesOrderList({ onViewOrder }) {
   const handleCreate = async (e) => {
     e.preventDefault();
     if (lineItems.length === 0) { setMessage({ text: 'Add at least one item', type: 'error' }); return; }
+    setSaving(true);
     try {
       const customer = customers.find(c => c.id === parseInt(form.customer_id));
       const result = await salesAPI.createOrder({
@@ -67,7 +71,7 @@ function SalesOrderList({ onViewOrder }) {
       });
       setMessage({ text: `${result.order_number} created! Total: ${(Number(result.total_amount) || 0).toFixed(3)} OMR`, type: 'success' });
       setShowCreate(false); setLineItems([]); load();
-    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); } finally { setSaving(false); }
   };
 
   const onCustomerSelect = (customerId) => {
@@ -143,7 +147,7 @@ function SalesOrderList({ onViewOrder }) {
               )}
             </div>
             <div className="form-group"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows="2" /></div>
-            <button type="submit" className="submit-btn" disabled={lineItems.length === 0}>Create Sales Order</button>
+            <button type="submit" className="submit-btn" disabled={lineItems.length === 0 || saving}>{saving ? 'Creating...' : 'Create Sales Order'}</button>
           </form>
         </div>
       )}
@@ -159,11 +163,11 @@ function SalesOrderList({ onViewOrder }) {
         <div className="table-container"><table className="data-table">
           <thead><tr><th>SO #</th><th>Customer</th><th>Area</th><th>Date</th><th>Driver</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            {orders.length === 0 ? <tr><td colSpan="8" className="no-data">No orders found</td></tr> :
+            {orders.length === 0 ? <EmptyState colSpan={8} title="No orders found" hint="Click '+ New Order' to create your first sales order" /> :
               orders.map(o => (
                 <tr key={o.id}><td className="code">{o.order_number}</td><td>{o.customer_name}</td><td><span className="area-badge">{o.area || o.route_area || '-'}</span></td>
-                  <td>{o.order_date}</td><td>{o.driver_name || '-'}</td>
-                  <td className="value">{(Number(o.total_amount) || 0).toFixed(3)} OMR</td>
+                  <td>{fmtDate(o.order_date)}</td><td>{o.driver_name || '-'}</td>
+                  <td className="value">{fmtOMR(o.total_amount)}</td>
                   <td><span className="status-pill" style={{ backgroundColor: statusColor(o.status) }}>{o.status}</span></td>
                   <td><button className="view-btn" onClick={() => onViewOrder(o.id)}>View</button></td></tr>
               ))

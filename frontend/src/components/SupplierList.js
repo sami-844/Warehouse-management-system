@@ -1,4 +1,5 @@
 import LoadingSpinner from './LoadingSpinner';
+import EmptyState from './EmptyState';
 import React, { useState, useEffect } from 'react';
 import { supplierAPI, csvImportAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
@@ -13,6 +14,7 @@ function SupplierList() {
   const [search, setSearch] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({
     code: '', name: '', contact_person: '', email: '', phone: '', mobile: '',
@@ -27,6 +29,7 @@ function SupplierList() {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setMessage({ text: '', type: '' });
+    setSaving(true);
     try {
       const data = { ...form, payment_terms_days: parseInt(form.payment_terms_days) || 30 };
       if (data.credit_limit) data.credit_limit = parseFloat(data.credit_limit);
@@ -35,7 +38,7 @@ function SupplierList() {
       if (editingId) { await supplierAPI.update(editingId, data); setMessage({ text: 'Supplier updated!', type: 'success' }); }
       else { await supplierAPI.create(data); setMessage({ text: 'Supplier created!', type: 'success' }); }
       setShowForm(false); setEditingId(null); resetForm(); load();
-    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); }
+    } catch(e) { setMessage({ text: `${e.response?.data?.detail || e.message}`, type: 'error' }); } finally { setSaving(false); }
   };
 
   const editSupplier = (s) => {
@@ -113,7 +116,7 @@ function SupplierList() {
               <div className="form-group"><label>Bank Account</label><input value={form.bank_account} onChange={e => setForm(p => ({...p, bank_account: e.target.value}))} /></div>
             </div>
             <div className="form-group"><label>Notes</label><textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows="2" /></div>
-            <button type="submit" className="submit-btn">{editingId ? 'Update Supplier' : 'Create Supplier'}</button>
+            <button type="submit" className="submit-btn" disabled={saving}>{saving ? 'Saving...' : (editingId ? 'Update Supplier' : 'Create Supplier')}</button>
           </form>
         </div>
       )}
@@ -131,7 +134,7 @@ function SupplierList() {
           <table className="data-table">
             <thead><tr><th>Code</th><th>Name</th><th>Contact</th><th>Phone</th><th>City / Country</th><th>Terms</th><th>Orders</th><th>Outstanding</th><th>Actions</th></tr></thead>
             <tbody>
-              {filtered.length === 0 ? <tr><td colSpan="9" className="no-data">No suppliers found. Create your first supplier!</td></tr> :
+              {filtered.length === 0 ? <EmptyState colSpan={9} title="No suppliers found" hint="Click '+ New Supplier' to add your first supplier" /> :
                 filtered.map(s => (
                   <tr key={s.id} className={!s.is_active ? 'inactive' : ''}>
                     <td className="code">{s.code}</td><td className="name">{s.name}</td>
