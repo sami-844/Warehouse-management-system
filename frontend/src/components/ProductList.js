@@ -257,7 +257,7 @@ function ProductList() {
           onImport={async (rows) => {
             try {
               const res = await csvImportAPI.importProducts(rows);
-              setImportMessage(`Imported ${res.created} products. Skipped: ${res.skipped}.${res.errors?.length ? ' Errors: ' + res.errors[0] : ''}`);
+              setImportMessage(`Imported ${res.imported ?? res.created ?? 0} products. Skipped: ${res.skipped}.${res.errors?.length ? ' Errors: ' + res.errors[0] : ''}`);
               setShowImport(false);
               loadData();
             } catch(e) { setImportMessage('Import failed: ' + (e.response?.data?.detail || e.message)); setShowImport(false); }
@@ -265,7 +265,7 @@ function ProductList() {
           onImportFile={async (file) => {
             try {
               const res = await csvImportAPI.importProductsFile(file);
-              setImportMessage(`Imported ${res.created} products. Skipped: ${res.skipped}.${res.errors?.length ? ' Errors: ' + res.errors[0] : ''}`);
+              setImportMessage(`Imported ${res.imported ?? res.created ?? 0} products. Skipped: ${res.skipped}.${res.errors?.length ? ' Errors: ' + res.errors[0] : ''}`);
               setShowImport(false);
               loadData();
               return res;

@@ -594,8 +594,20 @@ async def import_products_file(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Import products from an uploaded CSV or Excel file."""
+    """Import products from CSV or Excel file.
+    Required columns: sku, name
+    Optional: selling_price, standard_cost, unit_of_measure, category,
+              opening_quantity, tax_rate, reorder_level, minimum_stock, barcode
+    """
     import uuid, csv, io, traceback as tb
+    from app.models.inventory import InventoryTransaction
+
+    def safe_float(val, default=0):
+        try:
+            return float(val) if val else default
+        except (ValueError, TypeError):
+            return default
+
     try:
         content = await file.read()
         fname = (file.filename or '').lower()
@@ -607,7 +619,7 @@ async def import_products_file(
             ws = wb.active
             data = list(ws.iter_rows(values_only=True))
             if len(data) < 2:
-                return {"created": 0, "skipped": 0, "errors": ["File has no data rows"]}
+                return {"imported": 0, "skipped": 0, "errors": ["File has no data rows"]}
             headers = [str(h or '').strip().lower().replace(' ', '_') for h in data[0]]
             for vals in data[1:]:
                 row = {}
@@ -615,48 +627,103 @@ async def import_products_file(
                     row[h] = str(vals[j]) if j < len(vals) and vals[j] is not None else ''
                 rows.append(row)
             wb.close()
-        else:
+        elif fname.endswith('.csv'):
             text = content.decode('utf-8-sig')
             reader = csv.DictReader(io.StringIO(text))
             for r in reader:
                 rows.append({k.strip().lower().replace(' ', '_'): (v or '').strip() for k, v in r.items()})
+        else:
+            raise HTTPException(400, 'Only CSV and Excel (.xlsx) files are supported')
 
-        created, skipped, errors = 0, 0, []
-        for i, row in enumerate(rows):
+        imported, skipped, errors = 0, 0, []
+        for i, row in enumerate(rows, start=2):
             try:
-                name = str(row.get('name', '') or '').strip()
+                row = {str(k).lower().strip(): str(v).strip() if v is not None else ''
+                       for k, v in row.items()}
+
+                sku = row.get('sku', '').strip()
+                name = row.get('name', '').strip()
                 if not name:
                     skipped += 1
                     continue
-                sku = str(row.get('sku', '') or '').strip()
                 if not sku:
                     sku = f"SKU-{str(uuid.uuid4())[:8].upper()}"
                 if db.query(Product).filter(Product.sku == sku).first():
                     skipped += 1
                     continue
-                barcode = str(row.get('barcode', '') or '').strip() or None
+
+                # Auto-create category if provided
+                category_id = None
+                cat_name = row.get('category', '').strip()
+                if cat_name:
+                    cat = db.query(ProductCategory).filter(
+                        ProductCategory.name.ilike(cat_name)
+                    ).first()
+                    if not cat:
+                        cat = ProductCategory(name=cat_name, is_active=True)
+                        db.add(cat)
+                        db.flush()
+                    category_id = cat.id
+
+                barcode = row.get('barcode', '').strip() or None
                 if barcode and db.query(Product).filter(Product.barcode == barcode).first():
                     barcode = None
+
+                selling_price = safe_float(row.get('selling_price') or row.get('sell_price'))
+                standard_cost = safe_float(row.get('standard_cost') or row.get('cost_price'))
+                opening_qty = safe_float(row.get('opening_quantity') or row.get('opening_qty'))
+
                 p = Product(
                     sku=sku, name=name,
-                    unit_of_measure=str(row.get('unit', 'PCS') or 'PCS').strip(),
-                    selling_price=float(row.get('selling_price', 0) or 0),
-                    standard_cost=float(row.get('standard_cost', 0) or 0),
+                    category_id=category_id,
+                    unit_of_measure=row.get('unit_of_measure') or row.get('unit') or 'pcs',
+                    selling_price=selling_price,
+                    standard_cost=standard_cost,
+                    tax_rate=safe_float(row.get('tax_rate'), 5),
+                    reorder_level=safe_float(row.get('reorder_level')),
+                    minimum_stock=safe_float(row.get('minimum_stock')),
                     barcode=barcode,
-                    description=str(row.get('description', '') or '').strip() or None,
-                    is_active=True, created_by=current_user.id
+                    description=row.get('description', '').strip() or None,
+                    is_active=True, is_perishable=False,
+                    created_by=current_user.id
                 )
                 db.add(p)
-                created += 1
+                db.flush()
+
+                # Create opening stock transaction if qty > 0
+                if opening_qty > 0:
+                    try:
+                        txn = InventoryTransaction(
+                            product_id=p.id,
+                            warehouse_id=1,
+                            transaction_type='RECEIPT',
+                            quantity=opening_qty,
+                            unit_cost=standard_cost,
+                            total_cost=round(standard_cost * opening_qty, 3),
+                            reference_type='opening_stock',
+                            reference_number=f"OPEN-{sku}",
+                            notes=f'Opening stock imported for {name}',
+                            created_by=current_user.id,
+                        )
+                        db.add(txn)
+                    except Exception:
+                        pass  # don't fail import if stock txn fails
+
+                imported += 1
             except Exception as e:
-                errors.append(f"Row {i+1}: {str(e)}")
+                errors.append(f"Row {i}: {str(e)}")
                 skipped += 1
+
         try:
             db.commit()
         except IntegrityError:
             db.rollback()
             raise HTTPException(status_code=400, detail="Import failed — database constraint error")
-        return {"created": created, "skipped": skipped, "errors": errors[:10]}
+        return {
+            "imported": imported, "skipped": skipped,
+            "errors": errors[:10],
+            "message": f"Import complete: {imported} products added, {skipped} skipped"
+        }
     except HTTPException:
         raise
     except Exception as e:
