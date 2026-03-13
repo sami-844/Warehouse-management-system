@@ -77,7 +77,9 @@ import MessagingSettings from './components/MessagingSettings';
 import Breadcrumb from './components/Breadcrumb';
 import SettingsPages from './components/SettingsPages';
 import StockAdjustmentLog from './components/StockAdjustmentLog';
+import LabelEditor from './components/LabelEditor';
 import ToastContainer from './components/Toast';
+import { loadLabels } from './utils/labels';
 
 // ── Apply saved font on startup ──
 const savedFont = localStorage.getItem('app_font');
@@ -137,6 +139,7 @@ function App() {
   const isDriverMode = new URLSearchParams(window.location.search).get('mode') === 'driver';
 
   useEffect(() => {
+    loadLabels();
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
     if (token && savedUser) {
@@ -343,6 +346,7 @@ function App() {
       case 'damage-items':         return <DamageItems />;
       case 'deleted-items':        return <DeletedItems />;
       case 'admin-master-panel':   return <AdminMasterPanel />;
+      case 'label-editor':         return <LabelEditor />;
 
       // ── PDF Print (hidden pages, accessed via buttons) ──
       case 'print-invoice':        return <InvoicePDF orderId={printInvoiceOrderId} onClose={closePDF} />;

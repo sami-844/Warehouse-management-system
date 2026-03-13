@@ -406,4 +406,11 @@ export const vanSalesAPI = {
   productsList: async () => (await api.get('/api/van-sales/products-list')).data,
 };
 
+// ━━ UI Labels (Admin Rename) ━━
+export const labelAPI = {
+  getAll: async () => (await api.get('/api/admin/labels')).data,
+  update: async (id, label_value) => (await api.put(`/api/admin/labels/${id}`, { label_value })).data,
+  resetAll: async () => (await api.post('/api/admin/labels/reset')).data,
+};
+
 export default api;

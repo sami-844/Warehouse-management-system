@@ -126,6 +126,97 @@ async def startup_event():
                     conn.commit()
             except Exception:
                 conn.rollback()
+    # ── Seed default UI labels ──
+    _default_labels = [
+        # Section headers
+        ("section.inventory", "Inventory", "navigation"),
+        ("section.purchasing", "Purchasing", "navigation"),
+        ("section.sales", "Sales", "navigation"),
+        ("section.delivery", "Delivery", "navigation"),
+        ("section.finance", "Finance", "navigation"),
+        ("section.admin", "Admin", "navigation"),
+        # Dashboard
+        ("nav.dashboard", "Dashboard", "navigation"),
+        # Inventory items
+        ("nav.products", "Products", "navigation"),
+        ("nav.stock-receipt", "Stock Receipt", "navigation"),
+        ("nav.stock-levels", "Stock Levels", "navigation"),
+        ("nav.stock-take", "Stock Take", "navigation"),
+        ("nav.stock-issue", "Stock Issue", "navigation"),
+        ("nav.damage-items", "Damage Items", "navigation"),
+        ("nav.stock-log", "Stock Log", "navigation"),
+        ("nav.categories", "Categories", "navigation"),
+        ("nav.expiry-tracker", "Expiry Tracker", "navigation"),
+        ("nav.fifo-manager", "FIFO Manager", "navigation"),
+        ("nav.barcode-scanner", "Barcode Scanner", "navigation"),
+        ("nav.barcode-labels", "Barcode Labels", "navigation"),
+        ("nav.warehouses", "Warehouses", "navigation"),
+        ("nav.inventory-dashboard", "Overview", "navigation"),
+        # Purchasing items
+        ("nav.suppliers", "Suppliers", "navigation"),
+        ("nav.purchase-orders", "Purchase Orders", "navigation"),
+        ("nav.purchase-invoices", "PO Invoices", "navigation"),
+        ("nav.landed-costs", "Landed Costs", "navigation"),
+        ("nav.purchase-returns", "Purchase Returns", "navigation"),
+        ("nav.bills", "Bills", "navigation"),
+        # Sales items
+        ("nav.customers", "Customers", "navigation"),
+        ("nav.estimates", "Estimates", "navigation"),
+        ("nav.sales-orders", "Sales Orders", "navigation"),
+        ("nav.sales-invoices", "Invoices", "navigation"),
+        ("nav.pricing-rules", "Pricing Rules", "navigation"),
+        ("nav.deliveries", "Deliveries", "navigation"),
+        ("nav.returns-manager", "Returns", "navigation"),
+        # Delivery items
+        ("nav.van-sales-entry", "Van Sales Entry", "navigation"),
+        ("nav.driver-due-summary", "Driver Due Summary", "navigation"),
+        ("nav.driver-app", "Driver App", "navigation"),
+        ("nav.route-optimizer", "Route Optimizer", "navigation"),
+        # Finance items
+        ("nav.financial", "Financial Dashboard", "navigation"),
+        ("nav.chart-of-accounts", "Chart of Accounts", "navigation"),
+        ("nav.bank-accounts", "Bank Accounts", "navigation"),
+        ("nav.money-transfer", "Money Transfer", "navigation"),
+        ("nav.journal-entries", "Journal Entries", "navigation"),
+        ("nav.cash-transactions", "Cash Transactions", "navigation"),
+        ("nav.multi-currency", "Multi-Currency", "navigation"),
+        ("nav.reports", "Reports", "navigation"),
+        ("nav.balance-sheet", "Balance Sheet", "navigation"),
+        ("nav.general-ledger", "General Ledger", "navigation"),
+        ("nav.vendor-ledger", "Vendor Ledger", "navigation"),
+        ("nav.all-sales-report", "All Sales Report", "navigation"),
+        ("nav.customer-sales-summary", "Customer Summary", "navigation"),
+        ("nav.product-sales", "Product Sales", "navigation"),
+        ("nav.all-purchases-report", "All Purchases", "navigation"),
+        ("nav.expense-breakdown", "Expense Breakdown", "navigation"),
+        ("nav.sales-tax", "Sales Tax", "navigation"),
+        ("nav.vat-return", "VAT Return", "navigation"),
+        ("nav.bank-recon", "Bank Reconciliation", "navigation"),
+        ("nav.advance-payments", "Advance Payments", "navigation"),
+        # Admin items
+        ("nav.users", "Users", "navigation"),
+        ("nav.settings", "Settings", "navigation"),
+        ("nav.settings-lookup", "Lookup Tables", "navigation"),
+        ("nav.product-brands", "Product Brands", "navigation"),
+        ("nav.variations", "Variations", "navigation"),
+        ("nav.notifications", "Notifications", "navigation"),
+        ("nav.messaging", "Messaging", "navigation"),
+        ("nav.deleted-items", "Deleted Items", "navigation"),
+        ("nav.admin-master-panel", "Master Control", "navigation"),
+        ("nav.label-editor", "Label Editor", "navigation"),
+    ]
+    with engine.connect() as conn:
+        for lbl_key, lbl_val, grp in _default_labels:
+            try:
+                result = conn.execute(text("SELECT id FROM ui_labels WHERE label_key = :k"), {"k": lbl_key})
+                if not result.fetchone():
+                    conn.execute(text(
+                        "INSERT INTO ui_labels (label_key, label_value, default_value, group_name) "
+                        "VALUES (:k, :v, :v, :g)"
+                    ), {"k": lbl_key, "v": lbl_val, "g": grp})
+                    conn.commit()
+            except Exception:
+                conn.rollback()
     # Fix any lowercase enum values in inventory_transactions
     with engine.connect() as conn:
         try:
