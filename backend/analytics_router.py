@@ -20,6 +20,8 @@ from app.core.database import engine
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 
+IS_SQLITE = "sqlite" in str(engine.url)
+
 
 def run_query(sql: str, params: dict = {}):
     """Execute a SQL query and return all rows as dicts"""
@@ -60,6 +62,7 @@ def get_dashboard_kpis(
     end_date   = datetime.now()
     start_date = end_date - timedelta(days=days)
     start_str  = start_date.strftime('%Y-%m-%d')
+    ninety_ago = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
 
     try:
         # 1. Inventory Turnover Ratio
@@ -80,7 +83,7 @@ def get_dashboard_kpis(
                 ) sl ON sl.product_id = p.id
                 WHERE p.is_active = true
             )
-            SELECT ROUND(CAST(COALESCE(pc.total_cogs, 0) AS NUMERIC) /
+            SELECT ROUND(CAST(COALESCE(pc.total_cogs, 0) AS REAL) /
                   NULLIF(ai.avg_inv_value, 0), 2)
             FROM period_cogs pc, avg_inventory ai
         """, {"start": start_str})
@@ -135,18 +138,32 @@ def get_dashboard_kpis(
         """, {"days": days, "start": start_str})
 
         # 6. Lead Time — computed from purchase orders
-        lead_time = run_scalar("""
-            SELECT COALESCE(ROUND(AVG(
-                EXTRACT(DAY FROM (
-                    CAST(expected_delivery_date AS timestamp) - CAST(order_date AS timestamp)
-                ))
-            ), 1), 0)
-            FROM purchase_orders
-            WHERE status IN ('received', 'partial')
-              AND expected_delivery_date IS NOT NULL
-              AND order_date IS NOT NULL
-              AND order_date >= CURRENT_DATE - INTERVAL '365 days'
-        """)
+        year_ago = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+        if IS_SQLITE:
+            lead_time_sql = """
+                SELECT COALESCE(ROUND(AVG(
+                    julianday(expected_delivery_date) - julianday(order_date)
+                ), 1), 0)
+                FROM purchase_orders
+                WHERE status IN ('received', 'partial')
+                  AND expected_delivery_date IS NOT NULL
+                  AND order_date IS NOT NULL
+                  AND order_date >= :year_ago
+            """
+        else:
+            lead_time_sql = """
+                SELECT COALESCE(ROUND(AVG(
+                    EXTRACT(DAY FROM (
+                        CAST(expected_delivery_date AS timestamp) - CAST(order_date AS timestamp)
+                    ))
+                ), 1), 0)
+                FROM purchase_orders
+                WHERE status IN ('received', 'partial')
+                  AND expected_delivery_date IS NOT NULL
+                  AND order_date IS NOT NULL
+                  AND order_date >= :year_ago
+            """
+        lead_time = run_scalar(lead_time_sql, {"year_ago": year_ago})
 
         # 7. Perfect Order Rate — on-time + fully shipped
         perfect_order_rate = run_scalar("""
@@ -253,9 +270,9 @@ def get_dashboard_kpis(
                   SELECT 1 FROM sales_order_items soi
                   JOIN sales_orders so ON soi.sales_order_id = so.id
                   WHERE soi.product_id = p.id
-                    AND so.order_date >= CURRENT_DATE - INTERVAL '90 days'
+                    AND so.order_date >= :ninety_ago
               )
-        """)
+        """, {"ninety_ago": ninety_ago})
         inventory_status["dead_stock_items"] = dead
 
         return {
@@ -312,7 +329,7 @@ def get_inventory_turnover(days: int = Query(30)):
                 WHERE p.is_active = true
             )
             SELECT
-                ROUND(CAST(COALESCE(pc.total_cogs, 0) AS NUMERIC) / NULLIF(ai.avg_inv_value, 0), 2) as ratio,
+                ROUND(CAST(COALESCE(pc.total_cogs, 0) AS REAL) / NULLIF(ai.avg_inv_value, 0), 2) as ratio,
                 pc.total_cogs,
                 ai.avg_inv_value
             FROM period_cogs pc, avg_inventory ai
@@ -334,6 +351,7 @@ def get_inventory_turnover(days: int = Query(30)):
 
 @router.get("/stock-status")
 def get_stock_status():
+    ninety_ago = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
     try:
         rows = run_query("""
             SELECT
@@ -375,9 +393,9 @@ def get_stock_status():
                   SELECT 1 FROM sales_order_items soi
                   JOIN sales_orders so ON soi.sales_order_id = so.id
                   WHERE soi.product_id = p.id
-                    AND so.order_date >= CURRENT_DATE - INTERVAL '90 days'
+                    AND so.order_date >= :ninety_ago
               )
-        """)
+        """, {"ninety_ago": ninety_ago})
         d = dead[0] if dead else {}
         breakdown["dead_stock"] = {"count": d.get("cnt", 0), "value": float(d.get("value") or 0)}
         return breakdown
@@ -536,6 +554,7 @@ def get_category_breakdown(days: int = Query(30)):
 def get_alerts():
     """Get all active alerts"""
     alerts = []
+    ninety_ago = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
 
     try:
         # Low stock (has stock but at or below reorder level)
@@ -601,10 +620,10 @@ def get_alerts():
                   SELECT 1 FROM sales_order_items soi
                   JOIN sales_orders so ON soi.sales_order_id = so.id
                   WHERE soi.product_id = p.id
-                    AND so.order_date >= CURRENT_DATE - INTERVAL '90 days'
+                    AND so.order_date >= :ninety_ago
               )
             LIMIT 30
-        """)
+        """, {"ninety_ago": ninety_ago})
         for r in rows:
             alerts.append({
                 "type": "dead_stock", "severity": "info",

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
 import { authAPI, adminAPI } from './services/api';
+import { canAccessPage } from './constants/pageAccess';
 import './App.css';
 
 // ── Phase 1-4: Core Components ──
@@ -116,90 +117,7 @@ function decodeJWT(token) {
   } catch (e) { return null; }
 }
 
-// ── Role → Page Access ──
-const PAGE_ROLE_MAP = {
-  'dashboard':          ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF','SALES_STAFF','DELIVERY_DRIVER','ACCOUNTANT'],
-  'products':           ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF','SALES_STAFF','ACCOUNTANT'],
-  'stock-receipt':      ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'stock-levels':       ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF','SALES_STAFF'],
-  'stock-take':         ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'stock-issue':        ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'expiry-tracker':     ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'inventory-dashboard':['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'barcode-scanner':    ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'fifo-manager':       ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'barcode-labels':     ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'warehouses':         ['ADMIN','WAREHOUSE_MANAGER'],
-  'suppliers':          ['ADMIN','WAREHOUSE_MANAGER'],
-  'purchase-orders':    ['ADMIN','WAREHOUSE_MANAGER'],
-  'purchase-order-detail': ['ADMIN','WAREHOUSE_MANAGER'],
-  'purchase-invoices':  ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
-  'landed-costs':       ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
-  'purchase-returns':   ['ADMIN','WAREHOUSE_MANAGER'],
-  'bills':              ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
-  'customers':          ['ADMIN','SALES_STAFF','ACCOUNTANT'],
-  'estimates':          ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],
-  'sales-orders':       ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],
-  'sales-order-detail': ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],
-  'sales-invoices':     ['ADMIN','SALES_STAFF','ACCOUNTANT'],
-  'pricing-rules':      ['ADMIN','SALES_STAFF'],
-  'deliveries':         ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER','DELIVERY_DRIVER'],
-  'customer-statement': ['ADMIN','SALES_STAFF','ACCOUNTANT'],
-  'returns-manager':    ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER','ACCOUNTANT'],
-  'van-sales-entry':    ['ADMIN','WAREHOUSE_MANAGER'],
-  'driver-due-summary': ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
-  'driver-app':         ['ADMIN','DELIVERY_DRIVER'],
-  'route-optimizer':    ['ADMIN','DELIVERY_DRIVER','WAREHOUSE_MANAGER'],
-  'financial':          ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
-  'chart-of-accounts':  ['ADMIN','ACCOUNTANT'],
-  'money-transfer':     ['ADMIN','ACCOUNTANT'],
-  'journal-entries':    ['ADMIN','ACCOUNTANT'],
-  'cash-transactions':  ['ADMIN','ACCOUNTANT'],
-  'multi-currency':     ['ADMIN','ACCOUNTANT','SALES_STAFF'],
-  'reports':            ['ADMIN','WAREHOUSE_MANAGER','SALES_STAFF','ACCOUNTANT'],
-  'vat-return':         ['ADMIN','ACCOUNTANT'],
-  'bank-recon':         ['ADMIN','ACCOUNTANT'],
-  'advance-payments':   ['ADMIN','ACCOUNTANT','SALES_STAFF'],
-  'bank-accounts':      ['ADMIN','ACCOUNTANT'],
-  'balance-sheet':      ['ADMIN','ACCOUNTANT'],
-  'general-ledger':     ['ADMIN','ACCOUNTANT'],
-  'vendor-ledger':      ['ADMIN','ACCOUNTANT'],
-  'all-sales-report':   ['ADMIN','ACCOUNTANT'],
-  'customer-sales-summary': ['ADMIN','ACCOUNTANT'],
-  'product-sales':      ['ADMIN','ACCOUNTANT'],
-  'all-purchases-report': ['ADMIN','ACCOUNTANT'],
-  'expense-breakdown':  ['ADMIN','ACCOUNTANT'],
-  'sales-tax':          ['ADMIN','ACCOUNTANT'],
-  'users':              ['ADMIN'],
-  'settings':           ['ADMIN'],
-  'notifications':      ['ADMIN','ACCOUNTANT','WAREHOUSE_MANAGER'],
-  'messaging':          ['ADMIN'],
-  'activity-log':       ['ADMIN'],
-  'settings-lookup':    ['ADMIN'],
-  'stock-log':          ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'categories':         ['ADMIN','WAREHOUSE_MANAGER'],
-  'product-brands':     ['ADMIN'],
-  'variations':         ['ADMIN'],
-  'damage-items':       ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
-  'deleted-items':      ['ADMIN'],
-  'admin-master-panel': ['ADMIN'],
-};
-
-function canAccessPage(page, role) {
-  if (!role) return true;
-  const allowed = PAGE_ROLE_MAP[page];
-  if (!allowed) return true;
-  return allowed.some(r => r.toUpperCase() === role.toUpperCase());
-}
-
-function AccessDenied() {
-  return (
-    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <h2 style={{ color: '#c0392b', marginTop: 16 }}>Access Denied</h2>
-      <p style={{ color: '#888' }}>You don't have permission to view this page.</p>
-    </div>
-  );
-}
+// PAGE_ROLE_MAP + canAccessPage imported from constants/pageAccess.js
 
 function App() {
   const [user, setUser] = useState(null);
@@ -237,6 +155,13 @@ function App() {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
   }, []);
+
+  // Silent redirect: if user somehow lands on a page they can't access, go to dashboard
+  useEffect(() => {
+    if (user && !canAccessPage(currentPage, user.role)) {
+      setCurrentPage('dashboard');
+    }
+  }, [currentPage, user]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -337,7 +262,7 @@ function App() {
 
   // ── Page Router — ALL 33 components ──
   const renderPage = () => {
-    if (!canAccessPage(currentPage, user?.role)) return <AccessDenied />;
+    if (!canAccessPage(currentPage, user?.role)) return null;
 
     switch (currentPage) {
       // ★ Dashboard (Analytics with graphs, KPIs, charts)

@@ -4,40 +4,28 @@ import {
   DollarSign, Settings, ChevronRight, LogOut, User,
   PanelLeftClose, PanelLeftOpen, Menu,
 } from 'lucide-react';
-import { PERMISSIONS } from '../constants/permissions';
+import { canAccessPage } from '../constants/pageAccess';
 import './Navigation.css';
-
-/* ── Permission helper (reads localStorage once at module load) ── */
-const _navRole = (localStorage.getItem('userRole') || '').toLowerCase();
-const _navPerms = JSON.parse(localStorage.getItem('userPermissions') || '[]');
-const can = (perm) => {
-  if (!perm) return true;
-  if (_navRole === 'admin') return true;
-  return _navPerms.includes(perm);
-};
-
-const P = PERMISSIONS;
 
 const SECTIONS = [
   {
     key: 'inventory',
     label: 'Inventory',
     Icon: Package,
-    perm: P.INVENTORY.VIEW,
     items: [
-      { label: 'Products',        page: 'products',           perm: P.INVENTORY.PRODUCTS_VIEW },
-      { label: 'Stock Receipt',   page: 'stock-receipt',      perm: P.INVENTORY.STOCK_RECEIPT },
+      { label: 'Products',        page: 'products' },
+      { label: 'Stock Receipt',   page: 'stock-receipt' },
       { label: 'Stock Levels',    page: 'stock-levels' },
-      { label: 'Stock Take',      page: 'stock-take',         perm: P.INVENTORY.STOCK_TAKE },
-      { label: 'Stock Issue',     page: 'stock-issue',        perm: P.INVENTORY.STOCK_ISSUE },
-      { label: 'Damage Items',    page: 'damage-items',       perm: P.INVENTORY.DAMAGE_ITEMS },
+      { label: 'Stock Take',      page: 'stock-take' },
+      { label: 'Stock Issue',     page: 'stock-issue' },
+      { label: 'Damage Items',    page: 'damage-items' },
       { label: 'Stock Log',       page: 'stock-log' },
-      { label: 'Categories',      page: 'categories',         perm: P.INVENTORY.CATEGORIES_MANAGE },
-      { label: 'Expiry Tracker',  page: 'expiry-tracker',     perm: P.INVENTORY.EXPIRY_TRACKER },
+      { label: 'Categories',      page: 'categories' },
+      { label: 'Expiry Tracker',  page: 'expiry-tracker' },
       { label: 'FIFO Manager',    page: 'fifo-manager' },
-      { label: 'Barcode Scanner', page: 'barcode-scanner',    perm: P.INVENTORY.BARCODE_PRINT },
-      { label: 'Barcode Labels',  page: 'barcode-labels',     perm: P.INVENTORY.BARCODE_PRINT },
-      { label: 'Warehouses',      page: 'warehouses',         perm: P.INVENTORY.MANAGE_WAREHOUSES },
+      { label: 'Barcode Scanner', page: 'barcode-scanner' },
+      { label: 'Barcode Labels',  page: 'barcode-labels' },
+      { label: 'Warehouses',      page: 'warehouses' },
       { label: 'Overview',        page: 'inventory-dashboard' },
     ],
   },
@@ -45,40 +33,37 @@ const SECTIONS = [
     key: 'purchasing',
     label: 'Purchasing',
     Icon: ShoppingBag,
-    perm: P.PURCHASING.VIEW,
     items: [
-      { label: 'Suppliers',       page: 'suppliers',          perm: P.PURCHASING.SUPPLIERS_VIEW },
-      { label: 'Purchase Orders', page: 'purchase-orders',    perm: P.PURCHASING.ORDERS_VIEW },
-      { label: 'PO Invoices',     page: 'purchase-invoices',  perm: P.PURCHASING.INVOICES_VIEW },
-      { label: 'Landed Costs',    page: 'landed-costs',       perm: P.PURCHASING.INVOICES_VIEW },
-      { label: 'Purchase Returns', page: 'purchase-returns',  perm: P.PURCHASING.RETURNS_VIEW },
-      { label: 'Bills',            page: 'bills',             perm: P.PURCHASING.BILLS_VIEW },
+      { label: 'Suppliers',        page: 'suppliers' },
+      { label: 'Purchase Orders',  page: 'purchase-orders' },
+      { label: 'PO Invoices',      page: 'purchase-invoices' },
+      { label: 'Landed Costs',     page: 'landed-costs' },
+      { label: 'Purchase Returns', page: 'purchase-returns' },
+      { label: 'Bills',            page: 'bills' },
     ],
   },
   {
     key: 'sales',
     label: 'Sales',
     Icon: ShoppingCart,
-    perm: P.SALES.VIEW,
     items: [
-      { label: 'Customers',       page: 'customers',          perm: P.SALES.CUSTOMERS_VIEW },
-      { label: 'Estimates',       page: 'estimates',           perm: P.SALES.ESTIMATES_VIEW },
-      { label: 'Sales Orders',    page: 'sales-orders',       perm: P.SALES.ORDERS_VIEW },
-      { label: 'Invoices',        page: 'sales-invoices',     perm: P.SALES.INVOICE_LIST },
-      { label: 'Pricing Rules',   page: 'pricing-rules' },
-      { label: 'Deliveries',      page: 'deliveries',         perm: P.DELIVERY.VIEW },
-      { label: 'Returns',         page: 'returns-manager',    perm: P.SALES.INVOICE_RETURN },
+      { label: 'Customers',     page: 'customers' },
+      { label: 'Estimates',     page: 'estimates' },
+      { label: 'Sales Orders',  page: 'sales-orders' },
+      { label: 'Invoices',      page: 'sales-invoices' },
+      { label: 'Pricing Rules', page: 'pricing-rules' },
+      { label: 'Deliveries',    page: 'deliveries' },
+      { label: 'Returns',       page: 'returns-manager' },
     ],
   },
   {
     key: 'delivery',
     label: 'Delivery',
     Icon: Truck,
-    perm: P.DELIVERY.VIEW,
     items: [
-      { label: 'Van Sales Entry',    page: 'van-sales-entry',    perm: P.DELIVERY.VAN_SALES },
+      { label: 'Van Sales Entry',    page: 'van-sales-entry' },
       { label: 'Driver Due Summary', page: 'driver-due-summary' },
-      { label: 'Driver App',         page: 'driver-app',         perm: P.DELIVERY.DRIVER_APP },
+      { label: 'Driver App',         page: 'driver-app' },
       { label: 'Route Optimizer',    page: 'route-optimizer' },
     ],
   },
@@ -86,45 +71,43 @@ const SECTIONS = [
     key: 'finance',
     label: 'Finance',
     Icon: DollarSign,
-    perm: P.FINANCE.VIEW,
     items: [
       { label: 'Financial Dashboard', page: 'financial' },
-      { label: 'Chart of Accounts',  page: 'chart-of-accounts',       perm: P.FINANCE.LEDGER },
-      { label: 'Bank Accounts',      page: 'bank-accounts',           perm: P.FINANCE.BANK_ACCOUNTS },
-      { label: 'Money Transfer',     page: 'money-transfer',          perm: P.FINANCE.CASH_IN_OUT },
-      { label: 'Journal Entries',    page: 'journal-entries',          perm: P.FINANCE.JOURNAL_ENTRY },
-      { label: 'Cash Transactions',  page: 'cash-transactions',       perm: P.FINANCE.CASH_IN_OUT },
-      { label: 'Multi-Currency',     page: 'multi-currency' },
-      { label: 'Reports',            page: 'reports',                  perm: P.REPORTS.VIEW },
-      { label: 'Balance Sheet',      page: 'balance-sheet',           perm: P.FINANCE.BALANCE_SHEET },
-      { label: 'General Ledger',     page: 'general-ledger',          perm: P.FINANCE.LEDGER },
-      { label: 'Vendor Ledger',      page: 'vendor-ledger',           perm: P.FINANCE.LEDGER },
-      { label: 'All Sales Report',   page: 'all-sales-report',        perm: P.REPORTS.SALES_REPORT },
-      { label: 'Customer Summary',   page: 'customer-sales-summary',  perm: P.REPORTS.CUSTOMER_SUMMARY },
-      { label: 'Product Sales',      page: 'product-sales',           perm: P.REPORTS.SALES_REPORT },
-      { label: 'All Purchases',      page: 'all-purchases-report',    perm: P.REPORTS.PURCHASE_REPORT },
-      { label: 'Expense Breakdown',  page: 'expense-breakdown',       perm: P.REPORTS.EXPENSE_REPORT },
-      { label: 'Sales Tax',          page: 'sales-tax',               perm: P.FINANCE.VAT_PAYMENT },
-      { label: 'VAT Return',         page: 'vat-return',              perm: P.FINANCE.VAT_PAYMENT },
-      { label: 'Bank Reconciliation', page: 'bank-recon',             perm: P.FINANCE.BANK_ACCOUNTS },
-      { label: 'Advance Payments',   page: 'advance-payments',        perm: P.FINANCE.CASH_IN_OUT },
+      { label: 'Chart of Accounts',   page: 'chart-of-accounts' },
+      { label: 'Bank Accounts',       page: 'bank-accounts' },
+      { label: 'Money Transfer',      page: 'money-transfer' },
+      { label: 'Journal Entries',     page: 'journal-entries' },
+      { label: 'Cash Transactions',   page: 'cash-transactions' },
+      { label: 'Multi-Currency',      page: 'multi-currency' },
+      { label: 'Reports',             page: 'reports' },
+      { label: 'Balance Sheet',       page: 'balance-sheet' },
+      { label: 'General Ledger',      page: 'general-ledger' },
+      { label: 'Vendor Ledger',       page: 'vendor-ledger' },
+      { label: 'All Sales Report',    page: 'all-sales-report' },
+      { label: 'Customer Summary',    page: 'customer-sales-summary' },
+      { label: 'Product Sales',       page: 'product-sales' },
+      { label: 'All Purchases',       page: 'all-purchases-report' },
+      { label: 'Expense Breakdown',   page: 'expense-breakdown' },
+      { label: 'Sales Tax',           page: 'sales-tax' },
+      { label: 'VAT Return',          page: 'vat-return' },
+      { label: 'Bank Reconciliation', page: 'bank-recon' },
+      { label: 'Advance Payments',    page: 'advance-payments' },
     ],
   },
   {
     key: 'admin',
     label: 'Admin',
     Icon: Settings,
-    adminOnly: true,
     items: [
-      { label: 'Users',           page: 'users' },
-      { label: 'Settings',        page: 'settings' },
-      { label: 'Lookup Tables',   page: 'settings-lookup' },
-      { label: 'Product Brands',  page: 'product-brands' },
-      { label: 'Variations',      page: 'variations' },
-      { label: 'Notifications',   page: 'notifications' },
-      { label: 'Messaging',       page: 'messaging' },
-      { label: 'Deleted Items',   page: 'deleted-items' },
-      { label: 'Master Control',  page: 'admin-master-panel' },
+      { label: 'Users',          page: 'users' },
+      { label: 'Settings',       page: 'settings' },
+      { label: 'Lookup Tables',  page: 'settings-lookup' },
+      { label: 'Product Brands', page: 'product-brands' },
+      { label: 'Variations',     page: 'variations' },
+      { label: 'Notifications',  page: 'notifications' },
+      { label: 'Messaging',      page: 'messaging' },
+      { label: 'Deleted Items',  page: 'deleted-items' },
+      { label: 'Master Control', page: 'admin-master-panel' },
     ],
   },
 ];
@@ -142,8 +125,7 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const role = user?.role?.toUpperCase() || '';
-  const isAdmin = role === 'ADMIN';
+  const userRole = user?.role || '';
 
   // Close mobile sidebar when navigating
   const navigate = (page) => {
@@ -274,10 +256,7 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
         {/* Sections */}
         <div style={{ flex: 1 }}>
           {SECTIONS.map(section => {
-            if (section.adminOnly && !isAdmin) return null;
-            if (section.perm && !can(section.perm)) return null;
-
-            const visibleItems = section.items.filter(i => can(i.perm));
+            const visibleItems = section.items.filter(i => canAccessPage(i.page, userRole));
             if (visibleItems.length === 0) return null;
 
             const isOpen = open === section.key && !collapsed;
