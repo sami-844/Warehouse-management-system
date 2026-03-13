@@ -6,7 +6,7 @@ import './Dashboard.css';
 
 /* ── Permission helper ── */
 const userRole = localStorage.getItem('userRole') || '';
-const userPerms = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+const userPerms = (() => { try { return JSON.parse(localStorage.getItem('userPermissions') || '[]'); } catch { return []; } })();
 const can = (perm) => {
   if (userRole.toLowerCase() === 'admin') return true;
   return userPerms.includes(perm);
@@ -30,19 +30,30 @@ function Dashboard({ user }) {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch products and categories
-      const [productsRes, categoriesRes] = await Promise.all([
+
+      const results = await Promise.allSettled([
         productAPI.getAll(),
         categoryAPI.getAll(),
       ]);
 
-      const productsRaw = productsRes.data;
-      const categoriesRaw = categoriesRes.data;
-      const products = Array.isArray(productsRaw) ? productsRaw : (productsRaw?.data || productsRaw?.items || []);
-      const categories = Array.isArray(categoriesRaw) ? categoriesRaw : (categoriesRaw?.data || categoriesRaw?.items || []);
+      // Products
+      let products = [];
+      if (results[0].status === 'fulfilled') {
+        const productsRaw = results[0].value?.data;
+        products = Array.isArray(productsRaw) ? productsRaw : (productsRaw?.data || productsRaw?.items || []);
+      } else {
+        console.warn('Products fetch failed:', results[0].reason?.message);
+      }
 
-      // Calculate statistics
+      // Categories
+      let categories = [];
+      if (results[1].status === 'fulfilled') {
+        const categoriesRaw = results[1].value?.data;
+        categories = Array.isArray(categoriesRaw) ? categoriesRaw : (categoriesRaw?.data || categoriesRaw?.items || []);
+      } else {
+        console.warn('Categories fetch failed:', results[1].reason?.message);
+      }
+
       setStats({
         totalProducts: products.length,
         totalCategories: categories.length,
@@ -53,7 +64,7 @@ function Dashboard({ user }) {
       setError(null);
     } catch (err) {
       console.error('Error loading dashboard:', err);
-      setError('Failed to load dashboard data');
+      setError(null); // still render with zeros rather than showing error
     } finally {
       setLoading(false);
     }
@@ -67,14 +78,7 @@ function Dashboard({ user }) {
     );
   }
 
-  if (error) {
-    return (
-      <div className="dashboard">
-        <div className="error">{error}</div>
-        <button onClick={loadDashboardData}>Retry</button>
-      </div>
-    );
-  }
+  /* error state removed — dashboard always renders with zeros as fallback */
 
   return (
     <div className="dashboard">

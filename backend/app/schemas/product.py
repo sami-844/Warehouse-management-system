@@ -61,8 +61,12 @@ class ProductBase(BaseModel):
 
 class ProductCreate(ProductBase):
     """Schema for creating a new product"""
+    brand_id: Optional[int] = None
     opening_qty: Optional[int] = 0
     opening_cost: Optional[Decimal] = None
+
+    class Config:
+        extra = 'allow'  # don't reject unknown fields from frontend
 
 
 class ProductUpdate(BaseModel):
@@ -84,6 +88,10 @@ class ProductUpdate(BaseModel):
     default_supplier_id: Optional[int] = None
     is_active: Optional[bool] = None
     is_perishable: Optional[bool] = None
+    brand_id: Optional[int] = None
+
+    class Config:
+        extra = 'allow'  # don't reject unknown fields from frontend
 
 
 class Product(ProductBase):

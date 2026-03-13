@@ -68,11 +68,16 @@ function ProductList() {
         const b = await brandAPI.list();
         setBrands((b?.brands || []).filter(br => br.status === 'active'));
       } catch (e) { /* brands optional */ }
-      // Load avg costs (authenticated)
-      try {
-        const acRes = await productAPI.getAvgCosts();
-        if (acRes?.costs) setAvgCosts(acRes.costs);
-      } catch (e) { /* avg costs optional — 401 before login is fine */ }
+      // Load avg costs (only if authenticated)
+      if (localStorage.getItem('token')) {
+        try {
+          const acRes = await productAPI.getAvgCosts();
+          if (acRes?.costs) setAvgCosts(acRes.costs);
+        } catch (e) {
+          console.warn('Avg costs not loaded:', e.message);
+          setAvgCosts({});
+        }
+      }
       setError(null);
     } catch (err) {
       console.error('Error loading data:', err);

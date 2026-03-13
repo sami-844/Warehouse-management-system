@@ -94,6 +94,9 @@ async def startup_event():
         ("users", "warehouse_group", "TEXT DEFAULT ''"),
         ("users", "last_active_at", "TIMESTAMP"),
         ("users", "login_count", "INTEGER DEFAULT 0"),
+        # Products: avg_cost and stock_quantity
+        ("products", "avg_cost", "NUMERIC(12,3) DEFAULT 0"),
+        ("products", "stock_quantity", "NUMERIC(12,3) DEFAULT 0"),
     ]
     with engine.connect() as conn:
         for table, col, col_type in _migrations:

@@ -25,7 +25,7 @@ import './AnalyticsDashboard.css';
 
 /* ── Permission helper ── */
 const userRole = localStorage.getItem('userRole') || '';
-const userPerms = JSON.parse(localStorage.getItem('userPermissions') || '[]');
+const userPerms = (() => { try { return JSON.parse(localStorage.getItem('userPermissions') || '[]'); } catch { return []; } })();
 const can = (perm) => {
   if (userRole.toLowerCase() === 'admin') return true;
   return userPerms.includes(perm);
@@ -153,11 +153,17 @@ const AnalyticsDashboard = ({ onNavigate }) => {
     );
   }
 
-  /* If dashboardData never loaded, show minimal fallback */
-  if (!dashboardData) return null;
+  /* If dashboardData never loaded, use safe defaults so the page always renders */
+  const safeData = dashboardData || {
+    kpis: { inventory_turnover_ratio: 0, average_inventory: 0, cost_of_goods_sold: 0,
+            service_level: 0, days_to_sell_inventory: 0, lead_time: 0,
+            perfect_order_rate: 0, rate_of_return: 0 },
+    sales_orders: { completed: 0, in_progress: 0, returns: 0, overdue_shipping: 0 },
+    inventory_status: { in_stock_items: 0, low_stock_items: 0, out_of_stock_items: 0, dead_stock_items: 0 },
+  };
 
   /* ---- destructure ---- */
-  const { kpis = {}, sales_orders = {}, inventory_status = {} } = dashboardData;
+  const { kpis = {}, sales_orders = {}, inventory_status = {} } = safeData;
 
   const salesChartData = [
     { name: 'Completed',   value: sales_orders.completed || 0 },
