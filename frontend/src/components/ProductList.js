@@ -1,6 +1,5 @@
 // Product List Component
 import React, { useState, useEffect } from 'react';
-import EmptyState from './EmptyState';
 import { productAPI, categoryAPI, csvImportAPI, brandAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
 import './ProductList.css';
@@ -22,6 +21,8 @@ function ProductList() {
   const [productToDelete, setProductToDelete] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
   const [currentStock, setCurrentStock] = useState(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [tablePage, setTablePage] = useState(1);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -47,6 +48,11 @@ function ProductList() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setTablePage(1);
+  }, [searchTerm, selectedCategory]);
 
   const loadData = async () => {
     try {
@@ -83,6 +89,8 @@ function ProductList() {
   const handleCategoryFilter = (e) => {
     setSelectedCategory(e.target.value);
   };
+
+  const catName = (id) => categories.find(c => c.id === id)?.name || '\u2014';
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -214,15 +222,28 @@ function ProductList() {
     return <div className="loading">Loading products...</div>;
   }
 
+  const totalPages = Math.ceil(filteredProducts.length / pageSize);
+
   return (
-    <div className="product-list-container">
-      <div className="page-header">
-        <div><h1 className="page-title">Products</h1><p className="page-subtitle">Manage your product catalog</p></div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setShowImport(true)} className="wms-btn-import">Import CSV / Excel</button>
-          <button onClick={() => setShowAddForm(!showAddForm)} className="btn-primary">{showAddForm ? 'Cancel' : 'Add Product'}</button>
+    <div style={{ padding: '24px 32px' }}>
+      {/* Page Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <h1 className="page-title">Products</h1>
+          <p className="page-subtitle">Manage your product catalog</p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setShowImport(true)}
+            style={{ background: 'white', border: '1px solid #17A2B8', color: '#17A2B8', borderRadius: 6, padding: '9px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+            Import CSV / Excel
+          </button>
+          <button onClick={() => setShowAddForm(!showAddForm)}
+            style={{ background: '#28A745', color: 'white', border: 'none', borderRadius: 6, padding: '9px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+            {showAddForm ? 'Cancel' : '+ Add Product'}
+          </button>
         </div>
       </div>
+
       {importMessage && <div className="wms-import-message">{importMessage}</div>}
       {showImport && (
         <CsvImportModal
@@ -255,68 +276,32 @@ function ProductList() {
             <div className="form-row">
               <div className="form-group">
                 <label>SKU *</label>
-                <input
-                  type="text"
-                  name="sku"
-                  value={formData.sku}
-                  onChange={handleInputChange}
-                  required
-                  disabled={!!editingProduct}
-                />
+                <input type="text" name="sku" value={formData.sku} onChange={handleInputChange} required disabled={!!editingProduct} />
               </div>
               <div className="form-group">
                 <label>Barcode</label>
-                <input
-                  type="text"
-                  name="barcode"
-                  value={formData.barcode}
-                  onChange={handleInputChange}
-                />
+                <input type="text" name="barcode" value={formData.barcode} onChange={handleInputChange} />
               </div>
             </div>
-
             <div className="form-group">
               <label>Product Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
+              <input type="text" name="name" value={formData.name} onChange={handleInputChange} required />
             </div>
-
             <div className="form-group">
               <label>Description</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows="3"
-              />
+              <textarea name="description" value={formData.description} onChange={handleInputChange} rows="3" />
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label>Category</label>
-                <select
-                  name="category_id"
-                  value={formData.category_id}
-                  onChange={handleInputChange}
-                >
+                <select name="category_id" value={formData.category_id} onChange={handleInputChange}>
                   <option value="">Select category</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
+                  {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
                 </select>
               </div>
               <div className="form-group">
                 <label>Unit of Measure</label>
-                <select
-                  name="unit_of_measure"
-                  value={formData.unit_of_measure}
-                  onChange={handleInputChange}
-                >
+                <select name="unit_of_measure" value={formData.unit_of_measure} onChange={handleInputChange}>
                   <option value="pieces">Pieces</option>
                   <option value="kg">Kilograms</option>
                   <option value="liters">Liters</option>
@@ -325,63 +310,31 @@ function ProductList() {
                 </select>
               </div>
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label>Brand</label>
-                <select
-                  name="brand_id"
-                  value={formData.brand_id}
-                  onChange={handleInputChange}
-                >
+                <select name="brand_id" value={formData.brand_id} onChange={handleInputChange}>
                   <option value="">No brand</option>
-                  {brands.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
+                  {brands.map(b => (<option key={b.id} value={b.id}>{b.name}</option>))}
                 </select>
               </div>
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label>Cost (OMR)</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  name="standard_cost"
-                  value={formData.standard_cost}
-                  onChange={handleInputChange}
-                />
+                <input type="number" step="0.001" name="standard_cost" value={formData.standard_cost} onChange={handleInputChange} />
               </div>
               <div className="form-group">
                 <label>Selling Price (OMR) *</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  name="selling_price"
-                  value={formData.selling_price}
-                  onChange={handleInputChange}
-                  required
-                />
+                <input type="number" step="0.001" name="selling_price" value={formData.selling_price} onChange={handleInputChange} required />
               </div>
               <div className="form-group">
                 <label>Tax Rate (%)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="tax_rate"
-                  value={formData.tax_rate}
-                  onChange={handleInputChange}
-                />
+                <input type="number" step="0.01" name="tax_rate" value={formData.tax_rate} onChange={handleInputChange} />
               </div>
             </div>
-
-            {/* Opening stock fields (create only) or current stock info (edit only) */}
             {editingProduct && currentStock ? (
-              <div style={{
-                background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8,
-                padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 24, alignItems: 'center'
-              }}>
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 24, alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Current Stock on Hand</div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: '#0369a1' }}>{currentStock.quantity_on_hand}</div>
@@ -402,173 +355,192 @@ function ProductList() {
                 )}
               </div>
             ) : null}
-
             <div className="form-row">
               {!editingProduct && (
                 <>
                   <div className="form-group">
                     <label>Opening Quantity</label>
-                    <input
-                      type="number"
-                      name="opening_qty"
-                      value={formData.opening_qty}
-                      onChange={handleInputChange}
-                      min="0"
-                      step="1"
-                      placeholder="0"
-                    />
+                    <input type="number" name="opening_qty" value={formData.opening_qty} onChange={handleInputChange} min="0" step="1" placeholder="0" />
                     <small style={{color:'#718096',fontSize:11}}>Initial stock quantity</small>
                   </div>
                   <div className="form-group">
                     <label>Opening Cost (OMR)</label>
-                    <input
-                      type="number"
-                      name="opening_cost"
-                      value={formData.opening_cost}
-                      onChange={handleInputChange}
-                      min="0"
-                      step="0.001"
-                      placeholder="0.000"
-                    />
+                    <input type="number" name="opening_cost" value={formData.opening_cost} onChange={handleInputChange} min="0" step="0.001" placeholder="0.000" />
                     <small style={{color:'#718096',fontSize:11}}>Cost per unit for opening stock</small>
                   </div>
                 </>
               )}
               <div className="form-group">
                 <label>Minimum Stock</label>
-                <input
-                  type="number"
-                  name="minimum_stock"
-                  value={formData.minimum_stock}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="1"
-                />
+                <input type="number" name="minimum_stock" value={formData.minimum_stock} onChange={handleInputChange} min="0" step="1" />
               </div>
               <div className="form-group">
                 <label>Maximum Stock</label>
-                <input
-                  type="number"
-                  name="maximum_stock"
-                  value={formData.maximum_stock}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="1"
-                  placeholder="0"
-                />
+                <input type="number" name="maximum_stock" value={formData.maximum_stock} onChange={handleInputChange} min="0" step="1" placeholder="0" />
               </div>
               <div className="form-group">
                 <label>Reorder Level</label>
-                <input
-                  type="number"
-                  name="reorder_level"
-                  value={formData.reorder_level}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="1"
-                />
+                <input type="number" name="reorder_level" value={formData.reorder_level} onChange={handleInputChange} min="0" step="1" />
               </div>
             </div>
-
             <div className="form-checkboxes">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="is_active"
-                  checked={formData.is_active}
-                  onChange={handleInputChange}
-                />
-                Active
-              </label>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="is_perishable"
-                  checked={formData.is_perishable}
-                  onChange={handleInputChange}
-                />
-                Perishable
-              </label>
+              <label className="checkbox-label"><input type="checkbox" name="is_active" checked={formData.is_active} onChange={handleInputChange} /> Active</label>
+              <label className="checkbox-label"><input type="checkbox" name="is_perishable" checked={formData.is_perishable} onChange={handleInputChange} /> Perishable</label>
             </div>
-
             <div className="form-buttons">
-              <button type="submit" className="btn-primary">
-                {editingProduct ? 'Update' : 'Create'} Product
-              </button>
-              <button type="button" onClick={resetForm} className="btn-secondary">
-                Cancel
-              </button>
+              <button type="submit" className="btn-primary">{editingProduct ? 'Update' : 'Create'} Product</button>
+              <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>
             </div>
           </form>
         </div>
       )}
 
-      <div className="filters">
-        <input
-          type="text"
-          placeholder="🔍 Search products..."
-          value={searchTerm}
-          onChange={handleSearch}
-          className="search-input"
-        />
-        <select
-          value={selectedCategory}
-          onChange={handleCategoryFilter}
-          className="filter-select"
-        >
+      {/* Search and Filter Bar */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+          <span>Show</span>
+          <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setTablePage(1); }}
+            style={{ border: '1px solid #DEE2E6', borderRadius: 4, padding: '4px 8px', fontSize: 13 }}>
+            {[10, 25, 50, 100].map(n => (<option key={n} value={n}>{n}</option>))}
+          </select>
+          <span>entries</span>
+        </div>
+        <div style={{ flex: 1 }} />
+        <select value={selectedCategory} onChange={handleCategoryFilter}
+          style={{ border: '1px solid #DEE2E6', borderRadius: 6, padding: '8px 14px', fontSize: 13, minWidth: 160 }}>
           <option value="">All Categories</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
+          {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
         </select>
+        <input type="text" placeholder="Search products..." value={searchTerm} onChange={handleSearch}
+          style={{ border: '1px solid #DEE2E6', borderRadius: 6, padding: '8px 14px', fontSize: 13, width: 240 }} />
       </div>
 
-      {error && <div className="error">{error}</div>}
+      {error && (
+        <div style={{ background: '#F8D7DA', color: '#721C24', border: '1px solid #F5C6CB', borderRadius: 6, padding: '10px 16px', marginBottom: 16, fontSize: 14 }}>
+          {error}
+        </div>
+      )}
 
-      <div className="products-grid">
-        {filteredProducts.map(product => (
-          <div key={product.id} className="product-card">
-            <div className="product-header-card">
-              <h3>{product.name}</h3>
-              {!product.is_active && <span className="badge-inactive">Inactive</span>}
-            </div>
-            <div className="product-details">
-              <p><strong>SKU:</strong> {product.sku}</p>
-              {product.barcode && <p><strong>Barcode:</strong> {product.barcode}</p>}
-              <p><strong>Price:</strong> OMR {product.selling_price}</p>
-              {avgCosts[product.id] && (
-                <p><strong>Avg Cost:</strong> OMR {Number(avgCosts[product.id].avg_cost).toFixed(3)}</p>
-              )}
-              <p><strong>Unit:</strong> {product.unit_of_measure}</p>
-              {product.brand_id && brands.length > 0 && (
-                <p><strong>Brand:</strong> {brands.find(b => b.id === product.brand_id)?.name || '—'}</p>
-              )}
-              {product.stock_on_hand != null && (
-                <p>
-                  <strong>Stock:</strong>{' '}
-                  <span className={`wms-stock-badge ${product.stock_on_hand <= 0 ? 'out' : product.stock_on_hand <= (product.reorder_level || 10) ? 'low' : 'ok'}`}>
-                    {product.stock_on_hand <= 0 ? 'OUT' : product.stock_on_hand <= (product.reorder_level || 10) ? 'LOW' : 'OK'}
-                  </span>
-                  {' '}{product.stock_on_hand}
-                </p>
-              )}
-              {product.description && <p className="description">{product.description}</p>}
-            </div>
-            <div className="product-actions">
-              <button onClick={() => handleEdit(product)} className="btn-edit">
-                Edit
+      {/* Products Table */}
+      <div style={{ background: 'white', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: '#1A3A5C', color: 'white' }}>
+              <th style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 12 }}>ITEM CODE / SKU</th>
+              <th style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 12 }}>PRODUCT NAME</th>
+              <th style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 12 }}>CATEGORY</th>
+              <th style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 12 }}>UNIT</th>
+              <th style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>STOCK</th>
+              <th style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>SELL PRICE (OMR)</th>
+              <th style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>COST (OMR)</th>
+              <th style={{ padding: '11px 14px', textAlign: 'center', fontWeight: 600, fontSize: 12 }}>STATUS</th>
+              <th style={{ padding: '11px 14px', textAlign: 'center', fontWeight: 600, fontSize: 12 }}>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProducts.length === 0 ? (
+              <tr>
+                <td colSpan={9} style={{ textAlign: 'center', padding: 48, color: '#6C757D' }}>
+                  <div style={{ fontWeight: 600 }}>No products found</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>Add products or import from CSV / Excel</div>
+                </td>
+              </tr>
+            ) : (
+              filteredProducts
+                .slice((tablePage - 1) * pageSize, tablePage * pageSize)
+                .map((product, index) => {
+                  const stock = product.stock_on_hand ?? 0;
+                  const stockColor = stock <= 0 ? '#DC3545'
+                    : stock <= (product.reorder_level || 5) ? '#FFC107' : '#28A745';
+                  return (
+                    <tr key={product.id}
+                      style={{ borderBottom: '1px solid #F0F0F0', background: index % 2 === 0 ? '#FFFFFF' : '#FAFAFA', transition: 'background 0.1s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#F0F7FF')}
+                      onMouseLeave={e => (e.currentTarget.style.background = index % 2 === 0 ? '#FFFFFF' : '#FAFAFA')}
+                    >
+                      <td style={{ padding: '10px 14px' }}>
+                        <span style={{ color: '#17A2B8', fontWeight: 600, fontSize: 13 }}>{product.sku || '\u2014'}</span>
+                        {product.barcode && <div style={{ fontSize: 11, color: '#ADB5BD', marginTop: 2 }}>{product.barcode}</div>}
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <div style={{ fontWeight: 600, color: '#1A3A5C', fontSize: 13 }}>{product.name}</div>
+                        {product.description && (
+                          <div style={{ fontSize: 11, color: '#6C757D', marginTop: 2, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {product.description}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: '#6C757D', fontSize: 13 }}>{catName(product.category_id)}</td>
+                      <td style={{ padding: '10px 14px', color: '#6C757D', fontSize: 13 }}>{product.unit_of_measure || 'pcs'}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                        <span style={{ fontWeight: 600, fontSize: 13, color: stockColor }}>{stock.toLocaleString()}</span>
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: '#1A3A5C', fontSize: 13 }}>
+                        {parseFloat(product.selling_price || 0).toFixed(3)}
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', color: '#6C757D', fontSize: 13 }}>
+                        {avgCosts[product.id]
+                          ? Number(avgCosts[product.id].avg_cost).toFixed(3)
+                          : parseFloat(product.standard_cost || 0).toFixed(3)}
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        <span style={{
+                          background: product.is_active ? '#D4EDDA' : '#F8D7DA',
+                          color: product.is_active ? '#155724' : '#721C24',
+                          padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600
+                        }}>
+                          {product.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                          <button onClick={() => handleEdit(product)}
+                            style={{ background: '#17A2B8', color: 'white', border: 'none', borderRadius: 4, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                            Edit
+                          </button>
+                          <button onClick={() => handleDeleteClick(product)}
+                            style={{ background: '#DC3545', color: 'white', border: 'none', borderRadius: 4, padding: '5px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+            )}
+          </tbody>
+        </table>
+
+        {/* Pagination Footer */}
+        {filteredProducts.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderTop: '1px solid #F0F0F0', fontSize: 13, color: '#6C757D', background: '#FAFAFA' }}>
+            <span>
+              Showing {Math.min((tablePage - 1) * pageSize + 1, filteredProducts.length)} to {Math.min(tablePage * pageSize, filteredProducts.length)} of {filteredProducts.length} entries
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => setTablePage(p => Math.max(1, p - 1))} disabled={tablePage === 1}
+                style={{ padding: '5px 14px', borderRadius: 4, fontSize: 13, border: '1px solid #DEE2E6', cursor: 'pointer', background: tablePage === 1 ? '#F8F9FA' : 'white', color: tablePage === 1 ? '#ADB5BD' : '#1A3A5C' }}>
+                Previous
               </button>
-              <button onClick={() => handleDeleteClick(product)} className="btn-delete">
-                Delete
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - tablePage) <= 2)
+                .map((page, idx, arr) => (
+                  <React.Fragment key={page}>
+                    {idx > 0 && arr[idx - 1] < page - 1 && <span style={{ padding: '5px 4px', color: '#ADB5BD' }}>...</span>}
+                    <button onClick={() => setTablePage(page)}
+                      style={{ padding: '5px 12px', borderRadius: 4, fontSize: 13, border: '1px solid #DEE2E6', cursor: 'pointer', background: tablePage === page ? '#1A3A5C' : 'white', color: tablePage === page ? 'white' : '#1A3A5C', fontWeight: tablePage === page ? 600 : 400 }}>
+                      {page}
+                    </button>
+                  </React.Fragment>
+                ))}
+              <button onClick={() => setTablePage(p => Math.min(totalPages, p + 1))} disabled={tablePage === totalPages}
+                style={{ padding: '5px 14px', borderRadius: 4, fontSize: 13, border: '1px solid #DEE2E6', cursor: 'pointer', background: 'white', color: '#1A3A5C' }}>
+                Next
               </button>
             </div>
           </div>
-        ))}
+        )}
       </div>
-
-      {filteredProducts.length === 0 && (
-        <EmptyState title="No products found" hint="Click '+ Add Product' or import from CSV/Excel to get started" />
-      )}
 
       {showDeleteModal && productToDelete && (
         <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
