@@ -5,115 +5,124 @@ import {
   PanelLeftClose, PanelLeftOpen, Menu,
 } from 'lucide-react';
 import { canAccessPage } from '../constants/pageAccess';
+import { PERMISSIONS } from '../constants/permissions';
+import { label } from '../utils/labels';
 import './Navigation.css';
 
-const SECTIONS = [
+const _perms = (() => { try { return JSON.parse(localStorage.getItem('userPermissions') || '[]'); } catch { return []; } })();
+const canPerm = (perm) => {
+  const r = (localStorage.getItem('userRole') || '').toLowerCase();
+  return r === 'admin' || _perms.includes(perm);
+};
+
+const getSections = () => [
   {
     key: 'inventory',
-    label: 'Inventory',
+    label: label('section.inventory', 'Inventory'),
     Icon: Package,
     items: [
-      { label: 'Products',        page: 'products' },
-      { label: 'Stock Receipt',   page: 'stock-receipt' },
-      { label: 'Stock Levels',    page: 'stock-levels' },
-      { label: 'Stock Take',      page: 'stock-take' },
-      { label: 'Stock Issue',     page: 'stock-issue' },
-      { label: 'Damage Items',    page: 'damage-items' },
-      { label: 'Stock Log',       page: 'stock-log' },
-      { label: 'Categories',      page: 'categories' },
-      { label: 'Expiry Tracker',  page: 'expiry-tracker' },
-      { label: 'FIFO Manager',    page: 'fifo-manager' },
-      { label: 'Barcode Scanner', page: 'barcode-scanner' },
-      { label: 'Barcode Labels',  page: 'barcode-labels' },
-      { label: 'Warehouses',      page: 'warehouses' },
-      { label: 'Overview',        page: 'inventory-dashboard' },
+      { label: label('nav.products', 'Products'),               page: 'products' },
+      { label: label('nav.stock-receipt', 'Stock Receipt'),      page: 'stock-receipt' },
+      { label: label('nav.stock-levels', 'Stock Levels'),        page: 'stock-levels' },
+      { label: label('nav.stock-take', 'Stock Take'),            page: 'stock-take' },
+      { label: label('nav.stock-issue', 'Stock Issue'),          page: 'stock-issue' },
+      { label: label('nav.damage-items', 'Damage Items'),        page: 'damage-items' },
+      { label: label('nav.stock-log', 'Stock Log'),              page: 'stock-log' },
+      { label: label('nav.categories', 'Categories'),            page: 'categories' },
+      { label: label('nav.expiry-tracker', 'Expiry Tracker'),    page: 'expiry-tracker' },
+      { label: label('nav.fifo-manager', 'FIFO Manager'),        page: 'fifo-manager' },
+      { label: label('nav.barcode-scanner', 'Barcode Scanner'),  page: 'barcode-scanner' },
+      { label: label('nav.barcode-labels', 'Barcode Labels'),    page: 'barcode-labels' },
+      { label: label('nav.warehouses', 'Warehouses'),            page: 'warehouses' },
+      { label: label('nav.inventory-dashboard', 'Overview'),     page: 'inventory-dashboard' },
     ],
   },
   {
     key: 'purchasing',
-    label: 'Purchasing',
+    label: label('section.purchasing', 'Purchasing'),
     Icon: ShoppingBag,
     items: [
-      { label: 'Suppliers',        page: 'suppliers' },
-      { label: 'Purchase Orders',  page: 'purchase-orders' },
-      { label: 'PO Invoices',      page: 'purchase-invoices' },
-      { label: 'Landed Costs',     page: 'landed-costs' },
-      { label: 'Purchase Returns', page: 'purchase-returns' },
-      { label: 'Bills',            page: 'bills' },
+      { label: label('nav.suppliers', 'Suppliers'),              page: 'suppliers' },
+      { label: label('nav.purchase-orders', 'Purchase Orders'),  page: 'purchase-orders' },
+      { label: label('nav.purchase-invoices', 'PO Invoices'),    page: 'purchase-invoices' },
+      { label: label('nav.landed-costs', 'Landed Costs'),        page: 'landed-costs' },
+      { label: label('nav.purchase-returns', 'Purchase Returns'), page: 'purchase-returns' },
+      { label: label('nav.bills', 'Bills'),                      page: 'bills' },
     ],
   },
   {
     key: 'sales',
-    label: 'Sales',
+    label: label('section.sales', 'Sales'),
     Icon: ShoppingCart,
     items: [
-      { label: 'Customers',     page: 'customers' },
-      { label: 'Estimates',     page: 'estimates' },
-      { label: 'Sales Orders',  page: 'sales-orders' },
-      { label: 'Invoices',      page: 'sales-invoices' },
-      { label: 'Pricing Rules', page: 'pricing-rules' },
-      { label: 'Deliveries',    page: 'deliveries' },
-      { label: 'Returns',       page: 'returns-manager' },
+      { label: label('nav.customers', 'Customers'),             page: 'customers' },
+      { label: label('nav.estimates', 'Estimates'),              page: 'estimates' },
+      { label: label('nav.sales-orders', 'Sales Orders'),       page: 'sales-orders' },
+      { label: label('nav.sales-invoices', 'Invoices'),          page: 'sales-invoices' },
+      { label: label('nav.pricing-rules', 'Pricing Rules'),     page: 'pricing-rules' },
+      { label: label('nav.deliveries', 'Deliveries'),            page: 'deliveries' },
+      { label: label('nav.returns-manager', 'Returns'),          page: 'returns-manager' },
     ],
   },
   {
     key: 'delivery',
-    label: 'Delivery',
+    label: label('section.delivery', 'Delivery'),
     Icon: Truck,
     items: [
-      { label: 'Van Sales Entry',    page: 'van-sales-entry' },
-      { label: 'Driver Due Summary', page: 'driver-due-summary' },
-      { label: 'Driver App',         page: 'driver-app' },
-      { label: 'Route Optimizer',    page: 'route-optimizer' },
+      { label: label('nav.van-sales-entry', 'Van Sales Entry'),       page: 'van-sales-entry' },
+      { label: label('nav.driver-due-summary', 'Driver Due Summary'), page: 'driver-due-summary' },
+      { label: label('nav.driver-app', 'Driver App'),                 page: 'driver-app' },
+      { label: label('nav.route-optimizer', 'Route Optimizer'),       page: 'route-optimizer' },
     ],
   },
   {
     key: 'finance',
-    label: 'Finance',
+    label: label('section.finance', 'Finance'),
     Icon: DollarSign,
     items: [
-      { label: 'Financial Dashboard', page: 'financial' },
-      { label: 'Chart of Accounts',   page: 'chart-of-accounts' },
-      { label: 'Bank Accounts',       page: 'bank-accounts' },
-      { label: 'Money Transfer',      page: 'money-transfer' },
-      { label: 'Journal Entries',     page: 'journal-entries' },
-      { label: 'Cash Transactions',   page: 'cash-transactions' },
-      { label: 'Multi-Currency',      page: 'multi-currency' },
-      { label: 'Reports',             page: 'reports' },
-      { label: 'Balance Sheet',       page: 'balance-sheet' },
-      { label: 'General Ledger',      page: 'general-ledger' },
-      { label: 'Vendor Ledger',       page: 'vendor-ledger' },
-      { label: 'All Sales Report',    page: 'all-sales-report' },
-      { label: 'Customer Summary',    page: 'customer-sales-summary' },
-      { label: 'Product Sales',       page: 'product-sales' },
-      { label: 'All Purchases',       page: 'all-purchases-report' },
-      { label: 'Expense Breakdown',   page: 'expense-breakdown' },
-      { label: 'Sales Tax',           page: 'sales-tax' },
-      { label: 'VAT Return',          page: 'vat-return' },
-      { label: 'Bank Reconciliation', page: 'bank-recon' },
-      { label: 'Advance Payments',    page: 'advance-payments' },
+      { label: label('nav.financial', 'Financial Dashboard'),             page: 'financial' },
+      { label: label('nav.chart-of-accounts', 'Chart of Accounts'),      page: 'chart-of-accounts' },
+      { label: label('nav.bank-accounts', 'Bank Accounts'),              page: 'bank-accounts' },
+      { label: label('nav.money-transfer', 'Money Transfer'),            page: 'money-transfer' },
+      { label: label('nav.journal-entries', 'Journal Entries'),           page: 'journal-entries' },
+      { label: label('nav.cash-transactions', 'Cash Transactions'),      page: 'cash-transactions' },
+      { label: label('nav.multi-currency', 'Multi-Currency'),            page: 'multi-currency' },
+      { label: label('nav.reports', 'Reports'),                          page: 'reports' },
+      { label: label('nav.balance-sheet', 'Balance Sheet'),              page: 'balance-sheet' },
+      { label: label('nav.general-ledger', 'General Ledger'),            page: 'general-ledger' },
+      { label: label('nav.vendor-ledger', 'Vendor Ledger'),              page: 'vendor-ledger' },
+      { label: label('nav.all-sales-report', 'All Sales Report'),        page: 'all-sales-report' },
+      { label: label('nav.customer-sales-summary', 'Customer Summary'),  page: 'customer-sales-summary' },
+      { label: label('nav.product-sales', 'Product Sales'),              page: 'product-sales' },
+      { label: label('nav.all-purchases-report', 'All Purchases'),       page: 'all-purchases-report' },
+      { label: label('nav.expense-breakdown', 'Expense Breakdown'),      page: 'expense-breakdown' },
+      { label: label('nav.sales-tax', 'Sales Tax'),                      page: 'sales-tax' },
+      { label: label('nav.vat-return', 'VAT Return'),                    page: 'vat-return' },
+      { label: label('nav.bank-recon', 'Bank Reconciliation'),           page: 'bank-recon' },
+      { label: label('nav.advance-payments', 'Advance Payments'),        page: 'advance-payments' },
     ],
   },
   {
     key: 'admin',
-    label: 'Admin',
+    label: label('section.admin', 'Admin'),
     Icon: Settings,
     items: [
-      { label: 'Users',          page: 'users' },
-      { label: 'Settings',       page: 'settings' },
-      { label: 'Lookup Tables',  page: 'settings-lookup' },
-      { label: 'Product Brands', page: 'product-brands' },
-      { label: 'Variations',     page: 'variations' },
-      { label: 'Notifications',  page: 'notifications' },
-      { label: 'Messaging',      page: 'messaging' },
-      { label: 'Deleted Items',  page: 'deleted-items' },
-      { label: 'Master Control', page: 'admin-master-panel' },
+      { label: label('nav.users', 'Users'),                       page: 'users' },
+      { label: label('nav.settings', 'Settings'),                 page: 'settings' },
+      { label: label('nav.settings-lookup', 'Lookup Tables'),     page: 'settings-lookup' },
+      { label: label('nav.product-brands', 'Product Brands'),     page: 'product-brands' },
+      { label: label('nav.variations', 'Variations'),             page: 'variations' },
+      { label: label('nav.notifications', 'Notifications'),       page: 'notifications' },
+      { label: label('nav.messaging', 'Messaging'),               page: 'messaging' },
+      { label: label('nav.deleted-items', 'Deleted Items'),       page: 'deleted-items' },
+      { label: label('nav.admin-master-panel', 'Master Control'), page: 'admin-master-panel' },
+      { label: label('nav.label-editor', 'Label Editor'),         page: 'label-editor', perm: PERMISSIONS.ADMIN.RENAME_LABELS },
     ],
   },
 ];
 
 function sectionForPage(page) {
-  for (const s of SECTIONS) {
+  for (const s of getSections()) {
     if (s.items.some(i => i.page === page)) return s.key;
   }
   return null;
@@ -247,7 +256,7 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
         {/* Dashboard */}
         <NavItem
           icon={<LayoutDashboard size={16} />}
-          label="Dashboard"
+          label={label('nav.dashboard', 'Dashboard')}
           active={currentPage === 'dashboard'}
           collapsed={collapsed}
           onClick={() => navigate('dashboard')}
@@ -255,8 +264,8 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
 
         {/* Sections */}
         <div style={{ flex: 1 }}>
-          {SECTIONS.map(section => {
-            const visibleItems = section.items.filter(i => canAccessPage(i.page, userRole));
+          {getSections().map(section => {
+            const visibleItems = section.items.filter(i => canAccessPage(i.page, userRole) && (!i.perm || canPerm(i.perm)));
             if (visibleItems.length === 0) return null;
 
             const isOpen = open === section.key && !collapsed;

@@ -12,6 +12,8 @@ from app.api.auth import get_current_user
 from app.models.user import User, UserRole
 from app.models.admin import ActivityLog, CompanySettings
 from app.models.role import Role as RoleModel, UserActivityLog
+from app.models.ui_label import UILabel
+from app.utils.permissions import require_permission
 import os, csv, io, json
 
 router = APIRouter()
@@ -350,6 +352,53 @@ def update_role(role_id: int, data: RoleUpdate, db: Session = Depends(get_db),
     log_activity(db, current_user, "update_role", "role", role.id,
                  f"Updated role {role.name}")
     return {'message': 'Role updated', 'id': role.id}
+
+
+# ===== UI LABELS (Admin Label Rename) =====
+
+class LabelUpdate(BaseModel):
+    label_value: str
+
+
+@router.get("/labels")
+def get_labels(db: Session = Depends(get_db)):
+    """Get all UI labels — no auth required so frontend can load on startup"""
+    labels = db.query(UILabel).order_by(UILabel.group_name, UILabel.label_key).all()
+    return [{
+        "id": l.id, "key": l.label_key, "value": l.label_value,
+        "default": l.default_value, "group": l.group_name,
+    } for l in labels]
+
+
+@router.put("/labels/{label_id}")
+def update_label(label_id: int, data: LabelUpdate, db: Session = Depends(get_db),
+                 current_user: User = Depends(get_current_user)):
+    """Update a single label value (requires admin.rename_labels permission)"""
+    require_permission(current_user, 'admin.rename_labels', db)
+    lbl = db.query(UILabel).filter(UILabel.id == label_id).first()
+    if not lbl:
+        raise HTTPException(status_code=404, detail="Label not found")
+    lbl.label_value = data.label_value.strip()
+    lbl.updated_by = current_user.id
+    lbl.updated_at = datetime.now()
+    db.commit()
+    log_activity(db, current_user, "update_label", "ui_label", lbl.id,
+                 f"Changed '{lbl.label_key}' to '{lbl.label_value}'")
+    return {"id": lbl.id, "key": lbl.label_key, "value": lbl.label_value, "message": "Label updated"}
+
+
+@router.post("/labels/reset")
+def reset_labels(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Reset all labels to their default values (requires admin.rename_labels permission)"""
+    require_permission(current_user, 'admin.rename_labels', db)
+    labels = db.query(UILabel).all()
+    for lbl in labels:
+        lbl.label_value = lbl.default_value
+        lbl.updated_by = current_user.id
+        lbl.updated_at = datetime.now()
+    db.commit()
+    log_activity(db, current_user, "reset_labels", "ui_label", None, "Reset all labels to defaults")
+    return {"message": f"Reset {len(labels)} labels to defaults"}
 
 
 @router.get("/roles/{role_name}/permissions")

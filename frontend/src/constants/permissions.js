@@ -134,6 +134,7 @@ export const PERMISSIONS = {
     DELETED_ITEMS: 'admin.deleted_items',
     ACTIVITY_LOG: 'admin.activity_log',
     MASTER_CONTROL: 'admin.master_control',
+    RENAME_LABELS: 'admin.rename_labels',
   },
 };
 

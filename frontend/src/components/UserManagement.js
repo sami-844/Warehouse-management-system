@@ -140,6 +140,7 @@ const permissionGroups = [
       { key: PERMISSIONS.ADMIN.DELETED_ITEMS, label: 'Deleted Items Archive' },
       { key: PERMISSIONS.ADMIN.ACTIVITY_LOG, label: 'Activity Log' },
       { key: PERMISSIONS.ADMIN.MASTER_CONTROL, label: 'Master Control Panel' },
+      { key: PERMISSIONS.ADMIN.RENAME_LABELS, label: 'Rename Labels' },
     ]
   },
 ];

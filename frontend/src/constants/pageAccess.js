@@ -66,6 +66,7 @@ export const PAGE_ROLE_MAP = {
   'damage-items':         ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF'],
   'deleted-items':        ['ADMIN'],
   'admin-master-panel':   ['ADMIN'],
+  'label-editor':         ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF','SALES_STAFF','ACCOUNTANT'],
 };
 
 export function canAccessPage(page, role) {
