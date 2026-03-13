@@ -69,8 +69,10 @@ const getSections = () => [
     label: label('section.delivery', 'Delivery'),
     Icon: Truck,
     items: [
+      { label: label('nav.van-sales', 'Van Sales'),                    page: 'van-sales' },
       { label: label('nav.van-sales-entry', 'Van Sales Entry'),       page: 'van-sales-entry' },
       { label: label('nav.driver-due-summary', 'Driver Due Summary'), page: 'driver-due-summary' },
+      { label: label('nav.driver-dashboard', 'Driver Dashboard'),     page: 'driver-dashboard' },
       { label: label('nav.driver-app', 'Driver App'),                 page: 'driver-app' },
       { label: label('nav.route-optimizer', 'Route Optimizer'),       page: 'route-optimizer' },
     ],

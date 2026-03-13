@@ -71,7 +71,9 @@ import DamageItems from './components/DamageItems';
 import DeletedItems from './components/DeletedItems';
 import AdminMasterPanel from './components/AdminMasterPanel';
 import VanSalesEntry from './components/VanSalesEntry';
+import VanSales from './components/VanSales';
 import DriverDueSummary from './components/DriverDueSummary';
+import DriverDashboard from './components/DriverDashboard';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
 import Breadcrumb from './components/Breadcrumb';
@@ -305,8 +307,10 @@ function App() {
       case 'returns-manager':      return <ReturnsManager />;
 
       // ── Delivery ──
+      case 'van-sales':            return <VanSales />;
       case 'van-sales-entry':      return <VanSalesEntry />;
       case 'driver-due-summary':   return <DriverDueSummary />;
+      case 'driver-dashboard':     return <DriverDashboard />;
       case 'driver-app':           return <DriverApp user={user} onClose={() => navigate('dashboard')} />;
       case 'route-optimizer':      return <RouteOptimizer />;
 
