@@ -24,6 +24,10 @@ try:
     from app.models.van_sales import DriverRouteAccount, DriverRouteAccountItem
 except ImportError:
     pass
+try:
+    from app.models.stock_alert import StockAlert
+except ImportError:
+    pass
 
 __all__ = [
     "Base", "User", "UserRole", "Product", "ProductCategory",

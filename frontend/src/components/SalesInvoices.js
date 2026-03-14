@@ -22,6 +22,7 @@ function SalesInvoices() {
   const [payForm, setPayForm] = useState({ amount: '', payment_method: 'cash', payment_date: new Date().toISOString().slice(0, 10), bank_reference: '', notes: '' });
   const [message, setMessage] = useState({ text: '', type: '' });
   const [saving, setSaving] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); loadAging(); loadOverdue(); }, [filterStatus]);
@@ -86,6 +87,27 @@ function SalesInvoices() {
   };
 
   const statusColor = (s) => ({ pending: '#d97706', partial: '#2563eb', paid: '#16a34a' }[s] || '#6b7280');
+
+  const prepareFawtara = async (invoiceId) => {
+    try {
+      const res = await fetch(`/api/fawtara/prepare/${invoiceId}`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+      if (!res.ok) throw new Error('Failed');
+      setMessage({ text: 'Invoice prepared for Fawtara', type: 'success' });
+      load();
+      setSelectedInvoice(null);
+    } catch (err) { setMessage({ text: 'Failed to prepare invoice for Fawtara', type: 'error' }); }
+  };
+
+  const submitFawtara = async (invoiceId) => {
+    try {
+      const res = await fetch(`/api/fawtara/submit/${invoiceId}`, { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      setMessage({ text: data.message || 'Submitted to Fawtara', type: 'success' });
+      load();
+      setSelectedInvoice(null);
+    } catch (err) { setMessage({ text: 'Fawtara submission failed', type: 'error' }); }
+  };
 
   return (
     <div className="sales-container">
@@ -190,12 +212,12 @@ function SalesInvoices() {
 
       {loading ? <LoadingSpinner /> : (
         <div className="table-container"><table className="data-table">
-          <thead><tr><th>Invoice #</th><th>Customer</th><th>Area</th><th>Date</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Overdue</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Invoice #</th><th>Customer</th><th>Area</th><th>Date</th><th>Due</th><th>Total</th><th>Paid</th><th>Balance</th><th>Overdue</th><th>Status</th><th>Fawtara</th><th></th></tr></thead>
           <tbody>
-            {invoices.length === 0 ? <EmptyState colSpan={11} title="No invoices found" hint="Create a sales order and generate an invoice to get started" /> :
+            {invoices.length === 0 ? <EmptyState colSpan={12} title="No invoices found" hint="Create a sales order and generate an invoice to get started" /> :
               invoices.map(inv => (
                 <tr key={inv.id} className={inv.days_overdue > 0 ? 'overdue-row' : ''}>
-                  <td className="code">{inv.invoice_number}</td><td>{inv.customer_name}</td>
+                  <td className="code"><span style={{ cursor: 'pointer', color: '#1565C0', textDecoration: 'underline' }} onClick={() => setSelectedInvoice(selectedInvoice?.id === inv.id ? null : inv)}>{inv.invoice_number}</span></td><td>{inv.customer_name}</td>
                   <td><span className="area-badge">{inv.area || '-'}</span></td>
                   <td>{fmtDate(inv.invoice_date)}</td><td>{fmtDate(inv.due_date)}</td>
                   <td className="value">{fmtNumber(inv.total_amount)}</td>
@@ -203,6 +225,12 @@ function SalesInvoices() {
                   <td className={`value ${(Number(inv.balance) || 0) > 0 ? 'negative' : ''}`}>{fmtNumber(inv.balance)}</td>
                   <td className={inv.days_overdue > 0 ? 'negative' : ''}>{inv.days_overdue > 0 ? `${inv.days_overdue}d` : '-'}</td>
                   <td><span className="status-pill" style={{ backgroundColor: statusColor(inv.status) }}>{inv.status}</span></td>
+                  <td>{(() => {
+                    const fs = inv.fawtara_status || 'pending';
+                    const fc = { pending: { bg: '#FFF3E0', color: '#E65100', label: 'Not prepared' }, ready: { bg: '#E3F2FD', color: '#1565C0', label: 'Ready' }, submitted: { bg: '#E8F5E9', color: '#2E7D32', label: 'Submitted' }, failed: { bg: '#FFEBEE', color: '#C62828', label: 'Failed' } };
+                    const cfg = fc[fs] || fc.pending;
+                    return <span style={{ background: cfg.bg, color: cfg.color, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>{cfg.label}</span>;
+                  })()}</td>
                   <td className="wms-flex-row">
                     {inv.status !== 'paid' && <button className="pay-btn" onClick={() => { setPayingInvoice(inv); setPayForm(p => ({...p, amount: (Number(inv.balance) || 0).toFixed(3)})); }}>Pay</button>}
                     <button className="wms-btn-action notify" onClick={() => sendInvoiceMsg(inv)} title="Send invoice notification">Notify</button>
@@ -216,6 +244,50 @@ function SalesInvoices() {
             }
           </tbody>
         </table></div>
+      )}
+
+      {/* Fawtara E-Invoicing Detail Panel */}
+      {selectedInvoice && (
+        <div style={{ marginTop: 24, padding: 16, border: '1px solid #DEE2E6', borderRadius: 8, background: '#FAFAFA' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#1A3A5C' }}>
+              Fawtara E-Invoicing — {selectedInvoice.invoice_number}
+            </div>
+            <button onClick={() => setSelectedInvoice(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#6C757D' }}>x</button>
+          </div>
+
+          <div style={{ marginBottom: 12, fontSize: 13 }}>
+            Status: <strong>{selectedInvoice.fawtara_status || 'Not prepared'}</strong>
+            {selectedInvoice.fawtara_uuid && (
+              <div style={{ fontSize: 11, color: '#6C757D', marginTop: 4 }}>UUID: {selectedInvoice.fawtara_uuid}</div>
+            )}
+            {selectedInvoice.fawtara_submitted_at && (
+              <div style={{ fontSize: 11, color: '#6C757D' }}>Submitted: {new Date(selectedInvoice.fawtara_submitted_at).toLocaleString('en-GB')}</div>
+            )}
+          </div>
+
+          {selectedInvoice.qr_code_data && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: '#6C757D', marginBottom: 6 }}>QR Code (appears on printed invoice):</div>
+              <div style={{ background: '#F8F9FA', padding: 8, borderRadius: 4, fontSize: 10, wordBreak: 'break-all', fontFamily: 'monospace', maxHeight: 60, overflow: 'hidden', color: '#495057' }}>
+                {selectedInvoice.qr_code_data.substring(0, 100)}...
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(!selectedInvoice.fawtara_status || selectedInvoice.fawtara_status === 'pending') && (
+              <button className="submit-btn" style={{ fontSize: 12 }} onClick={() => prepareFawtara(selectedInvoice.id)}>Prepare for Fawtara</button>
+            )}
+            {selectedInvoice.fawtara_status === 'ready' && (
+              <button className="submit-btn" style={{ fontSize: 12 }} onClick={() => submitFawtara(selectedInvoice.id)}>Submit to OTA</button>
+            )}
+            {selectedInvoice.fawtara_status === 'failed' && (
+              <button className="submit-btn" style={{ fontSize: 12, background: '#C62828' }} onClick={() => submitFawtara(selectedInvoice.id)}>Retry Submission</button>
+            )}
+            <button className="wms-btn-action xml" style={{ fontSize: 12 }} onClick={() => salesAPI.downloadFawtaraXML(selectedInvoice.id)}>Download XML</button>
+          </div>
+        </div>
       )}
     </div>
   );

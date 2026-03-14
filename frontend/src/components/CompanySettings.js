@@ -283,6 +283,18 @@ function CompanySettings() {
               <div className="form-group"><label>Default VAT Rate (%)</label>
                 <input type="number" step="0.1" value={form.tax_rate || ''} onChange={e => setForm(p => ({...p, tax_rate: e.target.value}))} placeholder="5" /></div>
             </div>
+
+            <h3 style={{ marginTop: 24 }}>Fawtara E-Invoicing (Oman Tax Authority)</h3>
+            <p style={{ color: '#64748b', fontSize: 13, marginBottom: 12 }}>These fields are required for Fawtara e-invoice submission to OTA.</p>
+            <div className="form-row-2">
+              <div className="form-group"><label>Company VAT Number (for Fawtara)</label>
+                <input value={form.company_vat_number || ''} onChange={e => setForm(p => ({...p, company_vat_number: e.target.value}))} placeholder="e.g. OM1234567890123" />
+                <small style={{ color: '#6C757D', fontSize: 11 }}>Your Oman Tax Authority VAT number — appears on all invoices and Fawtara submissions</small></div>
+              <div className="form-group"><label>Commercial Registration (CR) Number</label>
+                <input value={form.company_cr_number || ''} onChange={e => setForm(p => ({...p, company_cr_number: e.target.value}))} placeholder="e.g. 1234567" />
+                <small style={{ color: '#6C757D', fontSize: 11 }}>CR number registered with the Ministry of Commerce</small></div>
+            </div>
+
             <h3 style={{ marginTop: 24 }}>Purchase Settings</h3>
             <div className="form-row-2">
               <div className="form-group"><label>Auto-approve POs under (OMR)</label>

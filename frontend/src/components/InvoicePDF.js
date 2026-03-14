@@ -19,17 +19,25 @@ function InvoicePDF({ orderId, onClose }) {
 
   useEffect(() => {
     if (!data) return;
-    const { company, order, tax_amount, total } = data;
-    const qrData = [
-      company.name,
-      company.tax_id || '',
-      order.order_date || new Date().toISOString().slice(0, 10),
-      (Number(total) || 0).toFixed(3),
-      (Number(tax_amount) || 0).toFixed(3),
-    ].join('|');
-    QRCode.toDataURL(qrData, { width: 100, margin: 1 })
-      .then(url => setQrSrc(url))
-      .catch(() => {}); // silently skip if QR generation fails
+    // Prefer Fawtara-prepared QR code (TLV base64) if available, else fallback to local generation
+    const fawtaraQR = data.qr_code_data || data.order?.qr_code_data;
+    if (fawtaraQR) {
+      QRCode.toDataURL(fawtaraQR, { width: 100, margin: 1 })
+        .then(url => setQrSrc(url))
+        .catch(() => {});
+    } else {
+      const { company, order, tax_amount, total } = data;
+      const qrData = [
+        company.name,
+        company.tax_id || '',
+        order.order_date || new Date().toISOString().slice(0, 10),
+        (Number(total) || 0).toFixed(3),
+        (Number(tax_amount) || 0).toFixed(3),
+      ].join('|');
+      QRCode.toDataURL(qrData, { width: 100, margin: 1 })
+        .then(url => setQrSrc(url))
+        .catch(() => {});
+    }
   }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePrint = () => window.print();

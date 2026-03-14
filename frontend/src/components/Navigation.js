@@ -26,6 +26,7 @@ const getSections = () => [
       { label: label('nav.stock-levels', 'Stock Levels'),        page: 'stock-levels' },
       { label: label('nav.stock-take', 'Stock Take'),            page: 'stock-take' },
       { label: label('nav.stock-issue', 'Stock Issue'),          page: 'stock-issue' },
+      { label: label('nav.stock-alerts', 'Stock Alerts'),        page: 'stock-alerts' },
       { label: label('nav.damage-items', 'Damage Items'),        page: 'damage-items' },
       { label: label('nav.stock-log', 'Stock Log'),              page: 'stock-log' },
       { label: label('nav.categories', 'Categories'),            page: 'categories' },
@@ -62,6 +63,7 @@ const getSections = () => [
       { label: label('nav.pricing-rules', 'Pricing Rules'),     page: 'pricing-rules' },
       { label: label('nav.deliveries', 'Deliveries'),            page: 'deliveries' },
       { label: label('nav.returns-manager', 'Returns'),          page: 'returns-manager' },
+      { label: label('nav.collections', 'Collections & Aging'),  page: 'collections' },
     ],
   },
   {

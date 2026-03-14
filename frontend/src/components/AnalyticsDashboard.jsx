@@ -80,6 +80,8 @@ const AnalyticsDashboard = ({ onNavigate }) => {
   const [selectedCategory,  setSelectedCategory]  = useState('');
   const [alertsExpanded,    setAlertsExpanded]    = useState(false);
   const [isRefreshing,      setIsRefreshing]      = useState(false);
+  const [stockAlertCount,  setStockAlertCount]   = useState(0);
+  const [receivables,      setReceivables]       = useState(null);
 
   const nav = (page) => onNavigate?.(page);
 
@@ -96,6 +98,8 @@ const AnalyticsDashboard = ({ onNavigate }) => {
         analyticsAPI.alerts(),
         analyticsAPI.categories(),
         dashboardAPI.summary(),
+        fetch('/api/alerts/stock', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }).then(r => r.json()),
+        fetch('/api/collections/aging', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }).then(r => r.json()),
       ]);
 
       const val = (i) => results[i]?.status === 'fulfilled' ? results[i].value : null;
@@ -120,6 +124,8 @@ const AnalyticsDashboard = ({ onNavigate }) => {
       if (val(3)) setAlertsData(val(3));
       if (val(4)) setCategories(val(4).categories || []);
       setSummaryData(val(5) || summaryData || null);
+      if (val(6)) setStockAlertCount(val(6).total_alerts || 0);
+      if (val(7)) setReceivables(val(7).summary || null);
 
     } catch (err) {
       console.error('Dashboard fetch error:', err);
@@ -246,6 +252,64 @@ const AnalyticsDashboard = ({ onNavigate }) => {
             <KPICard title="Lead Time"            value={kpis.lead_time}                  unit="days" icon="" accent={KPI_ACCENTS.lead_time} />
             <KPICard title="Perfect Order Rate"  value={kpis.perfect_order_rate}         unit="%"    icon="" accent={KPI_ACCENTS.perfect_order_rate} />
             <KPICard title="Return Rate"         value={kpis.rate_of_return}             unit="%"    icon="" accent={KPI_ACCENTS.rate_of_return} />
+          </div>
+        </div>
+      )}
+
+      {/* Stock Alert Widget */}
+      {stockAlertCount > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div
+            onClick={() => nav('stock-alerts')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 16,
+              padding: '14px 20px', borderRadius: 8,
+              background: '#FFF5F5', border: '1px solid #FED7D7',
+              cursor: 'pointer', transition: 'box-shadow 0.2s'
+            }}
+          >
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#DC3545', minWidth: 48, textAlign: 'center' }}>
+              {stockAlertCount}
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: '#DC3545' }}>Stock Alerts</div>
+              <div style={{ fontSize: 12, color: '#6C757D' }}>
+                {stockAlertCount} product(s) at or below reorder level — click to view
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receivables Widget */}
+      {receivables && receivables.total_receivables > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div
+            onClick={() => nav('collections')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 16,
+              padding: '14px 20px', borderRadius: 8,
+              background: '#FFFBEB', border: '1px solid #FDE68A',
+              cursor: 'pointer', transition: 'box-shadow 0.2s'
+            }}
+          >
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#1A3A5C', minWidth: 100, textAlign: 'center' }}>
+              {(receivables.total_receivables || 0).toFixed(3)}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: '#1A3A5C' }}>Total Receivables (OMR)</div>
+              <div style={{ fontSize: 12, color: '#6C757D' }}>
+                {receivables.customer_count || 0} customer(s) with outstanding balances — click to view
+              </div>
+            </div>
+            {receivables.very_late_90_plus > 0 && (
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#DC3545' }}>
+                  {receivables.very_late_90_plus.toFixed(3)} OMR
+                </div>
+                <div style={{ fontSize: 11, color: '#DC3545' }}>overdue 90+ days</div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -11,6 +11,7 @@ import StockReceipt from './components/StockReceipt';
 import StockLevels from './components/StockLevels';
 import StockTake from './components/StockTake';
 import StockIssue from './components/StockIssue';
+import StockAlerts from './components/StockAlerts';
 import ExpiryTracker from './components/ExpiryTracker';
 import InventoryDashboard from './components/InventoryDashboard';
 import BarcodeScanner from './components/BarcodeScanner';
@@ -23,6 +24,7 @@ import CustomerList from './components/CustomerList';
 import SalesOrderList from './components/SalesOrderList';
 import SalesOrderDetail from './components/SalesOrderDetail';
 import SalesInvoices from './components/SalesInvoices';
+import CollectionsDashboard from './components/CollectionsDashboard';
 import DeliveryManager from './components/DeliveryManager';
 import PricingRules from './components/PricingRules';
 import FinancialDashboard from './components/FinancialDashboard';
@@ -277,6 +279,7 @@ function App() {
       case 'products':             return <ProductList />;
       case 'stock-receipt':        return <StockReceipt />;
       case 'stock-levels':         return <StockLevels />;
+      case 'stock-alerts':         return <StockAlerts />;
       case 'stock-take':           return <StockTake />;
       case 'stock-issue':          return <StockIssue />;
       case 'expiry-tracker':       return <ExpiryTracker />;
@@ -304,6 +307,7 @@ function App() {
       case 'pricing-rules':        return <PricingRules />;
       case 'deliveries':           return <DeliveryManager />;
       case 'customer-statement':   return <CustomerStatementPDF />;
+      case 'collections':          return <CollectionsDashboard />;
       case 'returns-manager':      return <ReturnsManager />;
 
       // ── Delivery ──

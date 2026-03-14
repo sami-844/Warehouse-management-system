@@ -97,6 +97,18 @@ async def startup_event():
         # Products: avg_cost and stock_quantity
         ("products", "avg_cost", "NUMERIC(12,3) DEFAULT 0"),
         ("products", "stock_quantity", "NUMERIC(12,3) DEFAULT 0"),
+        # Phase 41: Fawtara e-invoicing fields
+        ("sales_invoices", "fawtara_status", "TEXT DEFAULT 'pending'"),
+        ("sales_invoices", "fawtara_uuid", "TEXT"),
+        ("sales_invoices", "fawtara_submitted_at", "TEXT"),
+        ("sales_invoices", "fawtara_response", "TEXT"),
+        ("sales_invoices", "qr_code_data", "TEXT"),
+        ("sales_invoices", "buyer_vat_number", "TEXT"),
+        ("sales_invoices", "invoice_type", "TEXT DEFAULT 'standard'"),
+        # Phase 42: Stock alerts — product reorder fields
+        ("products", "auto_reorder", "INTEGER DEFAULT 1"),
+        ("products", "preferred_supplier_id", "INTEGER"),
+        ("products", "reorder_quantity", "NUMERIC(12,3) DEFAULT 0"),
     ]
     with engine.connect() as conn:
         for table, col, col_type in _migrations:
@@ -425,6 +437,30 @@ try:
     print("  Van Sales module loaded")
 except ImportError as e:
     print(f"  Van Sales module: {e}")
+
+# ── Phase 41: Fawtara E-Invoicing ──
+try:
+    from app.api.fawtara import router as fawtara_router
+    app.include_router(fawtara_router, prefix="/api/fawtara", tags=["Fawtara E-Invoicing"])
+    print("  Fawtara E-Invoicing module loaded")
+except ImportError as e:
+    print(f"  Fawtara module: {e}")
+
+# ── Phase 42: Stock Alerts & Auto-Reorder ──
+try:
+    from app.api.alerts import router as alerts_router
+    app.include_router(alerts_router, prefix="/api/alerts", tags=["Stock Alerts"])
+    print("  Stock Alerts module loaded")
+except ImportError as e:
+    print(f"  Stock Alerts module: {e}")
+
+# ── Phase 43: Customer Collections & Aging ──
+try:
+    from app.api.collections import router as collections_router
+    app.include_router(collections_router, prefix="/api/collections", tags=["Collections"])
+    print("  Collections module loaded")
+except ImportError as e:
+    print(f"  Collections module: {e}")
 
 # ── RBAC Navigation Helper ──
 @app.get("/api/rbac/nav-items")
