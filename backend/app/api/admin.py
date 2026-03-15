@@ -363,10 +363,11 @@ class LabelUpdate(BaseModel):
 @router.get("/labels")
 def get_labels(db: Session = Depends(get_db)):
     """Get all UI labels — no auth required so frontend can load on startup"""
-    labels = db.query(UILabel).order_by(UILabel.group_name, UILabel.label_key).all()
+    labels = db.query(UILabel).order_by(UILabel.section, UILabel.label_key).all()
     return [{
-        "id": l.id, "key": l.label_key, "value": l.label_value,
-        "default": l.default_value, "group": l.group_name,
+        "id": l.id, "key": l.label_key,
+        "value": l.custom_label if l.custom_label else l.default_label,
+        "default": l.default_label, "group": l.section,
     } for l in labels]
 
 
@@ -378,13 +379,14 @@ def update_label(label_id: int, data: LabelUpdate, db: Session = Depends(get_db)
     lbl = db.query(UILabel).filter(UILabel.id == label_id).first()
     if not lbl:
         raise HTTPException(status_code=404, detail="Label not found")
-    lbl.label_value = data.label_value.strip()
+    lbl.custom_label = data.label_value.strip()
     lbl.updated_by = current_user.id
     lbl.updated_at = datetime.now()
     db.commit()
+    display_value = lbl.custom_label if lbl.custom_label else lbl.default_label
     log_activity(db, current_user, "update_label", "ui_label", lbl.id,
-                 f"Changed '{lbl.label_key}' to '{lbl.label_value}'")
-    return {"id": lbl.id, "key": lbl.label_key, "value": lbl.label_value, "message": "Label updated"}
+                 f"Changed '{lbl.label_key}' to '{display_value}'")
+    return {"id": lbl.id, "key": lbl.label_key, "value": display_value, "message": "Label updated"}
 
 
 @router.post("/labels/reset")
@@ -393,7 +395,7 @@ def reset_labels(db: Session = Depends(get_db), current_user: User = Depends(get
     require_permission(current_user, 'admin.rename_labels', db)
     labels = db.query(UILabel).all()
     for lbl in labels:
-        lbl.label_value = lbl.default_value
+        lbl.custom_label = None
         lbl.updated_by = current_user.id
         lbl.updated_at = datetime.now()
     db.commit()

@@ -149,8 +149,8 @@ def seed_ui_labels():
     with engine.connect() as conn:
         for key, default_val, group in _defaults:
             conn.execute(text(
-                "INSERT INTO ui_labels (label_key, label_value, default_value, group_name) "
-                "VALUES (:key, :val, :val, :grp) "
+                "INSERT INTO ui_labels (label_key, default_label, section) "
+                "VALUES (:key, :val, :grp) "
                 "ON CONFLICT (label_key) DO NOTHING"
             ), {"key": key, "val": default_val, "grp": group})
         conn.commit()
@@ -344,8 +344,8 @@ async def startup_event():
                 result = conn.execute(text("SELECT id FROM ui_labels WHERE label_key = :k"), {"k": lbl_key})
                 if not result.fetchone():
                     conn.execute(text(
-                        "INSERT INTO ui_labels (label_key, label_value, default_value, group_name) "
-                        "VALUES (:k, :v, :v, :g)"
+                        "INSERT INTO ui_labels (label_key, default_label, section) "
+                        "VALUES (:k, :v, :g)"
                     ), {"k": lbl_key, "v": lbl_val, "g": grp})
                     conn.commit()
             except Exception:
