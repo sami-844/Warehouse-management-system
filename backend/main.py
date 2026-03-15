@@ -50,9 +50,26 @@ async def rbac_middleware(request: Request, call_next):
 
 app.include_router(analytics_router)
 
+def run_migrations():
+    """Run Alembic migrations automatically on startup."""
+    import os
+    from alembic.config import Config
+    from alembic import command as alembic_command
+    alembic_ini = os.path.join(os.path.dirname(__file__), "alembic.ini")
+    alembic_cfg = Config(alembic_ini)
+    alembic_cfg.set_main_option("script_location", os.path.join(os.path.dirname(__file__), "alembic"))
+    alembic_command.upgrade(alembic_cfg, "head")
+
+
 @app.on_event("startup")
 async def startup_event():
     print(f"Starting {settings.APP_NAME} v5.3")
+    # Run Alembic migrations before anything else
+    try:
+        run_migrations()
+        print("Alembic migrations: up to date")
+    except Exception as e:
+        print(f"Alembic migration warning: {e}")
     from sqlalchemy import text
     from sqlalchemy.exc import ProgrammingError
     # Only run PostgreSQL-specific ENUM creation on PostgreSQL
