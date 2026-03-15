@@ -613,19 +613,87 @@ async def import_products_file(
         fname = (file.filename or '').lower()
 
         rows = []
-        if fname.endswith('.xlsx') or fname.endswith('.xls'):
+        delivery_sheet_detected = False
+
+        # ── Delivery sheet detection (.xls old Excel format) ──
+        if fname.endswith('.xls') and not fname.endswith('.xlsx'):
+            import xlrd
+            xls_wb = xlrd.open_workbook(file_contents=content)
+            ws = xls_wb.sheet_by_index(0)
+            # Check row 4 (index 3) for delivery sheet headers: SL, ITEM
+            if ws.nrows >= 5:
+                r3 = [str(ws.cell_value(3, c)).strip().upper() for c in range(min(ws.ncols, 9))]
+                if 'SL' in r3 and 'ITEM' in r3:
+                    delivery_sheet_detected = True
+                    for rx in range(4, ws.nrows):
+                        sl_val = ws.cell_value(rx, 0)
+                        # Data ends when SL column is empty
+                        if sl_val is None or str(sl_val).strip() == '':
+                            break
+                        try:
+                            sl_num = int(float(sl_val))
+                        except (ValueError, TypeError):
+                            break
+                        name = str(ws.cell_value(rx, 1)).strip()
+                        if not name:
+                            continue
+                        rows.append({
+                            'sku': f"SL-{sl_num:03d}",
+                            'name': name,
+                            'unit_of_measure': str(ws.cell_value(rx, 2)).strip() or 'pcs',
+                            'selling_price': str(ws.cell_value(rx, 4) or '0'),
+                            'standard_cost': str(ws.cell_value(rx, 6) or '0'),
+                        })
+            # If not a delivery sheet, parse as standard Excel with headers in row 1
+            if not delivery_sheet_detected:
+                if ws.nrows < 2:
+                    return {"imported": 0, "skipped": 0, "errors": ["File has no data rows"]}
+                headers = [str(ws.cell_value(0, c) or '').strip().lower().replace(' ', '_') for c in range(ws.ncols)]
+                for rx in range(1, ws.nrows):
+                    row = {}
+                    for c, h in enumerate(headers):
+                        val = ws.cell_value(rx, c)
+                        row[h] = str(val) if val is not None else ''
+                    rows.append(row)
+
+        elif fname.endswith('.xlsx'):
             from openpyxl import load_workbook
             wb = load_workbook(filename=io.BytesIO(content), read_only=True)
             ws = wb.active
             data = list(ws.iter_rows(values_only=True))
             if len(data) < 2:
+                wb.close()
                 return {"imported": 0, "skipped": 0, "errors": ["File has no data rows"]}
-            headers = [str(h or '').strip().lower().replace(' ', '_') for h in data[0]]
-            for vals in data[1:]:
-                row = {}
-                for j, h in enumerate(headers):
-                    row[h] = str(vals[j]) if j < len(vals) and vals[j] is not None else ''
-                rows.append(row)
+            # Check for delivery sheet format in .xlsx too
+            if len(data) >= 5:
+                r3 = [str(v or '').strip().upper() for v in data[3][:9]]
+                if 'SL' in r3 and 'ITEM' in r3:
+                    delivery_sheet_detected = True
+                    for vals in data[4:]:
+                        sl_val = vals[0] if len(vals) > 0 else None
+                        if sl_val is None or str(sl_val).strip() == '':
+                            break
+                        try:
+                            sl_num = int(float(sl_val))
+                        except (ValueError, TypeError):
+                            break
+                        name = str(vals[1] or '').strip() if len(vals) > 1 else ''
+                        if not name:
+                            continue
+                        rows.append({
+                            'sku': f"SL-{sl_num:03d}",
+                            'name': name,
+                            'unit_of_measure': str(vals[2] or '').strip() or 'pcs' if len(vals) > 2 else 'pcs',
+                            'selling_price': str(vals[4] or '0') if len(vals) > 4 else '0',
+                            'standard_cost': str(vals[6] or '0') if len(vals) > 6 else '0',
+                        })
+            if not delivery_sheet_detected:
+                headers = [str(h or '').strip().lower().replace(' ', '_') for h in data[0]]
+                for vals in data[1:]:
+                    row = {}
+                    for j, h in enumerate(headers):
+                        row[h] = str(vals[j]) if j < len(vals) and vals[j] is not None else ''
+                    rows.append(row)
             wb.close()
         elif fname.endswith('.csv'):
             text = content.decode('utf-8-sig')
@@ -633,7 +701,7 @@ async def import_products_file(
             for r in reader:
                 rows.append({k.strip().lower().replace(' ', '_'): (v or '').strip() for k, v in r.items()})
         else:
-            raise HTTPException(400, 'Only CSV and Excel (.xlsx) files are supported')
+            raise HTTPException(400, 'Only CSV and Excel (.xlsx/.xls) files are supported')
 
         imported, skipped, errors = 0, 0, []
         for i, row in enumerate(rows, start=2):
@@ -722,7 +790,8 @@ async def import_products_file(
         return {
             "imported": imported, "skipped": skipped,
             "errors": errors[:10],
-            "message": f"Import complete: {imported} products added, {skipped} skipped"
+            "message": f"Import complete: {imported} products added, {skipped} skipped",
+            "format": "delivery_sheet" if delivery_sheet_detected else "standard"
         }
     except HTTPException:
         raise

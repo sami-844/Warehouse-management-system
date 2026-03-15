@@ -265,7 +265,7 @@ function CsvImportModal({ type = 'products', onClose, onImport, onImportFile }) 
                 Import {typeLabel} from CSV / Excel
               </div>
               <div style={{ fontSize: 'var(--ds-text-xs)', color: 'var(--ds-text-muted)', marginTop: 1 }}>
-                Upload a .csv or .xlsx file to bulk-import records
+                Upload a .csv, .xlsx, or .xls file to bulk-import records
               </div>
             </div>
           </div>
@@ -408,10 +408,10 @@ function CsvImportModal({ type = 'products', onClose, onImport, onImportFile }) 
               <Upload size={28} color="var(--ds-text-muted)" />
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, color: 'var(--ds-text-sub)', fontSize: 'var(--ds-text-sm)' }}>
-                  {fileName ? fileName : 'Click to choose a .csv or .xlsx file'}
+                  {fileName ? fileName : 'Click to choose a .csv, .xlsx, or .xls file'}
                 </div>
                 <div style={{ fontSize: 'var(--ds-text-xs)', color: 'var(--ds-text-muted)', marginTop: 2 }}>
-                  Accepts .csv and .xlsx files. UTF-8 encoding recommended for CSV.
+                  Accepts .csv, .xlsx, and .xls files. Also supports Al Mumayza delivery sheet format.
                 </div>
               </div>
               {fileName && (
