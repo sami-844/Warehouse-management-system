@@ -189,7 +189,7 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
   };
 
   return (
-    <>
+    <nav className="no-print">
       {/* Mobile top bar */}
       {isMobile && (
         <div style={{
@@ -380,7 +380,7 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
           </button>
         </div>
       </div>
-    </>
+    </nav>
   );
 }
 

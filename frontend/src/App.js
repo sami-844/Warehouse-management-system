@@ -378,7 +378,7 @@ function App() {
         user={user} onLogout={handleLogout}
         onWidthChange={setSidebarWidth}
       />
-      <div style={{ marginLeft: sidebarWidth, paddingTop: isMobile ? 56 : 0, transition: 'margin-left 0.2s ease', minHeight: '100vh' }}>
+      <div className="main-content" style={{ marginLeft: sidebarWidth, paddingTop: isMobile ? 56 : 0, transition: 'margin-left 0.2s ease', minHeight: '100vh' }}>
         <Breadcrumb currentPage={currentPage} onNavigate={navigate} />
         <ErrorBoundary key={currentPage} onReset={() => setCurrentPage('dashboard')}>
           {renderPage()}

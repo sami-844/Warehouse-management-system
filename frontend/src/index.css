@@ -308,3 +308,128 @@ body {
   padding: 10px 14px !important;
   font-size: 14px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Print Layout — hide nav, full-width content, clean tables
+   ═══════════════════════════════════════════════════════════ */
+@media print {
+  /* Hide everything that should not print */
+  .navigation,
+  .sidebar,
+  nav,
+  .nav-sidebar,
+  .top-bar,
+  .page-header-actions,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .modal-overlay,
+  .toast-container,
+  button:not(.print-only),
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset page layout for print */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    font-size: 11pt !important;
+    font-family: Arial, sans-serif !important;
+  }
+
+  /* Main content takes full width — no sidebar offset */
+  .main-content,
+  .content-area,
+  .page-content,
+  .dashboard-container,
+  [class*="main-content"],
+  [class*="content-wrapper"] {
+    margin-left: 0 !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Page title visible and clean */
+  h1, h2, h3 {
+    color: black !important;
+    page-break-after: avoid;
+  }
+
+  /* Cards: clean borders, no shadows */
+  .card,
+  [class*="card"],
+  [class*="kpi"] {
+    border: 1px solid #CCCCCC !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    background: white !important;
+  }
+
+  /* KPI grid: always 4 across on print */
+  .kpi-grid,
+  [class*="kpi-grid"],
+  [class*="stats-grid"] {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Tables: clean, full width, no overflow */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9pt !important;
+  }
+
+  th, td {
+    border: 1px solid #CCCCCC !important;
+    padding: 4px 8px !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+  }
+
+  th {
+    background: #1A3A5C !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Charts: give them fixed height so they don't collapse */
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Keep chart sections together */
+  [class*="chart"] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Don't cut text off — allow word wrap everywhere */
+  * {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    max-width: 100% !important;
+  }
+
+  /* Page breaks */
+  .page-break {
+    page-break-before: always;
+    break-before: always;
+  }
+
+  /* Company header on every printed page */
+  @page {
+    margin: 15mm 12mm 15mm 12mm;
+    size: A4;
+  }
+}
