@@ -14,7 +14,7 @@ class Role(str, Enum):
     ACCOUNTANT = "ACCOUNTANT"
 
 
-PUBLIC_PATHS = ["/api/auth", "/api/health", "/api/docs", "/api/redoc", "/api/openapi", "/", "/api/rbac"]
+PUBLIC_PATHS = ["/api/auth", "/api/health", "/api/docs", "/api/redoc", "/api/openapi", "/", "/api/rbac", "/api/admin/labels"]
 
 ROLE_PERMISSIONS = {
     Role.ADMIN: {
