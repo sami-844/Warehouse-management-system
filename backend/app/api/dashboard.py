@@ -167,7 +167,7 @@ def dashboard_summary():
             SELECT account_name as name, account_type as type,
                    current_balance as balance, currency
             FROM bank_accounts
-            WHERE is_active = 1
+            WHERE is_active = true
             ORDER BY is_default DESC, account_name
         """)
         result["bank_balances"] = [{

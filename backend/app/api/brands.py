@@ -33,7 +33,7 @@ def list_brands():
     try:
         rows = run_q("""
             SELECT b.id, b.name, b.status, b.created_at,
-                   (SELECT COUNT(*) FROM products p WHERE p.brand_id = b.id AND p.is_active = 1) as product_count
+                   (SELECT COUNT(*) FROM products p WHERE p.brand_id = b.id AND p.is_active = true) as product_count
             FROM product_brands b
             ORDER BY b.name
         """)

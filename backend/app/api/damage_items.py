@@ -89,7 +89,7 @@ def create_damage_item(data: DamageItemCreate):
     # Determine warehouse
     wh_id = data.warehouse_id
     if not wh_id:
-        whs = run_q("SELECT id FROM warehouses WHERE is_active = 1 ORDER BY id LIMIT 1")
+        whs = run_q("SELECT id FROM warehouses WHERE is_active = true ORDER BY id LIMIT 1")
         wh_id = whs[0]['id'] if whs else None
 
     with engine.begin() as conn:

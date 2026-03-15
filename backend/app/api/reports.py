@@ -41,7 +41,7 @@ async def balance_sheet(as_of_date: Optional[str] = None,
             LEFT JOIN journal_entry_lines jel ON jel.account_code = a.code
             LEFT JOIN journal_entries je ON je.id = jel.journal_entry_id
                 AND DATE(je.entry_date) <= :as_of
-            WHERE a.account_type = :atype AND a.is_active = 1
+            WHERE a.account_type = :atype AND a.is_active = true
             GROUP BY a.code, a.name
             ORDER BY a.code
         """, {"atype": account_type, "as_of": as_of})

@@ -54,7 +54,7 @@ class BankAccountUpdate(BaseModel):
 @router.get("/bank-accounts")
 def list_bank_accounts(include_inactive: bool = False):
     try:
-        where = "1=1" if include_inactive else "is_active = 1"
+        where = "1=1" if include_inactive else "is_active = true"
         rows = run_q(f"""
             SELECT id, account_name, account_type, bank_name, account_number,
                    iban, currency, opening_balance, current_balance,
@@ -189,12 +189,12 @@ def delete_bank_account(account_id: int):
 @router.get("/summary")
 def bank_accounts_summary():
     try:
-        total_balance = run_s("SELECT COALESCE(SUM(current_balance), 0) FROM bank_accounts WHERE is_active = 1")
-        total_accounts = run_s("SELECT COUNT(*) FROM bank_accounts WHERE is_active = 1")
-        cash_count = run_s("SELECT COUNT(*) FROM bank_accounts WHERE is_active = 1 AND account_type = 'cash'")
-        bank_count = run_s("SELECT COUNT(*) FROM bank_accounts WHERE is_active = 1 AND account_type = 'bank'")
-        cash_balance = run_s("SELECT COALESCE(SUM(current_balance), 0) FROM bank_accounts WHERE is_active = 1 AND account_type = 'cash'")
-        bank_balance = run_s("SELECT COALESCE(SUM(current_balance), 0) FROM bank_accounts WHERE is_active = 1 AND account_type = 'bank'")
+        total_balance = run_s("SELECT COALESCE(SUM(current_balance), 0) FROM bank_accounts WHERE is_active = true")
+        total_accounts = run_s("SELECT COUNT(*) FROM bank_accounts WHERE is_active = true")
+        cash_count = run_s("SELECT COUNT(*) FROM bank_accounts WHERE is_active = true AND account_type = 'cash'")
+        bank_count = run_s("SELECT COUNT(*) FROM bank_accounts WHERE is_active = true AND account_type = 'bank'")
+        cash_balance = run_s("SELECT COALESCE(SUM(current_balance), 0) FROM bank_accounts WHERE is_active = true AND account_type = 'cash'")
+        bank_balance = run_s("SELECT COALESCE(SUM(current_balance), 0) FROM bank_accounts WHERE is_active = true AND account_type = 'bank'")
     except Exception:
         total_balance = total_accounts = cash_count = bank_count = cash_balance = bank_balance = 0
 

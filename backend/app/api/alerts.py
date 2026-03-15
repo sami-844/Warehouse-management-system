@@ -29,8 +29,8 @@ async def get_stock_alerts(
                s.name as supplier_name
         FROM products p
         LEFT JOIN suppliers s ON s.id = p.preferred_supplier_id
-        WHERE p.is_active = 1
-          AND COALESCE(p.is_deleted, 0) = 0
+        WHERE p.is_active = true
+          AND COALESCE(p.is_deleted, false) = false
           AND COALESCE(p.stock_quantity, 0) <= COALESCE(p.reorder_level, 0)
           AND COALESCE(p.reorder_level, 0) > 0
         ORDER BY p.stock_quantity ASC
