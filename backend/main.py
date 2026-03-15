@@ -165,6 +165,25 @@ async def startup_event():
         print("Alembic migrations: up to date")
     except Exception as e:
         print(f"Alembic migration warning: {e}")
+    # Rename ui_labels columns if they have old names (label_value→default_label etc.)
+    from sqlalchemy import text as _text, inspect as _inspect
+    try:
+        with engine.connect() as conn:
+            insp = _inspect(engine)
+            if 'ui_labels' in insp.get_table_names():
+                cols = [c['name'] for c in insp.get_columns('ui_labels')]
+                if 'label_value' in cols and 'default_label' not in cols:
+                    conn.execute(_text("ALTER TABLE ui_labels RENAME COLUMN label_value TO default_label"))
+                    conn.commit()
+                if 'default_value' in cols and 'custom_label' not in cols:
+                    conn.execute(_text("ALTER TABLE ui_labels RENAME COLUMN default_value TO custom_label"))
+                    conn.commit()
+                if 'group_name' in cols and 'section' not in cols:
+                    conn.execute(_text("ALTER TABLE ui_labels RENAME COLUMN group_name TO section"))
+                    conn.commit()
+                print("UI labels columns: verified")
+    except Exception as e:
+        print(f"UI labels column rename warning: {e}")
     # Seed default UI labels
     try:
         seed_ui_labels()
