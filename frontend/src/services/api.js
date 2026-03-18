@@ -252,6 +252,18 @@ export const reportsAPI = {
   cashFlow: async (params = {}) => (await api.get('/api/reports/cash-flow', { params })).data,
 };
 
+export const fawtaraAPI = {
+  dashboard: async () => (await api.get('/api/fawtara/dashboard')).data,
+  prepare: async (invoiceId) => (await api.post(`/api/fawtara/prepare/${invoiceId}`)).data,
+  submit: async (invoiceId) => (await api.post(`/api/fawtara/submit/${invoiceId}`)).data,
+  prepareAll: async () => (await api.post('/api/fawtara/prepare-all')).data,
+  downloadXml: async (invoiceId) => {
+    const resp = await api.get(`/api/fawtara/xml/${invoiceId}`, { responseType: 'blob' });
+    return resp.data;
+  },
+  status: async () => (await api.get('/api/fawtara/status')).data,
+};
+
 export const csvImportAPI = {
   importProducts: async (rows) => (await api.post('/api/products/import', rows)).data,
   importCustomers: async (rows) => (await api.post('/api/customers/import', rows)).data,

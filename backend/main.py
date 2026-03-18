@@ -136,6 +136,7 @@ def seed_ui_labels():
         ('nav.expense-breakdown', 'Expense Breakdown', 'navigation'),
         ('nav.sales-tax', 'Sales Tax', 'navigation'),
         ('nav.vat-return', 'VAT Return', 'navigation'),
+        ('nav.fawtara-dashboard', 'Fawtara E-Invoicing', 'navigation'),
         ('nav.bank-recon', 'Bank Reconciliation', 'navigation'),
         ('nav.advance-payments', 'Advance Payments', 'navigation'),
         # Admin
@@ -252,6 +253,10 @@ async def startup_event():
         ("products", "reorder_quantity", "NUMERIC(12,3) DEFAULT 0"),
         # Phase 44: Van warehouse assignment for drivers
         ("users", "van_warehouse_id", "INTEGER"),
+        # Phase 46: Fawtara hash chain and XML archive
+        ("sales_invoices", "fawtara_xml", "TEXT"),
+        ("sales_invoices", "invoice_hash", "TEXT"),
+        ("sales_invoices", "previous_invoice_hash", "TEXT"),
     ]
     with engine.connect() as conn:
         for table, col, col_type in _migrations:

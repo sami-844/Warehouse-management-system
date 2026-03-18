@@ -106,6 +106,7 @@ const getSections = () => [
       { label: label('nav.expense-breakdown', 'Expense Breakdown'),      page: 'expense-breakdown' },
       { label: label('nav.sales-tax', 'Sales Tax'),                      page: 'sales-tax' },
       { label: label('nav.vat-return', 'VAT Return'),                    page: 'vat-return' },
+      { label: label('nav.fawtara-dashboard', 'Fawtara E-Invoicing'),    page: 'fawtara-dashboard' },
       { label: label('nav.bank-recon', 'Bank Reconciliation'),           page: 'bank-recon' },
       { label: label('nav.advance-payments', 'Advance Payments'),        page: 'advance-payments' },
     ],

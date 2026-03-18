@@ -53,6 +53,7 @@ export const PAGE_ROLE_MAP = {
   'profit-loss':          ['ADMIN','ACCOUNTANT','WAREHOUSE_MANAGER'],
   'trial-balance':        ['ADMIN','ACCOUNTANT'],
   'cash-flow':            ['ADMIN','ACCOUNTANT'],
+  'fawtara-dashboard':    ['ADMIN','ACCOUNTANT'],
   'general-ledger':       ['ADMIN','ACCOUNTANT'],
   'vendor-ledger':        ['ADMIN','ACCOUNTANT'],
   'all-sales-report':     ['ADMIN','ACCOUNTANT'],

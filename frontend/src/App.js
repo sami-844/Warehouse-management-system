@@ -61,6 +61,7 @@ import BalanceSheet from './components/BalanceSheet';
 import ProfitLoss from './components/ProfitLoss';
 import TrialBalance from './components/TrialBalance';
 import CashFlowStatement from './components/CashFlowStatement';
+import FawtaraDashboard from './components/FawtaraDashboard';
 import GeneralLedger from './components/GeneralLedger';
 import VendorLedger from './components/VendorLedger';
 import AllSalesReport from './components/AllSalesReport';
@@ -339,6 +340,7 @@ function App() {
       case 'profit-loss':          return <ProfitLoss />;
       case 'trial-balance':        return <TrialBalance />;
       case 'cash-flow':            return <CashFlowStatement />;
+      case 'fawtara-dashboard':    return <FawtaraDashboard />;
       case 'general-ledger':       return <GeneralLedger />;
       case 'vendor-ledger':        return <VendorLedger />;
       case 'all-sales-report':     return <AllSalesReport />;
