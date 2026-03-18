@@ -176,6 +176,7 @@ async def startup_event():
         print("Alembic migrations: up to date")
     except Exception as e:
         print(f"Alembic migration warning: {e}")
+    print("STARTUP: Alembic done, starting column migrations...")
     # Rename ui_labels columns if they have old names (label_value→default_label etc.)
     from sqlalchemy import text as _text, inspect as _inspect
     try:
@@ -192,15 +193,15 @@ async def startup_event():
                 if 'group_name' in cols and 'section' not in cols:
                     conn.execute(_text("ALTER TABLE ui_labels RENAME COLUMN group_name TO section"))
                     conn.commit()
-                print("UI labels columns: verified")
     except Exception as e:
         print(f"UI labels column rename warning: {e}")
+    print("STARTUP: UI labels columns verified")
     # Seed default UI labels
     try:
         seed_ui_labels()
-        print("UI labels: seeded")
     except Exception as e:
         print(f"UI labels seed warning: {e}")
+    print("STARTUP: UI labels seeded")
     from sqlalchemy import text
     from sqlalchemy.exc import ProgrammingError
     # Only run PostgreSQL-specific ENUM creation on PostgreSQL
@@ -211,7 +212,9 @@ async def startup_event():
                 conn.commit()
             except ProgrammingError:
                 conn.rollback()
+    print("STARTUP: Starting create_all...")
     Base.metadata.create_all(bind=engine, checkfirst=True)
+    print("STARTUP: create_all done")
     # ── Auto-migration: add missing columns to existing tables ──
     _migrations = [
         ("products", "is_deleted", "BOOLEAN DEFAULT FALSE"),
@@ -275,6 +278,7 @@ async def startup_event():
         # Phase 52: Route territory
         ("users", "route_area", "TEXT"),
     ]
+    print("STARTUP: Starting column migrations loop...")
     with engine.connect() as conn:
         for table, col, col_type in _migrations:
             try:
@@ -283,9 +287,12 @@ async def startup_event():
                 try:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
                     conn.commit()
+                    print(f"  MIGRATED: {table}.{col}")
                 except Exception:
                     conn.rollback()
+    print("STARTUP: Column migrations done")
     # ── Phase 37: Seed system roles ──
+    print("STARTUP: Starting role seeding...")
     _system_roles = [
         ("ADMIN", "Administrator", "Full system access", "system"),
         ("WAREHOUSE_MANAGER", "Warehouse Manager", "Manage inventory, purchasing, and warehouse operations", "system"),
@@ -294,54 +301,63 @@ async def startup_event():
         ("DELIVERY_DRIVER", "Delivery Driver", "Delivery management and driver app", "system"),
         ("ACCOUNTANT", "Accountant", "Financial reports, invoices, and accounting", "system"),
     ]
-    with engine.connect() as conn:
-        for role_name, display, desc, rtype in _system_roles:
-            try:
-                result = conn.execute(text("SELECT id FROM roles WHERE name = :name"), {"name": role_name})
-                if not result.fetchone():
-                    conn.execute(text(
-                        "INSERT INTO roles (name, display_name, description, role_type, permissions_json, is_active) "
-                        "VALUES (:name, :display, :desc, :rtype, :perms, 1)"
-                    ), {"name": role_name, "display": display, "desc": desc, "rtype": rtype, "perms": "{}"})
-                    conn.commit()
-            except Exception:
-                conn.rollback()
+    try:
+        with engine.connect() as conn:
+            for role_name, display, desc, rtype in _system_roles:
+                try:
+                    result = conn.execute(text("SELECT id FROM roles WHERE name = :name"), {"name": role_name})
+                    if not result.fetchone():
+                        conn.execute(text(
+                            "INSERT INTO roles (name, display_name, description, role_type, permissions_json, is_active) "
+                            "VALUES (:name, :display, :desc, :rtype, :perms, 1)"
+                        ), {"name": role_name, "display": display, "desc": desc, "rtype": rtype, "perms": "{}"})
+                        conn.commit()
+                except Exception:
+                    conn.rollback()
+    except Exception as e:
+        print(f"STARTUP: Role seeding error: {e}")
+    print("STARTUP: Roles seeded")
     # ── Phase 44: Seed van warehouses ──
+    print("STARTUP: Starting van warehouse seeding...")
     _van_warehouses = [
         ("VAN-MANIK", "Van — Manik", "van"),
         ("VAN-ARIF", "Van — Arif", "van"),
         ("VAN-ARAFAT", "Van — Arafat", "van"),
     ]
-    with engine.connect() as conn:
-        # Ensure main warehouse exists (id=1)
-        try:
-            result = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'"))
-            main_wh = result.fetchone()
-            if not main_wh:
-                conn.execute(text(
-                    "INSERT INTO warehouses (code, name, location_type, is_active) "
-                    "VALUES ('WH-01', 'Main Warehouse', 'main', true)"
-                ))
-                conn.commit()
-        except Exception:
-            conn.rollback()
-
-        for code, name, loc_type in _van_warehouses:
+    try:
+        with engine.connect() as conn:
+            # Ensure main warehouse exists (id=1)
             try:
-                result = conn.execute(text("SELECT id FROM warehouses WHERE code = :code"), {"code": code})
-                if not result.fetchone():
-                    main = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'")).fetchone()
-                    parent_id = main[0] if main else None
+                result = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'"))
+                main_wh = result.fetchone()
+                if not main_wh:
                     conn.execute(text(
-                        "INSERT INTO warehouses (code, name, location_type, parent_id, is_active) "
-                        "VALUES (:code, :name, :loc, :parent, true)"
-                    ), {"code": code, "name": name, "loc": loc_type, "parent": parent_id})
+                        "INSERT INTO warehouses (code, name, location_type, is_active) "
+                        "VALUES ('WH-01', 'Main Warehouse', 'main', true)"
+                    ))
                     conn.commit()
             except Exception:
                 conn.rollback()
-    print("Van warehouses: verified")
+
+            for code, name, loc_type in _van_warehouses:
+                try:
+                    result = conn.execute(text("SELECT id FROM warehouses WHERE code = :code"), {"code": code})
+                    if not result.fetchone():
+                        main = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'")).fetchone()
+                        parent_id = main[0] if main else None
+                        conn.execute(text(
+                            "INSERT INTO warehouses (code, name, location_type, parent_id, is_active) "
+                            "VALUES (:code, :name, :loc, :parent, true)"
+                        ), {"code": code, "name": name, "loc": loc_type, "parent": parent_id})
+                        conn.commit()
+                except Exception:
+                    conn.rollback()
+    except Exception as e:
+        print(f"STARTUP: Van warehouse seeding error: {e}")
+    print("STARTUP: Van warehouses done")
 
     # ── Phase 47: Flag admin for password change if still default ──
+    print("STARTUP: Starting admin password flag...")
     try:
         with engine.connect() as conn:
             admin_user = conn.execute(text(
@@ -355,13 +371,16 @@ async def startup_event():
                     conn.commit()
                 except Exception:
                     conn.rollback()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"STARTUP: Admin password flag error: {e}")
+    print("STARTUP: Admin password flag done")
 
     # ── Phase 48: Create driver_settlements table if not exists ──
+    print("STARTUP: Starting driver_settlements table...")
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1 FROM driver_settlements LIMIT 1"))
+            print("STARTUP: driver_settlements table exists")
     except Exception:
         try:
             with engine.connect() as conn:
@@ -381,14 +400,17 @@ async def startup_event():
                     )
                 """))
                 conn.commit()
-                print("  driver_settlements table created")
+                print("STARTUP: driver_settlements table created")
         except Exception as e:
-            print(f"  driver_settlements table: {e}")
+            print(f"STARTUP: driver_settlements ERROR: {e}")
+    print("STARTUP: driver_settlements done")
 
     # ── Phase 50: Create approval_rules table ──
+    print("STARTUP: Starting approval_rules table...")
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1 FROM approval_rules LIMIT 1"))
+            print("STARTUP: approval_rules table exists")
     except Exception:
         try:
             with engine.connect() as conn:
@@ -413,14 +435,17 @@ async def startup_event():
                     ('Discount above 10%', 'sales_order', 'discount_percent', '>', 10, 'ADMIN')
                 """))
                 conn.commit()
-                print("  approval_rules table created with defaults")
+                print("STARTUP: approval_rules table created with defaults")
         except Exception as e:
-            print(f"  approval_rules: {e}")
+            print(f"STARTUP: approval_rules ERROR: {e}")
+    print("STARTUP: approval_rules done")
 
     # ── Phase 50: Create supplier_price_list table ──
+    print("STARTUP: Starting supplier_price_list table...")
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1 FROM supplier_price_list LIMIT 1"))
+            print("STARTUP: supplier_price_list table exists")
     except Exception:
         try:
             with engine.connect() as conn:
@@ -441,17 +466,25 @@ async def startup_event():
                     )
                 """))
                 conn.commit()
-                print("  supplier_price_list table created")
+                print("STARTUP: supplier_price_list table created")
         except Exception as e:
-            print(f"  supplier_price_list: {e}")
+            print(f"STARTUP: supplier_price_list ERROR: {e}")
+    print("STARTUP: supplier_price_list done")
 
     # Fix any lowercase enum values in inventory_transactions
-    with engine.connect() as conn:
-        try:
+    print("STARTUP: Starting enum fix...")
+    try:
+        with engine.connect() as conn:
             conn.execute(text("UPDATE inventory_transactions SET transaction_type = UPPER(transaction_type) WHERE transaction_type != UPPER(transaction_type)"))
             conn.commit()
-        except Exception:
+    except Exception as e:
+        print(f"STARTUP: enum fix error: {e}")
+        try:
             conn.rollback()
+        except Exception:
+            pass
+    print("STARTUP: Enum fix done")
+    print("STARTUP: All startup tasks complete")
     print("Database tables verified — All Phase 5c modules active")
 
 @app.on_event("shutdown")
