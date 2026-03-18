@@ -85,9 +85,17 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         expires_delta=access_token_expires
     )
 
+    # Check if password change is required
+    must_change = getattr(user, 'must_change_password', False) or False
+
     return {
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "must_change_password": must_change,
+        "user_id": user.id,
+        "username": user.username,
+        "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+        "full_name": user.full_name or user.username,
     }
 
 
@@ -112,11 +120,7 @@ def change_password(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Change current user's password
-
-    Requires authentication and current password verification
-    """
+    """Change current user's password with strength validation."""
     # Verify current password
     if not verify_password(request.current_password, current_user.hashed_password):
         raise HTTPException(
@@ -124,15 +128,26 @@ def change_password(
             detail="Current password is incorrect"
         )
 
-    # Validate new password length
-    if len(request.new_password) < 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="New password must be at least 6 characters"
-        )
+    # Password strength validation
+    new_pw = request.new_password
+    if len(new_pw) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+    if not any(c.isupper() for c in new_pw):
+        raise HTTPException(400, "Password must contain at least one uppercase letter")
+    if not any(c.islower() for c in new_pw):
+        raise HTTPException(400, "Password must contain at least one lowercase letter")
+    if not any(c.isdigit() for c in new_pw):
+        raise HTTPException(400, "Password must contain at least one number")
+    if new_pw == request.current_password:
+        raise HTTPException(400, "New password must be different from current password")
 
-    # Update password
-    current_user.hashed_password = get_password_hash(request.new_password)
+    # Update password and clear the force-change flag
+    current_user.hashed_password = get_password_hash(new_pw)
+    try:
+        current_user.must_change_password = False
+    except Exception:
+        pass  # Column might not exist yet
+
     db.commit()
 
     return {"message": "Password changed successfully"}

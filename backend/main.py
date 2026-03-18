@@ -253,6 +253,8 @@ async def startup_event():
         ("products", "reorder_quantity", "NUMERIC(12,3) DEFAULT 0"),
         # Phase 44: Van warehouse assignment for drivers
         ("users", "van_warehouse_id", "INTEGER"),
+        # Phase 47: Data safety
+        ("users", "must_change_password", "BOOLEAN DEFAULT false"),
         # Phase 46: Fawtara hash chain and XML archive
         ("sales_invoices", "fawtara_xml", "TEXT"),
         ("sales_invoices", "invoice_hash", "TEXT"),
@@ -323,6 +325,24 @@ async def startup_event():
             except Exception:
                 conn.rollback()
     print("Van warehouses: verified")
+
+    # ── Phase 47: Flag admin for password change if still default ──
+    try:
+        with engine.connect() as conn:
+            admin_user = conn.execute(text(
+                "SELECT id, hashed_password FROM users WHERE username = 'admin' LIMIT 1"
+            )).fetchone()
+            if admin_user:
+                try:
+                    conn.execute(text(
+                        "UPDATE users SET must_change_password = true WHERE username = 'admin' AND (must_change_password IS NULL OR must_change_password = false)"
+                    ))
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+    except Exception:
+        pass
+
     # Fix any lowercase enum values in inventory_transactions
     with engine.connect() as conn:
         try:

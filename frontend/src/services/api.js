@@ -299,6 +299,8 @@ export const adminAPI = {
   getRoles: async () => (await api.get('/api/admin/roles')).data,
   updateRole: async (id, data) => (await api.put(`/api/admin/roles/${id}`, data)).data,
   getRolePermissions: async (roleName) => (await api.get(`/api/admin/roles/${roleName}/permissions`)).data,
+  triggerBackup: async () => (await api.post('/api/admin/backup')).data,
+  forcePasswordReset: async (userId) => (await api.post(`/api/admin/users/${userId}/force-password-reset`)).data,
 };
 
 // ━━ Phase 5b: PDF, FIFO, RBAC ━━

@@ -139,6 +139,10 @@ function App() {
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
 
+  // Phase 47: Data safety
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [sessionWarning, setSessionWarning] = useState(false);
+
   // Drill-down state
   const [viewPOId, setViewPOId] = useState(null);
   const [viewSOId, setViewSOId] = useState(null);
@@ -202,6 +206,16 @@ function App() {
       }
       setUser(userData);
       setCurrentPage(userData?.role?.toUpperCase() === 'DELIVERY_DRIVER' ? 'driver-app' : 'dashboard');
+
+      // Phase 47: Check if password change is required
+      if (res.data.must_change_password) {
+        setShowPasswordChange(true);
+      }
+
+      // Phase 47: Session expiry warning — warn 5 minutes before token expires
+      const TOKEN_LIFETIME_MS = 480 * 60 * 1000; // 8 hours
+      const WARNING_BEFORE_MS = 5 * 60 * 1000;   // 5 minutes
+      setTimeout(() => { setSessionWarning(true); }, TOKEN_LIFETIME_MS - WARNING_BEFORE_MS);
     } catch (err) {
       setLoginError(err.response?.data?.detail || 'Login failed — check backend is running');
     }
@@ -383,6 +397,26 @@ function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
       <ToastContainer />
+
+      {/* Phase 47: Session expiry warning */}
+      {sessionWarning && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+          background: '#fef3c7', borderBottom: '2px solid #f59e0b',
+          padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+          fontSize: 13, color: '#92400e', fontWeight: 600,
+        }}>
+          Your session will expire soon. Save your work and refresh to continue.
+          <button onClick={() => window.location.reload()}
+            style={{ padding: '4px 12px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+            Refresh Now
+          </button>
+        </div>
+      )}
+
+      {/* Phase 47: Forced password change modal */}
+      {showPasswordChange && <PasswordChangeModal onDone={() => setShowPasswordChange(false)} />}
+
       <Navigation
         currentPage={currentPage} onNavigate={navigate}
         user={user} onLogout={handleLogout}
@@ -393,6 +427,72 @@ function App() {
         <ErrorBoundary key={currentPage} onReset={() => setCurrentPage('dashboard')}>
           {renderPage()}
         </ErrorBoundary>
+      </div>
+    </div>
+  );
+}
+
+// Phase 47: Password Change Modal (blocks UI until password is changed)
+function PasswordChangeModal({ onDone }) {
+  const [form, setForm] = useState({ current: '', newPw: '', confirm: '' });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (form.newPw.length < 8) return setError('Password must be at least 8 characters');
+    if (!/[A-Z]/.test(form.newPw)) return setError('Must contain an uppercase letter');
+    if (!/[a-z]/.test(form.newPw)) return setError('Must contain a lowercase letter');
+    if (!/[0-9]/.test(form.newPw)) return setError('Must contain a number');
+    if (form.newPw !== form.confirm) return setError('Passwords do not match');
+    if (form.newPw === form.current) return setError('New password must be different');
+
+    setSaving(true);
+    try {
+      await authAPI.changePassword({ current_password: form.current, new_password: form.newPw });
+      onDone();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to change password');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{ background: '#fff', borderRadius: 12, padding: '32px 28px', width: 380, boxShadow: '0 12px 40px rgba(0,0,0,0.3)' }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 18, color: '#dc2626' }}>Password Change Required</h2>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6b7280' }}>
+          Your account requires a password change before continuing.
+        </p>
+        {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{error}</div>}
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Current Password</label>
+            <input type="password" value={form.current} onChange={e => setForm({ ...form, current: e.target.value })} required
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>New Password</label>
+            <input type="password" value={form.newPw} onChange={e => setForm({ ...form, newPw: e.target.value })} required
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
+            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Min 8 chars, uppercase, lowercase, number</div>
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Confirm New Password</label>
+            <input type="password" value={form.confirm} onChange={e => setForm({ ...form, confirm: e.target.value })} required
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+          <button type="submit" disabled={saving} style={{
+            width: '100%', padding: '12px', background: saving ? '#9ca3af' : '#dc2626', color: '#fff',
+            border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer',
+          }}>
+            {saving ? 'Changing...' : 'Change Password'}
+          </button>
+        </form>
       </div>
     </div>
   );

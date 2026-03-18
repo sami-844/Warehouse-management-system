@@ -419,3 +419,50 @@ def get_role_permissions(role_name: str, db: Session = Depends(get_db),
         except Exception:
             perms = []
     return {'permissions': perms}
+
+
+# ── Phase 47: Database Backup ──
+@router.post("/backup")
+def trigger_backup(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Trigger a database backup. Admin only."""
+    require_permission(current_user, 'admin.master_control', db)
+    import subprocess
+    from datetime import datetime as dt
+    timestamp = dt.now().strftime("%Y%m%d_%H%M%S")
+    backup_file = f"/tmp/wms_backup_{timestamp}.sql"
+    try:
+        result = subprocess.run(
+            ["pg_dump", "-U", "warehouse_user", "-d", "warehouse", "-f", backup_file],
+            capture_output=True, text=True, timeout=120,
+            env={**__import__('os').environ, "PGPASSWORD": __import__('os').environ.get("DB_PASSWORD", "")}
+        )
+        if result.returncode == 0:
+            size = os.path.getsize(backup_file) if os.path.exists(backup_file) else 0
+            log_activity(db, current_user, "database_backup", "system", None,
+                         f"Backup created: {backup_file} ({size} bytes)")
+            return {"message": "Backup created successfully", "file": backup_file, "size_bytes": size}
+        else:
+            return {"message": "Backup failed", "error": result.stderr}
+    except Exception as e:
+        raise HTTPException(500, f"Backup failed: {str(e)}")
+
+
+# ── Phase 47: Force Password Reset ──
+@router.post("/users/{user_id}/force-password-reset")
+def force_password_reset(user_id: int, db: Session = Depends(get_db),
+                         current_user: User = Depends(get_current_user)):
+    """Force a user to change their password on next login. Admin only."""
+    require_permission(current_user, 'admin.users.edit', db)
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(404, "User not found")
+    try:
+        target_user.must_change_password = True
+    except Exception:
+        db.execute(text(
+            "UPDATE users SET must_change_password = true WHERE id = :uid"
+        ), {"uid": user_id})
+    db.commit()
+    log_activity(db, current_user, "force_password_reset", "user", user_id,
+                 f"Forced password reset for {target_user.username}")
+    return {"message": f"Password reset required for {target_user.username}"}
