@@ -154,7 +154,7 @@ def update_bank_account(account_id: int, data: BankAccountUpdate):
         # If setting as default, unset all others first
         if data.is_default:
             with engine.begin() as conn:
-                conn.execute(text("UPDATE bank_accounts SET is_default = 0"))
+                conn.execute(text("UPDATE bank_accounts SET is_default = false"))
         sets.append("is_default = :is_default")
         params["is_default"] = 1 if data.is_default else 0
     if data.notes is not None:
@@ -180,7 +180,7 @@ def delete_bank_account(account_id: int):
         raise HTTPException(400, "Cannot delete the default account")
 
     with engine.begin() as conn:
-        conn.execute(text("UPDATE bank_accounts SET is_active = 0 WHERE id = :id"), {"id": account_id})
+        conn.execute(text("UPDATE bank_accounts SET is_active = false WHERE id = :id"), {"id": account_id})
 
     return {"message": "Bank account deactivated"}
 

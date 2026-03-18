@@ -134,8 +134,8 @@ def create_advance(data: AdvanceCreate):
             post_advance_payment(db, int(advance_id), customer_name, float(amount), data.payment_method)
         finally:
             db.close()
-    except Exception:
-        pass  # Journal is best-effort
+    except Exception as e:
+        print(f"JOURNAL ERROR (advance payment): {e}")
 
     return {
         "message": f"Advance payment of {amount:.3f} OMR recorded for {customer_name}",
@@ -235,8 +235,8 @@ def apply_advance(advance_id: int, data: AdvanceApply):
             post_advance_application(db2, advance_id, data.invoice_id, customer_name, float(apply_amount))
         finally:
             db2.close()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"JOURNAL ERROR (advance payment): {e}")
 
     return {
         "message": f"Applied {apply_amount:.3f} OMR to invoice. Remaining advance: {max(new_balance, 0):.3f} OMR",

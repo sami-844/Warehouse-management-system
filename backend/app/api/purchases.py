@@ -435,8 +435,8 @@ async def create_invoice(data: InvoiceCreate, db: Session = Depends(get_db), cur
         post_purchase_invoice(db, inv.id, supplier.name if supplier else "Unknown",
                               float(data.subtotal or 0), float(data.tax_amount or 0),
                               float(data.total_amount or 0), current_user.id)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"JOURNAL ERROR (purchase invoice #{inv.id}): {e}")
     return {"id": inv.id, "invoice_number": inv.invoice_number, "total": float(inv.total_amount)}
 
 @router.post("/invoices/{invoice_id}/payment")
@@ -460,8 +460,8 @@ async def record_payment(invoice_id: int, data: PaymentCreate, db: Session = Dep
         supplier = db.query(Supplier).filter(Supplier.id == inv.supplier_id).first()
         post_purchase_payment(db, invoice_id, supplier.name if supplier else "Unknown",
                               float(data.amount), data.payment_method or "bank", current_user.id)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"JOURNAL ERROR (purchase payment, invoice #{invoice_id}): {e}")
     return {"invoice_number": inv.invoice_number, "payment": data.amount, "new_balance": round(float(inv.total_amount) - float(inv.amount_paid), 3), "status": inv.status}
 
 # ===== AGING REPORT =====

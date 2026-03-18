@@ -261,8 +261,8 @@ def process_return(return_id: int):
                 )
             finally:
                 db.close()
-        except Exception:
-            pass  # Journal entry is best-effort
+        except Exception as e:
+            print(f"JOURNAL ERROR (sales return): {e}")
 
         return {
             "message": f"Return processed. Credit note {cn_number} issued.",
