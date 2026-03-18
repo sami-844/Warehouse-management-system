@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.models.van_sales import DriverRouteAccount, DriverRouteAccountItem
 from app.models.user import User
 from app.models.product import Product
+from app.models.inventory import InventoryTransaction, StockLevel, TransactionType, Warehouse
 from app.api.auth import get_current_user
 
 router = APIRouter()
@@ -127,6 +128,34 @@ def create_route_account(
     db.add(acc)
     db.commit()
     db.refresh(acc)
+
+    # ── Phase 44: Deduct sold items from van stock ──
+    try:
+        driver = db.query(User).filter(User.id == data['driver_id']).first()
+        van_wh = _get_van_warehouse(driver, db)
+        if van_wh:
+            for item in db_items:
+                qty = float(item.quantity or 0)
+                if qty <= 0 or not item.product_id:
+                    continue
+                van_stock = db.query(StockLevel).filter(
+                    StockLevel.product_id == item.product_id,
+                    StockLevel.warehouse_id == van_wh.id
+                ).first()
+                if van_stock and float(van_stock.quantity_on_hand) >= qty:
+                    db.add(InventoryTransaction(
+                        product_id=item.product_id, warehouse_id=van_wh.id,
+                        transaction_type=TransactionType.ISSUE, quantity=qty,
+                        reference_type="VAN_SALE", reference_id=acc.id,
+                        reference_number=f"VS-{acc.id}",
+                        notes=f"Van sale -- {driver.full_name or driver.username} -- {acc.date}",
+                        created_by=current_user.id
+                    ))
+                    van_stock.quantity_on_hand -= qty
+            db.commit()
+    except Exception as e:
+        print(f"Van stock deduction warning: {e}")
+
     return _serialize_account(acc, include_items=True)
 
 
@@ -302,6 +331,278 @@ def products_for_van_sales(
         }
         for p in products
     ]
+
+
+# ── Van stock for a driver ──
+@router.get("/van-stock/{driver_id}")
+def get_van_stock(
+    driver_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get current stock levels on a driver's van."""
+    driver = db.query(User).filter(User.id == driver_id).first()
+    if not driver:
+        raise HTTPException(404, "Driver not found")
+
+    van_wh = _get_van_warehouse(driver, db)
+    if not van_wh:
+        return {"driver_id": driver_id, "driver_name": driver.full_name or driver.username,
+                "van_warehouse": None, "items": [], "total_items": 0}
+
+    stocks = db.query(
+        StockLevel, Product.name, Product.sku, Product.unit_of_measure,
+        Product.selling_price, Product.standard_cost
+    ).join(Product, StockLevel.product_id == Product.id
+    ).filter(
+        StockLevel.warehouse_id == van_wh.id,
+        StockLevel.quantity_on_hand > 0
+    ).order_by(Product.name).all()
+
+    items = [{
+        "product_id": sl.product_id,
+        "product_name": name,
+        "sku": sku,
+        "unit": uom or "CTN",
+        "quantity_on_hand": float(sl.quantity_on_hand),
+        "sell_price": float(sp or 0),
+        "cost_price": float(sc or 0),
+        "stock_value": round(float(sl.quantity_on_hand) * float(sc or 0), 3),
+    } for sl, name, sku, uom, sp, sc in stocks]
+
+    return {
+        "driver_id": driver_id,
+        "driver_name": driver.full_name or driver.username,
+        "van_warehouse": {"id": van_wh.id, "code": van_wh.code, "name": van_wh.name},
+        "items": items,
+        "total_items": len(items),
+        "total_value": round(sum(i["stock_value"] for i in items), 3),
+    }
+
+
+# ── Load van — transfer stock from main warehouse to van ──
+@router.post("/load-van")
+def load_van(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Transfer products from main warehouse to driver's van.
+    data: { driver_id: int, items: [{ product_id: int, quantity: float }], notes: str }
+    """
+    driver_id = data.get("driver_id")
+    driver = db.query(User).filter(User.id == driver_id).first()
+    if not driver:
+        raise HTTPException(404, "Driver not found")
+
+    van_wh = _get_van_warehouse(driver, db)
+    if not van_wh:
+        raise HTTPException(400, f"No van warehouse assigned for {driver.full_name or driver.username}. Contact admin.")
+
+    main_wh = db.query(Warehouse).filter(Warehouse.code == "WH-01").first()
+    if not main_wh:
+        raise HTTPException(400, "Main warehouse WH-01 not found")
+
+    items_data = data.get("items", [])
+    if not items_data:
+        raise HTTPException(400, "No items to load")
+
+    load_date = data.get("date", date.today().isoformat())
+    ref_number = f"VAN-LOAD-{driver.full_name or driver.username}-{load_date}"
+    notes = data.get("notes", "") or f"Van loading for {driver.full_name or driver.username} on {load_date}"
+
+    results = []
+    loaded_count = 0
+    for item in items_data:
+        product_id = item.get("product_id")
+        qty = float(item.get("quantity", 0) or 0)
+        if qty <= 0:
+            continue
+
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if not product:
+            results.append({"product_id": product_id, "status": "error", "message": "Product not found"})
+            continue
+
+        # Check main warehouse stock
+        main_stock = db.query(StockLevel).filter(
+            StockLevel.product_id == product_id,
+            StockLevel.warehouse_id == main_wh.id
+        ).first()
+        available = float(main_stock.quantity_on_hand) if main_stock else 0
+
+        if available < qty:
+            results.append({
+                "product_id": product_id, "product_name": product.name,
+                "status": "error",
+                "message": f"Insufficient stock. Available: {available:.3f}, Requested: {qty:.3f}"
+            })
+            continue
+
+        # TRANSFER_OUT from main
+        db.add(InventoryTransaction(
+            product_id=product_id, warehouse_id=main_wh.id,
+            transaction_type=TransactionType.TRANSFER_OUT, quantity=qty,
+            from_warehouse_id=main_wh.id, to_warehouse_id=van_wh.id,
+            reference_number=ref_number, reference_type="VAN_LOADING",
+            notes=notes, created_by=current_user.id
+        ))
+        main_stock.quantity_on_hand -= qty
+
+        # TRANSFER_IN to van
+        db.add(InventoryTransaction(
+            product_id=product_id, warehouse_id=van_wh.id,
+            transaction_type=TransactionType.TRANSFER_IN, quantity=qty,
+            from_warehouse_id=main_wh.id, to_warehouse_id=van_wh.id,
+            reference_number=ref_number, reference_type="VAN_LOADING",
+            notes=notes, created_by=current_user.id
+        ))
+        van_stock = db.query(StockLevel).filter(
+            StockLevel.product_id == product_id,
+            StockLevel.warehouse_id == van_wh.id
+        ).first()
+        if van_stock:
+            van_stock.quantity_on_hand += qty
+        else:
+            db.add(StockLevel(
+                product_id=product_id, warehouse_id=van_wh.id,
+                quantity_on_hand=qty
+            ))
+
+        loaded_count += 1
+        results.append({
+            "product_id": product_id, "product_name": product.name,
+            "quantity": qty, "status": "loaded",
+            "main_stock_remaining": round(float(main_stock.quantity_on_hand), 3)
+        })
+
+    db.commit()
+    return {
+        "message": f"Loaded {loaded_count} products onto {van_wh.name}",
+        "reference": ref_number,
+        "items": results,
+        "loaded_count": loaded_count,
+    }
+
+
+# ── Return unsold stock from van to main warehouse ──
+@router.post("/return-unsold/{account_id}")
+def return_unsold(
+    account_id: int,
+    data: dict = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Return unsold items from van back to main warehouse.
+    data: { items: [{ product_id: int, quantity: float }] }
+    If items not provided, returns ALL van stock back to main warehouse.
+    """
+    acc = db.query(DriverRouteAccount).options(
+        joinedload(DriverRouteAccount.items)
+    ).filter(DriverRouteAccount.id == account_id).first()
+    if not acc:
+        raise HTTPException(404, "Route account not found")
+
+    driver = db.query(User).filter(User.id == acc.driver_id).first()
+    van_wh = _get_van_warehouse(driver, db)
+    if not van_wh:
+        raise HTTPException(400, "No van warehouse found for driver")
+
+    main_wh = db.query(Warehouse).filter(Warehouse.code == "WH-01").first()
+    if not main_wh:
+        raise HTTPException(400, "Main warehouse not found")
+
+    ref_number = f"VAN-RETURN-{driver.full_name or driver.username}-{acc.date}"
+    notes = f"Return unsold stock -- {driver.full_name or driver.username} -- {acc.date}"
+
+    return_items = []
+    if data and data.get("items"):
+        return_items = data["items"]
+    else:
+        van_stocks = db.query(StockLevel).filter(
+            StockLevel.warehouse_id == van_wh.id,
+            StockLevel.quantity_on_hand > 0
+        ).all()
+        return_items = [{"product_id": s.product_id, "quantity": float(s.quantity_on_hand)} for s in van_stocks]
+
+    returned_count = 0
+    results = []
+    for item in return_items:
+        product_id = item.get("product_id")
+        qty = float(item.get("quantity", 0) or 0)
+        if qty <= 0:
+            continue
+
+        product = db.query(Product).filter(Product.id == product_id).first()
+        van_stock = db.query(StockLevel).filter(
+            StockLevel.product_id == product_id,
+            StockLevel.warehouse_id == van_wh.id
+        ).first()
+
+        actual_qty = min(qty, float(van_stock.quantity_on_hand)) if van_stock else 0
+        if actual_qty <= 0:
+            continue
+
+        # TRANSFER_OUT from van
+        db.add(InventoryTransaction(
+            product_id=product_id, warehouse_id=van_wh.id,
+            transaction_type=TransactionType.TRANSFER_OUT, quantity=actual_qty,
+            from_warehouse_id=van_wh.id, to_warehouse_id=main_wh.id,
+            reference_number=ref_number, reference_type="VAN_RETURN",
+            notes=notes, created_by=current_user.id
+        ))
+        van_stock.quantity_on_hand -= actual_qty
+
+        # TRANSFER_IN to main
+        db.add(InventoryTransaction(
+            product_id=product_id, warehouse_id=main_wh.id,
+            transaction_type=TransactionType.TRANSFER_IN, quantity=actual_qty,
+            from_warehouse_id=van_wh.id, to_warehouse_id=main_wh.id,
+            reference_number=ref_number, reference_type="VAN_RETURN",
+            notes=notes, created_by=current_user.id
+        ))
+        main_stock = db.query(StockLevel).filter(
+            StockLevel.product_id == product_id,
+            StockLevel.warehouse_id == main_wh.id
+        ).first()
+        if main_stock:
+            main_stock.quantity_on_hand += actual_qty
+        else:
+            db.add(StockLevel(product_id=product_id, warehouse_id=main_wh.id, quantity_on_hand=actual_qty))
+
+        returned_count += 1
+        results.append({
+            "product_id": product_id,
+            "product_name": product.name if product else "Unknown",
+            "quantity_returned": actual_qty,
+            "status": "returned"
+        })
+
+    db.commit()
+    return {
+        "message": f"Returned {returned_count} products from {van_wh.name} to main warehouse",
+        "reference": ref_number,
+        "items": results,
+    }
+
+
+def _get_van_warehouse(driver: User, db: Session):
+    """Get the van warehouse for a driver. Tries van_warehouse_id first, then name-based lookup."""
+    if hasattr(driver, 'van_warehouse_id') and driver.van_warehouse_id:
+        return db.query(Warehouse).filter(Warehouse.id == driver.van_warehouse_id).first()
+    # Fallback: look up by naming convention
+    for suffix in [driver.full_name, driver.username]:
+        if not suffix:
+            continue
+        wh = db.query(Warehouse).filter(
+            Warehouse.location_type == 'van',
+            Warehouse.name.ilike(f"%{suffix}%")
+        ).first()
+        if wh:
+            return wh
+    return None
 
 
 def _serialize_account(acc, include_items=False):

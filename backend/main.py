@@ -107,6 +107,7 @@ def seed_ui_labels():
         ('nav.returns-manager', 'Returns', 'navigation'),
         ('nav.collections', 'Collections & Aging', 'navigation'),
         # Delivery
+        ('nav.van-load-sheet', 'Van Load Sheet', 'navigation'),
         ('nav.van-sales', 'Van Sales', 'navigation'),
         ('nav.van-sales-entry', 'Van Sales Entry', 'navigation'),
         ('nav.driver-due-summary', 'Driver Due Summary', 'navigation'),
@@ -246,6 +247,8 @@ async def startup_event():
         ("products", "auto_reorder", "INTEGER DEFAULT 1"),
         ("products", "preferred_supplier_id", "INTEGER"),
         ("products", "reorder_quantity", "NUMERIC(12,3) DEFAULT 0"),
+        # Phase 44: Van warehouse assignment for drivers
+        ("users", "van_warehouse_id", "INTEGER"),
     ]
     with engine.connect() as conn:
         for table, col, col_type in _migrations:
@@ -278,6 +281,40 @@ async def startup_event():
                     conn.commit()
             except Exception:
                 conn.rollback()
+    # ── Phase 44: Seed van warehouses ──
+    _van_warehouses = [
+        ("VAN-MANIK", "Van — Manik", "van"),
+        ("VAN-ARIF", "Van — Arif", "van"),
+        ("VAN-ARAFAT", "Van — Arafat", "van"),
+    ]
+    with engine.connect() as conn:
+        # Ensure main warehouse exists (id=1)
+        try:
+            result = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'"))
+            main_wh = result.fetchone()
+            if not main_wh:
+                conn.execute(text(
+                    "INSERT INTO warehouses (code, name, location_type, is_active) "
+                    "VALUES ('WH-01', 'Main Warehouse', 'main', true)"
+                ))
+                conn.commit()
+        except Exception:
+            conn.rollback()
+
+        for code, name, loc_type in _van_warehouses:
+            try:
+                result = conn.execute(text("SELECT id FROM warehouses WHERE code = :code"), {"code": code})
+                if not result.fetchone():
+                    main = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'")).fetchone()
+                    parent_id = main[0] if main else None
+                    conn.execute(text(
+                        "INSERT INTO warehouses (code, name, location_type, parent_id, is_active) "
+                        "VALUES (:code, :name, :loc, :parent, true)"
+                    ), {"code": code, "name": name, "loc": loc_type, "parent": parent_id})
+                    conn.commit()
+            except Exception:
+                conn.rollback()
+    print("Van warehouses: verified")
     # Fix any lowercase enum values in inventory_transactions
     with engine.connect() as conn:
         try:

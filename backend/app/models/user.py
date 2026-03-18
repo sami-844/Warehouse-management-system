@@ -38,6 +38,7 @@ class User(Base):
     # Phase 37: Additional user fields
     profile_picture = Column(Text, nullable=True)
     default_warehouse_id = Column(Integer, nullable=True)
+    van_warehouse_id = Column(Integer, nullable=True)  # Phase 44: assigned van warehouse for drivers
     warehouse_group = Column(Text, default="")
     last_active_at = Column(DateTime(timezone=True), nullable=True)
     login_count = Column(Integer, default=0)

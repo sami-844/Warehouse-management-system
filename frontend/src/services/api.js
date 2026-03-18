@@ -404,6 +404,9 @@ export const vanSalesAPI = {
   driverSummary: async (params = {}) => (await api.get('/api/van-sales/driver-summary', { params })).data,
   drivers: async () => (await api.get('/api/van-sales/drivers')).data,
   productsList: async () => (await api.get('/api/van-sales/products-list')).data,
+  vanStock: async (driverId) => (await api.get(`/api/van-sales/van-stock/${driverId}`)).data,
+  loadVan: async (data) => (await api.post('/api/van-sales/load-van', data)).data,
+  returnUnsold: async (accountId, data) => (await api.post(`/api/van-sales/return-unsold/${accountId}`, data || {})).data,
 };
 
 // ━━ UI Labels (Admin Rename) ━━

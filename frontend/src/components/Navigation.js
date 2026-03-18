@@ -71,6 +71,7 @@ const getSections = () => [
     label: label('section.delivery', 'Delivery'),
     Icon: Truck,
     items: [
+      { label: label('nav.van-load-sheet', 'Van Load Sheet'),           page: 'van-load-sheet' },
       { label: label('nav.van-sales', 'Van Sales'),                    page: 'van-sales' },
       { label: label('nav.van-sales-entry', 'Van Sales Entry'),       page: 'van-sales-entry' },
       { label: label('nav.driver-due-summary', 'Driver Due Summary'), page: 'driver-due-summary' },

@@ -73,6 +73,7 @@ import DamageItems from './components/DamageItems';
 import DeletedItems from './components/DeletedItems';
 import AdminMasterPanel from './components/AdminMasterPanel';
 import VanSalesEntry from './components/VanSalesEntry';
+import VanLoadSheet from './components/VanLoadSheet';
 import VanSales from './components/VanSales';
 import DriverDueSummary from './components/DriverDueSummary';
 import DriverDashboard from './components/DriverDashboard';
@@ -313,6 +314,7 @@ function App() {
       // ── Delivery ──
       case 'van-sales':            return <VanSales />;
       case 'van-sales-entry':      return <VanSalesEntry />;
+      case 'van-load-sheet':       return <VanLoadSheet />;
       case 'driver-due-summary':   return <DriverDueSummary />;
       case 'driver-dashboard':     return <DriverDashboard />;
       case 'driver-app':           return <DriverApp user={user} onClose={() => navigate('dashboard')} />;

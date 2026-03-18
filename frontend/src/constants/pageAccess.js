@@ -33,6 +33,7 @@ export const PAGE_ROLE_MAP = {
   'collections':          ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER','ACCOUNTANT'],
   'van-sales':            ['ADMIN','WAREHOUSE_MANAGER'],
   'van-sales-entry':      ['ADMIN','WAREHOUSE_MANAGER'],
+  'van-load-sheet':       ['ADMIN','WAREHOUSE_MANAGER'],
   'driver-due-summary':   ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
   'driver-dashboard':     ['ADMIN','DELIVERY_DRIVER'],
   'driver-app':           ['ADMIN','DELIVERY_DRIVER'],
