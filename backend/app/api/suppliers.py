@@ -241,3 +241,101 @@ async def import_suppliers_file(
         db.rollback()
         raise HTTPException(status_code=400, detail="Import failed — database constraint error")
     return {"created": created, "skipped": skipped, "errors": errors[:10]}
+
+
+# ===== SUPPLIER PRICE LISTS =====
+@router.get("/{supplier_id}/price-list")
+async def get_supplier_price_list(supplier_id: int, db: Session = Depends(get_db),
+                                  current_user: User = Depends(get_current_user)):
+    """Get all product prices for a specific supplier."""
+    from sqlalchemy import text as sql_text
+    from app.core.database import engine
+    with engine.connect() as conn:
+        rows = conn.execute(sql_text("""
+            SELECT spl.id, spl.product_id, p.name as product_name, p.sku,
+                   spl.unit_price, spl.min_order_qty, spl.lead_time_days,
+                   spl.notes, spl.is_active, spl.last_updated
+            FROM supplier_price_list spl
+            JOIN products p ON spl.product_id = p.id
+            WHERE spl.supplier_id = :sid
+            ORDER BY p.name
+        """), {"sid": supplier_id}).fetchall()
+    return [{
+        "id": r[0], "product_id": r[1], "product_name": r[2], "sku": r[3],
+        "unit_price": round(float(r[4] or 0), 3), "min_order_qty": float(r[5] or 1),
+        "lead_time_days": r[6], "notes": r[7] or "", "is_active": r[8],
+        "last_updated": str(r[9]) if r[9] else None,
+    } for r in rows]
+
+
+@router.post("/{supplier_id}/price-list")
+async def upsert_supplier_price(supplier_id: int, data: dict, db: Session = Depends(get_db),
+                                current_user: User = Depends(get_current_user)):
+    """Add or update a product price for a supplier."""
+    from sqlalchemy import text as sql_text
+    from app.core.database import engine
+    product_id = data.get("product_id")
+    unit_price = float(data.get("unit_price", 0))
+    min_qty = float(data.get("min_order_qty", 1))
+    lead_days = int(data.get("lead_time_days", 7))
+    notes = data.get("notes", "")
+
+    with engine.connect() as conn:
+        conn.execute(sql_text("""
+            INSERT INTO supplier_price_list (supplier_id, product_id, unit_price, min_order_qty, lead_time_days, notes, updated_by, last_updated)
+            VALUES (:sid, :pid, :price, :min_qty, :lead, :notes, :uid, NOW())
+            ON CONFLICT (supplier_id, product_id)
+            DO UPDATE SET unit_price = :price, min_order_qty = :min_qty, lead_time_days = :lead,
+                          notes = :notes, updated_by = :uid, last_updated = NOW()
+        """), {"sid": supplier_id, "pid": product_id, "price": unit_price,
+               "min_qty": min_qty, "lead": lead_days, "notes": notes, "uid": current_user.id})
+        conn.commit()
+    return {"message": "Price saved", "supplier_id": supplier_id, "product_id": product_id, "unit_price": unit_price}
+
+
+@router.post("/{supplier_id}/price-list/bulk")
+async def bulk_upsert_prices(supplier_id: int, data: dict, db: Session = Depends(get_db),
+                             current_user: User = Depends(get_current_user)):
+    """Bulk add/update prices for a supplier."""
+    from sqlalchemy import text as sql_text
+    from app.core.database import engine
+    items = data.get("items", [])
+    saved = 0
+    with engine.connect() as conn:
+        for item in items:
+            try:
+                conn.execute(sql_text("""
+                    INSERT INTO supplier_price_list (supplier_id, product_id, unit_price, min_order_qty, lead_time_days, notes, updated_by, last_updated)
+                    VALUES (:sid, :pid, :price, :min_qty, :lead, :notes, :uid, NOW())
+                    ON CONFLICT (supplier_id, product_id)
+                    DO UPDATE SET unit_price = :price, min_order_qty = :min_qty, lead_time_days = :lead,
+                                  notes = :notes, updated_by = :uid, last_updated = NOW()
+                """), {
+                    "sid": supplier_id, "pid": item.get("product_id"),
+                    "price": float(item.get("unit_price", 0)),
+                    "min_qty": float(item.get("min_order_qty", 1)),
+                    "lead": int(item.get("lead_time_days", 7)),
+                    "notes": item.get("notes", ""), "uid": current_user.id
+                })
+                saved += 1
+            except Exception:
+                pass
+        conn.commit()
+    return {"message": f"Saved {saved} prices for supplier", "saved": saved}
+
+
+@router.get("/price-lookup")
+async def price_lookup(supplier_id: int, product_id: int, db: Session = Depends(get_db),
+                       current_user: User = Depends(get_current_user)):
+    """Quick lookup: get the price for a product from a specific supplier."""
+    from sqlalchemy import text as sql_text
+    from app.core.database import engine
+    with engine.connect() as conn:
+        row = conn.execute(sql_text("""
+            SELECT unit_price, min_order_qty, lead_time_days
+            FROM supplier_price_list
+            WHERE supplier_id = :sid AND product_id = :pid AND is_active = true
+        """), {"sid": supplier_id, "pid": product_id}).fetchone()
+    if not row:
+        return {"found": False}
+    return {"found": True, "unit_price": round(float(row[0]), 3), "min_order_qty": float(row[1]), "lead_time_days": row[2]}

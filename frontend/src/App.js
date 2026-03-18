@@ -81,6 +81,8 @@ import VanLoadSheet from './components/VanLoadSheet';
 import VanSales from './components/VanSales';
 import DriverDueSummary from './components/DriverDueSummary';
 import DriverSettlement from './components/DriverSettlement';
+import ApprovalQueue from './components/ApprovalQueue';
+import SupplierPriceList from './components/SupplierPriceList';
 import DriverDashboard from './components/DriverDashboard';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
@@ -317,6 +319,8 @@ function App() {
       case 'landed-costs':         return <LandedCosts />;
       case 'purchase-returns':     return <PurchaseReturnList />;
       case 'bills':                return <BillsList />;
+      case 'approval-queue':       return <ApprovalQueue />;
+      case 'supplier-price-lists': return <SupplierPriceList />;
 
       // ── Sales ──
       case 'customers':            return <CustomerList onNavigate={navigate} />;

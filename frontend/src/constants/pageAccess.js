@@ -21,6 +21,8 @@ export const PAGE_ROLE_MAP = {
   'landed-costs':         ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
   'purchase-returns':     ['ADMIN','WAREHOUSE_MANAGER'],
   'bills':                ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
+  'approval-queue':       ['ADMIN','WAREHOUSE_MANAGER'],
+  'supplier-price-lists': ['ADMIN','WAREHOUSE_MANAGER'],
   'customers':            ['ADMIN','SALES_STAFF','ACCOUNTANT'],
   'estimates':            ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],
   'sales-orders':         ['ADMIN','SALES_STAFF','WAREHOUSE_MANAGER'],

@@ -18,6 +18,26 @@ from app.models.purchase import (
 
 router = APIRouter()
 
+
+def _check_approval_required(db, total_amount: float) -> bool:
+    """Check if a PO of this value requires approval."""
+    from sqlalchemy import text as sql_text
+    from app.core.database import engine
+    with engine.connect() as conn:
+        try:
+            rules = conn.execute(sql_text("""
+                SELECT condition_value FROM approval_rules
+                WHERE entity_type = 'purchase_order' AND condition_field = 'total_amount'
+                  AND condition_operator = '>' AND is_active = true
+                ORDER BY condition_value ASC LIMIT 1
+            """)).fetchone()
+            if rules and total_amount > float(rules[0]):
+                return True
+        except Exception:
+            pass
+    return False
+
+
 # ===== Schemas =====
 class POItemCreate(BaseModel):
     product_id: int
@@ -177,6 +197,15 @@ async def create_order(data: POCreate, db: Session = Depends(get_db), current_us
             quantity=item.quantity, unit_price=item.unit_price,
             total_price=item.quantity * item.unit_price, received_quantity=0
         ))
+    # Check if approval is required
+    if _check_approval_required(db, float(po.total_amount or 0)):
+        try:
+            po.approval_status = 'pending'
+        except Exception:
+            from sqlalchemy import text as sql_text
+            db.execute(sql_text(
+                "UPDATE purchase_orders SET approval_status = 'pending' WHERE id = :id"
+            ), {"id": po.id})
     db.commit()
     db.refresh(po)
     return {"id": po.id, "po_number": po.po_number, "total_amount": float(po.total_amount), "status": po.status}
@@ -482,3 +511,90 @@ async def aging_report(db: Session = Depends(get_db), current_user: User = Depen
         else: buckets["over_90"] += balance
         items.append({"invoice": inv.invoice_number, "supplier": sname, "due_date": str(inv.due_date), "total": float(inv.total_amount), "paid": float(inv.amount_paid), "balance": round(balance, 3), "days_overdue": max(days, 0)})
     return {"buckets": {k: round(v, 3) for k, v in buckets.items()}, "total_outstanding": round(sum(buckets.values()), 3), "items": items}
+
+
+# ===== APPROVAL QUEUE =====
+@router.get("/pending-approval")
+async def list_pending_approvals(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """List all POs pending approval."""
+    from sqlalchemy import text as sql_text
+    from app.core.database import engine
+    rows = []
+    with engine.connect() as conn:
+        try:
+            rows = conn.execute(sql_text("""
+                SELECT po.id, po.po_number, po.supplier_id, s.name as supplier_name,
+                       po.order_date, po.total_amount, po.status, po.approval_status,
+                       po.notes, u.full_name as created_by_name
+                FROM purchase_orders po
+                LEFT JOIN suppliers s ON po.supplier_id = s.id
+                LEFT JOIN users u ON po.created_by = u.id
+                WHERE po.approval_status = 'pending'
+                ORDER BY po.created_at DESC
+            """)).fetchall()
+        except Exception:
+            pass
+    return [{
+        "id": r[0], "po_number": r[1], "supplier_id": r[2],
+        "supplier_name": r[3] or "", "order_date": str(r[4]) if r[4] else None,
+        "total_amount": round(float(r[5] or 0), 3), "status": r[6],
+        "approval_status": r[7], "notes": r[8] or "",
+        "created_by_name": r[9] or "",
+    } for r in rows]
+
+
+@router.post("/{po_id}/approve")
+async def approve_po(po_id: int, data: dict = {}, db: Session = Depends(get_db),
+                     current_user: User = Depends(get_current_user)):
+    """Approve a purchase order."""
+    po = db.query(PurchaseOrder).filter(PurchaseOrder.id == po_id).first()
+    if not po:
+        raise HTTPException(404, "PO not found")
+    try:
+        po.approval_status = 'approved'
+        po.approved_by = current_user.id
+        po.approved_at = datetime.now()
+        po.approval_notes = data.get('notes', '')
+    except Exception:
+        from sqlalchemy import text as sql_text
+        db.execute(sql_text("""
+            UPDATE purchase_orders SET approval_status='approved', approved_by=:uid,
+            approved_at=NOW(), approval_notes=:notes WHERE id=:id
+        """), {"uid": current_user.id, "notes": data.get('notes', ''), "id": po_id})
+    db.commit()
+    return {"message": f"PO {po.po_number} approved"}
+
+
+@router.post("/{po_id}/reject")
+async def reject_po(po_id: int, data: dict = {}, db: Session = Depends(get_db),
+                    current_user: User = Depends(get_current_user)):
+    """Reject a purchase order."""
+    po = db.query(PurchaseOrder).filter(PurchaseOrder.id == po_id).first()
+    if not po:
+        raise HTTPException(404, "PO not found")
+    try:
+        po.approval_status = 'rejected'
+        po.approved_by = current_user.id
+        po.approval_notes = data.get('notes', 'Rejected')
+    except Exception:
+        from sqlalchemy import text as sql_text
+        db.execute(sql_text("""
+            UPDATE purchase_orders SET approval_status='rejected', approved_by=:uid,
+            approval_notes=:notes WHERE id=:id
+        """), {"uid": current_user.id, "notes": data.get('notes', 'Rejected'), "id": po_id})
+    db.commit()
+    return {"message": f"PO {po.po_number} rejected"}
+
+
+# ── Approval Rules (read-only) ──
+@router.get("/approval-rules")
+async def list_approval_rules(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from app.core.database import engine
+    from sqlalchemy import text as sql_text
+    with engine.connect() as conn:
+        rows = conn.execute(sql_text(
+            "SELECT * FROM approval_rules ORDER BY id"
+        )).fetchall()
+        keys = ['id', 'rule_name', 'entity_type', 'condition_field', 'condition_operator',
+                'condition_value', 'approver_role', 'is_active', 'created_by', 'created_at']
+        return [dict(zip(keys, r)) for r in rows]

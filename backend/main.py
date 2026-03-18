@@ -97,6 +97,8 @@ def seed_ui_labels():
         ('nav.landed-costs', 'Landed Costs', 'navigation'),
         ('nav.purchase-returns', 'Purchase Returns', 'navigation'),
         ('nav.bills', 'Bills', 'navigation'),
+        ('nav.approval-queue', 'Approval Queue', 'navigation'),
+        ('nav.supplier-price-lists', 'Supplier Price Lists', 'navigation'),
         # Sales
         ('nav.customers', 'Customers', 'navigation'),
         ('nav.estimates', 'Estimates', 'navigation'),
@@ -260,6 +262,11 @@ async def startup_event():
         ("sales_invoices", "fawtara_xml", "TEXT"),
         ("sales_invoices", "invoice_hash", "TEXT"),
         ("sales_invoices", "previous_invoice_hash", "TEXT"),
+        # Phase 50: Approval fields on purchase_orders
+        ("purchase_orders", "approval_status", "TEXT DEFAULT 'not_required'"),
+        ("purchase_orders", "approved_by", "INTEGER"),
+        ("purchase_orders", "approved_at", "TIMESTAMP"),
+        ("purchase_orders", "approval_notes", "TEXT"),
     ]
     with engine.connect() as conn:
         for table, col, col_type in _migrations:
@@ -370,6 +377,66 @@ async def startup_event():
                 print("  driver_settlements table created")
         except Exception as e:
             print(f"  driver_settlements table: {e}")
+
+    # ── Phase 50: Create approval_rules table ──
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1 FROM approval_rules LIMIT 1"))
+    except Exception:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS approval_rules (
+                        id SERIAL PRIMARY KEY,
+                        rule_name VARCHAR(100) NOT NULL,
+                        entity_type VARCHAR(50) NOT NULL DEFAULT 'purchase_order',
+                        condition_field VARCHAR(50) NOT NULL,
+                        condition_operator VARCHAR(10) NOT NULL DEFAULT '>',
+                        condition_value NUMERIC(12,3) NOT NULL,
+                        approver_role VARCHAR(50) NOT NULL DEFAULT 'ADMIN',
+                        is_active BOOLEAN DEFAULT true,
+                        created_by INTEGER,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                    )
+                """))
+                conn.execute(text("""
+                    INSERT INTO approval_rules (rule_name, entity_type, condition_field, condition_operator, condition_value, approver_role)
+                    VALUES
+                    ('PO above 500 OMR', 'purchase_order', 'total_amount', '>', 500, 'ADMIN'),
+                    ('Discount above 10%', 'sales_order', 'discount_percent', '>', 10, 'ADMIN')
+                """))
+                conn.commit()
+                print("  approval_rules table created with defaults")
+        except Exception as e:
+            print(f"  approval_rules: {e}")
+
+    # ── Phase 50: Create supplier_price_list table ──
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1 FROM supplier_price_list LIMIT 1"))
+    except Exception:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS supplier_price_list (
+                        id SERIAL PRIMARY KEY,
+                        supplier_id INTEGER NOT NULL REFERENCES suppliers(id),
+                        product_id INTEGER NOT NULL REFERENCES products(id),
+                        unit_price NUMERIC(10,3) NOT NULL,
+                        currency VARCHAR(3) DEFAULT 'OMR',
+                        min_order_qty NUMERIC(10,3) DEFAULT 1,
+                        lead_time_days INTEGER DEFAULT 7,
+                        notes TEXT,
+                        is_active BOOLEAN DEFAULT true,
+                        last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        updated_by INTEGER,
+                        UNIQUE(supplier_id, product_id)
+                    )
+                """))
+                conn.commit()
+                print("  supplier_price_list table created")
+        except Exception as e:
+            print(f"  supplier_price_list: {e}")
 
     # Fix any lowercase enum values in inventory_transactions
     with engine.connect() as conn:

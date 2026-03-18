@@ -91,6 +91,10 @@ export const supplierAPI = {
   getById: async (id) => (await api.get(`/api/suppliers/${id}`)).data,
   create: async (data) => (await api.post('/api/suppliers', data)).data,
   update: async (id, data) => (await api.put(`/api/suppliers/${id}`, data)).data,
+  priceList: async (supplierId) => (await api.get(`/api/suppliers/${supplierId}/price-list`)).data,
+  upsertPrice: async (supplierId, data) => (await api.post(`/api/suppliers/${supplierId}/price-list`, data)).data,
+  bulkUpsertPrices: async (supplierId, items) => (await api.post(`/api/suppliers/${supplierId}/price-list/bulk`, { items })).data,
+  priceLookup: async (supplierId, productId) => (await api.get('/api/suppliers/price-lookup', { params: { supplier_id: supplierId, product_id: productId } })).data,
 };
 
 export const purchaseAPI = {
@@ -108,6 +112,10 @@ export const purchaseAPI = {
   createInvoice: async (data) => (await api.post('/api/purchases/invoices', data)).data,
   recordPayment: async (invoiceId, data) => (await api.post(`/api/purchases/invoices/${invoiceId}/payment`, data)).data,
   agingReport: async () => (await api.get('/api/purchases/aging-report')).data,
+  pendingApprovals: async () => (await api.get('/api/purchases/pending-approval')).data,
+  approvePO: async (poId, notes) => (await api.post(`/api/purchases/${poId}/approve`, { notes })).data,
+  rejectPO: async (poId, notes) => (await api.post(`/api/purchases/${poId}/reject`, { notes })).data,
+  approvalRules: async () => (await api.get('/api/purchases/approval-rules')).data,
 };
 
 export const customerAPI = {

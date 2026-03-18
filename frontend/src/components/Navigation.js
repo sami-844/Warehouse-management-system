@@ -51,6 +51,8 @@ const getSections = () => [
       { label: label('nav.landed-costs', 'Landed Costs'),        page: 'landed-costs' },
       { label: label('nav.purchase-returns', 'Purchase Returns'), page: 'purchase-returns' },
       { label: label('nav.bills', 'Bills'),                      page: 'bills' },
+      { label: label('nav.approval-queue', 'Approval Queue'),     page: 'approval-queue' },
+      { label: label('nav.supplier-price-lists', 'Supplier Price Lists'), page: 'supplier-price-lists' },
     ],
   },
   {
