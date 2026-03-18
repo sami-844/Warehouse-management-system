@@ -244,14 +244,14 @@ const AnalyticsDashboard = ({ onNavigate }) => {
       {can(PERMISSIONS.DASHBOARD.WIDGET_INVENTORY) && (
         <div className="kpi-section">
           <div className="kpi-grid">
-            <KPICard title="Inventory Turnover"   value={kpis.inventory_turnover_ratio}   icon="" accent={KPI_ACCENTS.inventory_turnover_ratio} />
-            <KPICard title="Avg. Inventory"       value={kpis.average_inventory}          unit="OMR"  icon="" accent={KPI_ACCENTS.average_inventory} />
-            <KPICard title="COGS"                 value={kpis.cost_of_goods_sold}         unit="OMR"  icon="" accent={KPI_ACCENTS.cost_of_goods_sold} />
-            <KPICard title="Service Level"        value={kpis.service_level}              unit="%"    icon="" accent={KPI_ACCENTS.service_level} />
-            <KPICard title="Days to Sell"         value={kpis.days_to_sell_inventory}     unit="days" icon="" accent={KPI_ACCENTS.days_to_sell_inventory} />
-            <KPICard title="Lead Time"            value={kpis.lead_time}                  unit="days" icon="" accent={KPI_ACCENTS.lead_time} />
-            <KPICard title="Perfect Order Rate"  value={kpis.perfect_order_rate}         unit="%"    icon="" accent={KPI_ACCENTS.perfect_order_rate} />
-            <KPICard title="Return Rate"         value={kpis.rate_of_return}             unit="%"    icon="" accent={KPI_ACCENTS.rate_of_return} />
+            <KPICard title="Inventory Turnover"   value={kpis.inventory_turnover_ratio}   icon="" accent={KPI_ACCENTS.inventory_turnover_ratio} onClick={() => nav('stock-levels')} />
+            <KPICard title="Avg. Inventory"       value={kpis.average_inventory}          unit="OMR"  icon="" accent={KPI_ACCENTS.average_inventory} onClick={() => nav('stock-levels')} />
+            <KPICard title="COGS"                 value={kpis.cost_of_goods_sold}         unit="OMR"  icon="" accent={KPI_ACCENTS.cost_of_goods_sold} onClick={() => nav('profit-loss')} />
+            <KPICard title="Service Level"        value={kpis.service_level}              unit="%"    icon="" accent={KPI_ACCENTS.service_level} onClick={() => nav('sales-orders')} />
+            <KPICard title="Days to Sell"         value={kpis.days_to_sell_inventory}     unit="days" icon="" accent={KPI_ACCENTS.days_to_sell_inventory} onClick={() => nav('products')} />
+            <KPICard title="Lead Time"            value={kpis.lead_time}                  unit="days" icon="" accent={KPI_ACCENTS.lead_time} onClick={() => nav('purchase-orders')} />
+            <KPICard title="Perfect Order Rate"  value={kpis.perfect_order_rate}         unit="%"    icon="" accent={KPI_ACCENTS.perfect_order_rate} onClick={() => nav('sales-orders')} />
+            <KPICard title="Return Rate"         value={kpis.rate_of_return}             unit="%"    icon="" accent={KPI_ACCENTS.rate_of_return} onClick={() => nav('returns-manager')} />
           </div>
         </div>
       )}

@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   LayoutDashboard, Package, ShoppingBag, ShoppingCart, Truck,
   DollarSign, Settings, ChevronRight, LogOut, User,
-  PanelLeftClose, PanelLeftOpen, Menu,
+  PanelLeftClose, PanelLeftOpen, Menu, Search, X,
+  Users, FileText, ClipboardList,
 } from 'lucide-react';
 import { canAccessPage } from '../constants/pageAccess';
 import { PERMISSIONS } from '../constants/permissions';
 import { label } from '../utils/labels';
+import { dashboardAPI } from '../services/api';
 import './Navigation.css';
 
 const _perms = (() => { try { return JSON.parse(localStorage.getItem('userPermissions') || '[]'); } catch { return []; } })();
@@ -143,13 +145,60 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
   const [open, setOpen] = useState(() => sectionForPage(currentPage));
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef(null);
+  const searchTimerRef = useRef(null);
 
   const userRole = user?.role || '';
 
   // Close mobile sidebar when navigating
   const navigate = (page) => {
     if (isMobile) setMobileOpen(false);
+    setShowResults(false);
+    setSearchQuery('');
+    setSearchResults([]);
     onNavigate(page);
+  };
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const data = await dashboardAPI.search(searchQuery.trim());
+        setSearchResults(data.results || []);
+        setShowResults(true);
+      } catch { setSearchResults([]); }
+    }, 300);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [searchQuery]);
+
+  // Click outside to close search
+  useEffect(() => {
+    const handler = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) setShowResults(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const typeIcon = (type) => {
+    switch (type) {
+      case 'product': return <Package size={14} color="#16a34a" />;
+      case 'customer': return <Users size={14} color="#2563eb" />;
+      case 'supplier': return <Truck size={14} color="#d97706" />;
+      case 'invoice': return <FileText size={14} color="#dc2626" />;
+      case 'sales_order': return <ClipboardList size={14} color="#7c3aed" />;
+      case 'purchase_order': return <ShoppingBag size={14} color="#0891b2" />;
+      default: return <Search size={14} color="#94a3b8" />;
+    }
   };
 
   useEffect(() => {
@@ -271,6 +320,82 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
           collapsed={collapsed}
           onClick={() => navigate('dashboard')}
         />
+
+        {/* Search Bar */}
+        {!collapsed && (
+          <div ref={searchRef} style={{ padding: '8px 12px', position: 'relative', flexShrink: 0 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', background: '#1e293b',
+              borderRadius: 6, padding: '0 8px', border: '1px solid #334155',
+            }}>
+              <Search size={14} color="#64748b" style={{ flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search anything..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
+                onKeyDown={e => { if (e.key === 'Escape') { setShowResults(false); setSearchQuery(''); } }}
+                style={{
+                  flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                  color: '#e2e8f0', fontSize: 12, fontFamily: 'Figtree, sans-serif',
+                  padding: '7px 6px',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setSearchResults([]); setShowResults(false); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}
+                >
+                  <X size={12} color="#64748b" />
+                </button>
+              )}
+            </div>
+
+            {/* Results Dropdown */}
+            {showResults && searchResults.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 12, right: 12,
+                background: '#fff', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                maxHeight: 320, overflowY: 'auto', zIndex: 100, border: '1px solid #e2e8f0',
+              }}>
+                {searchResults.map((r, i) => (
+                  <button
+                    key={`${r.type}-${r.id}-${i}`}
+                    onClick={() => navigate(r.page)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '8px 12px', background: 'transparent', border: 'none',
+                      cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid #f1f5f9',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {typeIcon(r.type)}
+                    <div style={{ overflow: 'hidden', flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2332', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</div>
+                      <div style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.subtitle}</div>
+                    </div>
+                    <span style={{
+                      fontSize: 9, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase',
+                      padding: '2px 6px', background: '#f1f5f9', borderRadius: 3, flexShrink: 0,
+                    }}>{r.type.replace('_', ' ')}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {showResults && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 12, right: 12,
+                background: '#fff', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                padding: '16px 12px', zIndex: 100, border: '1px solid #e2e8f0',
+                textAlign: 'center', color: '#94a3b8', fontSize: 12,
+              }}>
+                No results found
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Sections */}
         <div style={{ flex: 1 }}>

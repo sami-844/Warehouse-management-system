@@ -190,3 +190,127 @@ def dashboard_summary():
         result["expiry_alerts_count"] = 0
 
     return result
+
+
+@router.get("/search")
+def global_search(q: str = ""):
+    """Search across products, customers, suppliers, invoices, POs, and SOs."""
+    if not q or len(q.strip()) < 2:
+        return {"results": [], "query": q}
+
+    term = f"%{q.strip()}%"
+    results = []
+
+    # Products
+    try:
+        rows = run_q("""
+            SELECT id, name, sku, barcode, 'product' as entity_type
+            FROM products
+            WHERE is_active = true AND COALESCE(is_deleted, false) = false
+              AND (name ILIKE :q OR sku ILIKE :q OR barcode ILIKE :q)
+            LIMIT 8
+        """, {"q": term})
+        for r in rows:
+            results.append({
+                "id": r["id"], "type": "product",
+                "title": r["name"],
+                "subtitle": f"SKU: {r['sku'] or '—'}",
+                "page": "products",
+            })
+    except Exception:
+        pass
+
+    # Customers
+    try:
+        rows = run_q("""
+            SELECT id, name, code, phone, 'customer' as entity_type
+            FROM customers
+            WHERE is_active = true AND (name ILIKE :q OR code ILIKE :q OR phone ILIKE :q)
+            LIMIT 8
+        """, {"q": term})
+        for r in rows:
+            results.append({
+                "id": r["id"], "type": "customer",
+                "title": r["name"],
+                "subtitle": f"Code: {r['code'] or '—'}",
+                "page": "customers",
+            })
+    except Exception:
+        pass
+
+    # Suppliers
+    try:
+        rows = run_q("""
+            SELECT id, name, code, 'supplier' as entity_type
+            FROM suppliers
+            WHERE is_active = true AND (name ILIKE :q OR code ILIKE :q)
+            LIMIT 5
+        """, {"q": term})
+        for r in rows:
+            results.append({
+                "id": r["id"], "type": "supplier",
+                "title": r["name"],
+                "subtitle": f"Code: {r['code'] or '—'}",
+                "page": "suppliers",
+            })
+    except Exception:
+        pass
+
+    # Sales Invoices
+    try:
+        rows = run_q("""
+            SELECT si.id, si.invoice_number, si.total_amount, c.name as customer_name
+            FROM sales_invoices si
+            LEFT JOIN customers c ON si.customer_id = c.id
+            WHERE si.invoice_number ILIKE :q OR c.name ILIKE :q
+            LIMIT 5
+        """, {"q": term})
+        for r in rows:
+            results.append({
+                "id": r["id"], "type": "invoice",
+                "title": r["invoice_number"],
+                "subtitle": f"{r['customer_name'] or '—'} — OMR {float(r['total_amount'] or 0):.3f}",
+                "page": "sales-invoices",
+            })
+    except Exception:
+        pass
+
+    # Sales Orders
+    try:
+        rows = run_q("""
+            SELECT so.id, so.order_number, so.total_amount, c.name as customer_name
+            FROM sales_orders so
+            LEFT JOIN customers c ON so.customer_id = c.id
+            WHERE so.order_number ILIKE :q OR c.name ILIKE :q
+            LIMIT 5
+        """, {"q": term})
+        for r in rows:
+            results.append({
+                "id": r["id"], "type": "sales_order",
+                "title": r["order_number"],
+                "subtitle": f"{r['customer_name'] or '—'} — OMR {float(r['total_amount'] or 0):.3f}",
+                "page": "sales-orders",
+            })
+    except Exception:
+        pass
+
+    # Purchase Orders
+    try:
+        rows = run_q("""
+            SELECT po.id, po.po_number, po.total_amount, s.name as supplier_name
+            FROM purchase_orders po
+            LEFT JOIN suppliers s ON po.supplier_id = s.id
+            WHERE po.po_number ILIKE :q OR s.name ILIKE :q
+            LIMIT 5
+        """, {"q": term})
+        for r in rows:
+            results.append({
+                "id": r["id"], "type": "purchase_order",
+                "title": r["po_number"],
+                "subtitle": f"{r['supplier_name'] or '—'} — OMR {float(r['total_amount'] or 0):.3f}",
+                "page": "purchase-orders",
+            })
+    except Exception:
+        pass
+
+    return {"results": results, "query": q, "total": len(results)}

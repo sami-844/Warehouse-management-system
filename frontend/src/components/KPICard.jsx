@@ -4,7 +4,7 @@
  */
 import React from 'react';
 
-const KPICard = ({ title, value, unit = '', icon, accent = 'green' }) => {
+const KPICard = ({ title, value, unit = '', icon, accent = 'green', onClick }) => {
   const formatValue = (val) => {
     if (val === null || val === undefined) return '—';
     if (typeof val !== 'number') return val;
@@ -14,7 +14,8 @@ const KPICard = ({ title, value, unit = '', icon, accent = 'green' }) => {
   };
 
   return (
-    <div className="kpi-card" data-accent={accent}>
+    <div className="kpi-card" data-accent={accent} onClick={onClick}
+      style={onClick ? { cursor: 'pointer' } : undefined}>
       <div className="kpi-card-header">
         <h3 className="kpi-card-title">{title}</h3>
         {icon && <span className="kpi-card-icon">{icon}</span>}

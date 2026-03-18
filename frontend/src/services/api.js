@@ -180,6 +180,7 @@ export const analyticsAPI = {
 
 export const dashboardAPI = {
   summary: async () => (await api.get('/api/dashboard/summary')).data,
+  search: async (query) => (await api.get('/api/dashboard/search', { params: { q: query } })).data,
 };
 
 export const financialAPI = {
