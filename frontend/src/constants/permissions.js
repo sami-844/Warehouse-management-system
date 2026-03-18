@@ -116,6 +116,7 @@ export const PERMISSIONS = {
     EDIT: 'delivery.edit',
     DRIVER_APP: 'delivery.driver_app',
     VAN_SALES: 'delivery.van_sales',
+    VAN_LOAD: 'delivery.van_load',
   },
 
   // ── ADMIN ──
@@ -148,6 +149,7 @@ export const ROLE_PRESETS = {
     PERMISSIONS.SALES.VIEW, PERMISSIONS.SALES.ORDERS_VIEW, PERMISSIONS.SALES.INVOICE_LIST,
     PERMISSIONS.PURCHASING.VIEW, PERMISSIONS.PURCHASING.ORDERS_VIEW,
     ...Object.values(PERMISSIONS.REPORTS),
+    PERMISSIONS.DELIVERY.VAN_SALES, PERMISSIONS.DELIVERY.VAN_LOAD,
   ],
 
   sales: [

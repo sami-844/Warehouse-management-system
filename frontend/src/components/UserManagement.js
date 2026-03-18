@@ -122,6 +122,7 @@ const permissionGroups = [
       { key: PERMISSIONS.DELIVERY.EDIT, label: 'Delivery Edit' },
       { key: PERMISSIONS.DELIVERY.DRIVER_APP, label: 'Driver App Access' },
       { key: PERMISSIONS.DELIVERY.VAN_SALES, label: 'Van Sales Access' },
+      { key: PERMISSIONS.DELIVERY.VAN_LOAD, label: 'Van Load Sheet' },
     ]
   },
   {
