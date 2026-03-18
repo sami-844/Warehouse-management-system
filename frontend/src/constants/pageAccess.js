@@ -79,6 +79,8 @@ export const PAGE_ROLE_MAP = {
   'deleted-items':        ['ADMIN'],
   'admin-master-panel':   ['ADMIN'],
   'label-editor':         ['ADMIN','WAREHOUSE_MANAGER','WAREHOUSE_STAFF','SALES_STAFF','ACCOUNTANT'],
+  'warehouse-transfer':   ['ADMIN','WAREHOUSE_MANAGER'],
+  'driver-performance':   ['ADMIN','WAREHOUSE_MANAGER'],
 };
 
 export function canAccessPage(page, role) {

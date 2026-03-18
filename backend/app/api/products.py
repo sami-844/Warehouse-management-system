@@ -798,3 +798,92 @@ async def import_products_file(
     except Exception as e:
         tb.print_exc()
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+
+# ── Phase 51: Bulk Operations ──
+
+@router.post("/products/bulk-delete")
+async def bulk_delete_products(data: dict, db: Session = Depends(get_db),
+                               current_user: User = Depends(get_current_user)):
+    """Soft-delete multiple products at once."""
+    product_ids = data.get("product_ids", [])
+    reason = data.get("reason", "Bulk delete")
+    if not product_ids:
+        raise HTTPException(400, "No products specified")
+
+    deleted = 0
+    for pid in product_ids:
+        product = db.query(Product).filter(Product.id == pid).first()
+        if product:
+            product.is_deleted = True
+            product.deleted_at = datetime.now()
+            product.deleted_by = current_user.id
+            product.deleted_reason = reason
+            deleted += 1
+    db.commit()
+    return {"message": f"Deleted {deleted} products", "deleted": deleted}
+
+
+@router.post("/products/bulk-category")
+async def bulk_change_category(data: dict, db: Session = Depends(get_db),
+                               current_user: User = Depends(get_current_user)):
+    """Change category for multiple products at once."""
+    product_ids = data.get("product_ids", [])
+    category_id = data.get("category_id")
+    if not product_ids or not category_id:
+        raise HTTPException(400, "Product IDs and category_id required")
+
+    updated = 0
+    for pid in product_ids:
+        product = db.query(Product).filter(Product.id == pid).first()
+        if product:
+            product.category_id = category_id
+            updated += 1
+    db.commit()
+    return {"message": f"Updated {updated} products to category {category_id}", "updated": updated}
+
+
+@router.post("/products/bulk-export")
+async def bulk_export_products(data: dict, db: Session = Depends(get_db),
+                               current_user: User = Depends(get_current_user)):
+    """Export selected products as JSON (for CSV generation on frontend)."""
+    product_ids = data.get("product_ids", [])
+    if not product_ids:
+        products = db.query(Product).filter(
+            Product.is_active == True, Product.is_deleted != True
+        ).order_by(Product.name).all()
+    else:
+        products = db.query(Product).filter(Product.id.in_(product_ids)).all()
+
+    return [{"id": p.id, "sku": p.sku, "barcode": getattr(p, 'barcode', ''),
+             "name": p.name, "category_id": p.category_id,
+             "unit_of_measure": p.unit_of_measure,
+             "standard_cost": float(p.standard_cost or 0),
+             "selling_price": float(p.selling_price or 0),
+             "tax_rate": float(p.tax_rate or 0),
+             "reorder_level": float(p.reorder_level or 0),
+             "stock_quantity": float(getattr(p, 'stock_quantity', 0) or 0),
+             } for p in products]
+
+
+@router.post("/products/{product_id}/image")
+async def upload_product_image(product_id: int, data: dict, db: Session = Depends(get_db),
+                               current_user: User = Depends(get_current_user)):
+    """Upload a product image as base64 data URL."""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(404, "Product not found")
+
+    image_data = data.get("image_url", "")
+    if image_data and len(image_data) > 5_000_000:
+        raise HTTPException(400, "Image too large (max 5MB)")
+
+    try:
+        product.image_url = image_data
+    except Exception:
+        from sqlalchemy import text as sql_text
+        db.execute(sql_text(
+            "UPDATE products SET image_url = :img WHERE id = :id"
+        ), {"img": image_data, "id": product_id})
+    db.commit()
+    return {"message": "Image uploaded", "product_id": product_id}

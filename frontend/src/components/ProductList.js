@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { productAPI, categoryAPI, csvImportAPI, brandAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
+import { Package, Trash2, FolderEdit, Download, X, Upload } from 'lucide-react';
 import './ProductList.css';
 
 function ProductList() {
@@ -23,6 +24,10 @@ function ProductList() {
   const [currentStock, setCurrentStock] = useState(null);
   const [pageSize, setPageSize] = useState(25);
   const [tablePage, setTablePage] = useState(1);
+  // Phase 51: Bulk operations + images
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkCategoryId, setBulkCategoryId] = useState('');
+  const [showBulkCategory, setShowBulkCategory] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -223,6 +228,78 @@ function ProductList() {
     setShowAddForm(false);
   };
 
+  // Phase 51: Bulk operation handlers
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const pageIds = filteredProducts.slice((tablePage - 1) * pageSize, tablePage * pageSize).map(p => p.id);
+    const allSelected = pageIds.every(id => selectedIds.has(id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      pageIds.forEach(id => allSelected ? next.delete(id) : next.add(id));
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} selected products?`)) return;
+    try {
+      await productAPI.bulkDelete([...selectedIds], 'Bulk delete');
+      setSelectedIds(new Set());
+      await loadData();
+    } catch (err) {
+      setError('Bulk delete failed: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleBulkCategory = async () => {
+    if (!bulkCategoryId) return;
+    try {
+      await productAPI.bulkCategory([...selectedIds], parseInt(bulkCategoryId));
+      setSelectedIds(new Set());
+      setShowBulkCategory(false);
+      setBulkCategoryId('');
+      await loadData();
+    } catch (err) {
+      setError('Bulk category change failed: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleBulkExport = async () => {
+    try {
+      const data = await productAPI.bulkExport([...selectedIds]);
+      const headers = ['id', 'sku', 'barcode', 'name', 'category_id', 'unit_of_measure', 'standard_cost', 'selling_price', 'tax_rate', 'reorder_level', 'stock_quantity'];
+      const csv = [headers.join(','), ...data.map(r => headers.map(h => `"${r[h] ?? ''}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'products_export.csv'; a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError('Export failed: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleImageUpload = async (productId, file) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setError('Image too large (max 5MB)'); return; }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        await productAPI.uploadImage(productId, reader.result);
+        await loadData();
+      } catch (err) {
+        setError('Image upload failed: ' + (err.response?.data?.detail || err.message));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (loading) {
     return <div className="loading">Loading products...</div>;
   }
@@ -392,6 +469,25 @@ function ProductList() {
               <label className="checkbox-label"><input type="checkbox" name="is_active" checked={formData.is_active} onChange={handleInputChange} /> Active</label>
               <label className="checkbox-label"><input type="checkbox" name="is_perishable" checked={formData.is_perishable} onChange={handleInputChange} /> Perishable</label>
             </div>
+            {editingProduct && (
+              <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#1a2332', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Upload size={14} /> Product Image
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8 }}>
+                  {editingProduct.image_url ? (
+                    <img src={editingProduct.image_url} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                  ) : (
+                    <div style={{ width: 80, height: 80, borderRadius: 8, background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Package size={28} color="#94a3b8" />
+                    </div>
+                  )}
+                  <input type="file" accept="image/*" onChange={e => {
+                    if (e.target.files[0]) handleImageUpload(editingProduct.id, e.target.files[0]);
+                  }} style={{ fontSize: 13 }} />
+                </div>
+              </div>
+            )}
             <div className="form-buttons">
               <button type="submit" className="btn-primary">{editingProduct ? 'Update' : 'Create'} Product</button>
               <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>
@@ -426,11 +522,58 @@ function ProductList() {
         </div>
       )}
 
+      {/* Phase 51: Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div style={{ background: '#1A3A5C', color: 'white', borderRadius: 8, padding: '12px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>{selectedIds.size} product{selectedIds.size > 1 ? 's' : ''} selected</span>
+          <button onClick={handleBulkDelete}
+            style={{ background: '#DC3545', color: 'white', border: 'none', borderRadius: 6, padding: '7px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Trash2 size={14} /> Delete Selected
+          </button>
+          {showBulkCategory ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <select value={bulkCategoryId} onChange={e => setBulkCategoryId(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: 4, border: '1px solid #ccc', fontSize: 13 }}>
+                <option value="">Select category...</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button onClick={handleBulkCategory} disabled={!bulkCategoryId}
+                style={{ background: '#28A745', color: 'white', border: 'none', borderRadius: 6, padding: '7px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                Apply
+              </button>
+              <button onClick={() => setShowBulkCategory(false)}
+                style={{ background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 6, padding: '7px 10px', cursor: 'pointer', fontSize: 13 }}>
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setShowBulkCategory(true)}
+              style={{ background: '#7c3aed', color: 'white', border: 'none', borderRadius: 6, padding: '7px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <FolderEdit size={14} /> Change Category
+            </button>
+          )}
+          <button onClick={handleBulkExport}
+            style={{ background: '#17A2B8', color: 'white', border: 'none', borderRadius: 6, padding: '7px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Download size={14} /> Export Selected
+          </button>
+          <button onClick={() => setSelectedIds(new Set())}
+            style={{ background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 6, padding: '7px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600, marginLeft: 'auto' }}>
+            Clear Selection
+          </button>
+        </div>
+      )}
+
       {/* Products Table */}
       <div style={{ background: 'white', borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: '#1A3A5C', color: 'white' }}>
+              <th style={{ padding: '11px 8px', textAlign: 'center', width: 36 }}>
+                <input type="checkbox" onChange={toggleSelectAll}
+                  checked={filteredProducts.slice((tablePage - 1) * pageSize, tablePage * pageSize).length > 0 &&
+                    filteredProducts.slice((tablePage - 1) * pageSize, tablePage * pageSize).every(p => selectedIds.has(p.id))} />
+              </th>
+              <th style={{ padding: '11px 6px', textAlign: 'center', fontWeight: 600, fontSize: 12, width: 50 }}></th>
               <th style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 12 }}>ITEM CODE / SKU</th>
               <th style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 12 }}>PRODUCT NAME</th>
               <th style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 12 }}>CATEGORY</th>
@@ -445,7 +588,7 @@ function ProductList() {
           <tbody>
             {filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: 48, color: '#6C757D' }}>
+                <td colSpan={11} style={{ textAlign: 'center', padding: 48, color: '#6C757D' }}>
                   <div style={{ fontWeight: 600 }}>No products found</div>
                   <div style={{ fontSize: 12, marginTop: 4 }}>Add products or import from CSV / Excel</div>
                 </td>
@@ -459,10 +602,22 @@ function ProductList() {
                     : stock <= (product.reorder_level || 5) ? '#FFC107' : '#28A745';
                   return (
                     <tr key={product.id}
-                      style={{ borderBottom: '1px solid #F0F0F0', background: index % 2 === 0 ? '#FFFFFF' : '#FAFAFA', transition: 'background 0.1s' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#F0F7FF')}
-                      onMouseLeave={e => (e.currentTarget.style.background = index % 2 === 0 ? '#FFFFFF' : '#FAFAFA')}
+                      style={{ borderBottom: '1px solid #F0F0F0', background: selectedIds.has(product.id) ? '#EBF5FF' : (index % 2 === 0 ? '#FFFFFF' : '#FAFAFA'), transition: 'background 0.1s' }}
+                      onMouseEnter={e => { if (!selectedIds.has(product.id)) e.currentTarget.style.background = '#F0F7FF'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = selectedIds.has(product.id) ? '#EBF5FF' : (index % 2 === 0 ? '#FFFFFF' : '#FAFAFA'); }}
                     >
+                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                        <input type="checkbox" checked={selectedIds.has(product.id)} onChange={() => toggleSelect(product.id)} />
+                      </td>
+                      <td style={{ padding: '6px', textAlign: 'center' }}>
+                        {product.image_url ? (
+                          <img src={product.image_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                        ) : (
+                          <div style={{ width: 40, height: 40, borderRadius: 6, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Package size={18} color="#94a3b8" />
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: '10px 14px' }}>
                         <span style={{ color: '#17A2B8', fontWeight: 600, fontSize: 13 }}>{product.sku || '\u2014'}</span>
                         {product.barcode && <div style={{ fontSize: 11, color: '#ADB5BD', marginTop: 2 }}>{product.barcode}</div>}

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Package, ShoppingBag, ShoppingCart, Truck,
   DollarSign, Settings, ChevronRight, LogOut, User,
   PanelLeftClose, PanelLeftOpen, Menu, Search, X,
-  Users, FileText, ClipboardList,
+  Users, FileText, ClipboardList, Bell,
 } from 'lucide-react';
 import { canAccessPage } from '../constants/pageAccess';
 import { PERMISSIONS } from '../constants/permissions';
@@ -37,6 +37,7 @@ const getSections = () => [
       { label: label('nav.barcode-scanner', 'Barcode Scanner'),  page: 'barcode-scanner' },
       { label: label('nav.barcode-labels', 'Barcode Labels'),    page: 'barcode-labels' },
       { label: label('nav.warehouses', 'Warehouses'),            page: 'warehouses' },
+      { label: label('nav.warehouse-transfer', 'Warehouse Transfer'), page: 'warehouse-transfer' },
       { label: label('nav.inventory-dashboard', 'Overview'),     page: 'inventory-dashboard' },
     ],
   },
@@ -80,6 +81,7 @@ const getSections = () => [
       { label: label('nav.van-sales-entry', 'Van Sales Entry'),       page: 'van-sales-entry' },
       { label: label('nav.driver-due-summary', 'Driver Due Summary'), page: 'driver-due-summary' },
       { label: label('nav.driver-settlement', 'Driver Settlement'),   page: 'driver-settlement' },
+      { label: label('nav.driver-performance', 'Driver Performance'), page: 'driver-performance' },
       { label: label('nav.driver-dashboard', 'Driver Dashboard'),     page: 'driver-dashboard' },
       { label: label('nav.driver-app', 'Driver App'),                 page: 'driver-app' },
       { label: label('nav.route-optimizer', 'Route Optimizer'),       page: 'route-optimizer' },
@@ -152,6 +154,10 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef(null);
   const searchTimerRef = useRef(null);
+  // Phase 51: Notification bell
+  const [notifCounts, setNotifCounts] = useState(null);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const notifRef = useRef(null);
 
   const userRole = user?.role || '';
 
@@ -186,6 +192,28 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
   useEffect(() => {
     const handler = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) setShowResults(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Phase 51: Poll notification counts
+  useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        const data = await dashboardAPI.notificationCount();
+        setNotifCounts(data);
+      } catch { /* ignore */ }
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Click outside notification dropdown
+  useEffect(() => {
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifDropdown(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -322,6 +350,82 @@ function Navigation({ currentPage, onNavigate, user, onLogout, onWidthChange }) 
           collapsed={collapsed}
           onClick={() => navigate('dashboard')}
         />
+
+        {/* Phase 51: Notification Bell */}
+        <div ref={notifRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setShowNotifDropdown(prev => !prev)}
+            title="Notifications"
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center',
+              gap: collapsed ? 0 : 8,
+              padding: collapsed ? '10px 0' : '10px 12px',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: '#94a3b8', fontSize: 12, fontFamily: 'Figtree, sans-serif',
+              position: 'relative',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.color = '#e2e8f0'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; }}
+          >
+            <div style={{ position: 'relative', display: 'inline-flex' }}>
+              <Bell size={16} />
+              {notifCounts && notifCounts.total > 0 && (
+                <span style={{
+                  position: 'absolute', top: -6, right: -8,
+                  background: '#dc2626', color: '#fff',
+                  fontSize: 9, fontWeight: 700, borderRadius: '50%',
+                  minWidth: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 3px', lineHeight: 1,
+                }}>
+                  {notifCounts.total > 99 ? '99+' : notifCounts.total}
+                </span>
+              )}
+            </div>
+            {!collapsed && <span style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>Alerts</span>}
+          </button>
+
+          {showNotifDropdown && notifCounts && (
+            <div style={{
+              position: 'absolute', left: collapsed ? 60 : 12, top: collapsed ? 0 : '100%',
+              background: '#fff', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+              width: 240, zIndex: 100, border: '1px solid #e2e8f0', overflow: 'hidden',
+            }}>
+              <div style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', fontWeight: 700, fontSize: 13, color: '#1a2332' }}>
+                Notifications
+              </div>
+              {[
+                { key: 'low_stock', label: 'Low stock items', page: 'stock-alerts', color: '#dc2626' },
+                { key: 'overdue_invoices', label: 'Overdue invoices', page: 'collections', color: '#d97706' },
+                { key: 'expiring_stock', label: 'Expiring products', page: 'expiry-tracker', color: '#7c3aed' },
+                { key: 'pending_approvals', label: 'Pending approvals', page: 'approval-queue', color: '#0891b2' },
+              ].map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => { setShowNotifDropdown(false); navigate(item.page); }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '9px 14px', background: 'transparent', border: 'none',
+                    cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid #f1f5f9',
+                    fontSize: 13, color: '#374151',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <span>{item.label}</span>
+                  {(notifCounts[item.key] || 0) > 0 && (
+                    <span style={{
+                      background: item.color, color: '#fff', fontSize: 11, fontWeight: 700,
+                      borderRadius: 10, padding: '1px 8px', minWidth: 20, textAlign: 'center',
+                    }}>
+                      {notifCounts[item.key]}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Search Bar */}
         {!collapsed && (

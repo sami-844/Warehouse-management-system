@@ -737,6 +737,90 @@ def _get_van_warehouse(driver: User, db: Session):
     return None
 
 
+# ── Phase 52: Driver Performance KPIs ──
+@router.get("/performance")
+def driver_performance(
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Driver performance KPIs for comparison and ranking."""
+    from sqlalchemy import func as sqlfunc
+
+    q = db.query(DriverRouteAccount)
+    if from_date:
+        q = q.filter(DriverRouteAccount.date >= from_date)
+    if to_date:
+        q = q.filter(DriverRouteAccount.date <= to_date)
+
+    driver_ids = db.query(DriverRouteAccount.driver_id).distinct().all()
+    drivers = []
+
+    for (did,) in driver_ids:
+        driver = db.query(User).filter(User.id == did).first()
+        if not driver:
+            continue
+
+        dq = q.filter(DriverRouteAccount.driver_id == did)
+
+        totals = dq.with_entities(
+            sqlfunc.count(DriverRouteAccount.id),
+            sqlfunc.coalesce(sqlfunc.sum(DriverRouteAccount.total_sales), 0),
+            sqlfunc.coalesce(sqlfunc.sum(DriverRouteAccount.total_cost), 0),
+            sqlfunc.coalesce(sqlfunc.sum(DriverRouteAccount.total_profit), 0),
+            sqlfunc.coalesce(sqlfunc.sum(DriverRouteAccount.collection_cash), 0),
+            sqlfunc.coalesce(sqlfunc.sum(DriverRouteAccount.expense_petrol), 0),
+            sqlfunc.coalesce(sqlfunc.sum(DriverRouteAccount.expense_others), 0),
+            sqlfunc.coalesce(sqlfunc.avg(DriverRouteAccount.profit_percent), 0),
+        ).first()
+
+        sheet_count = totals[0] or 0
+        total_sales = float(totals[1] or 0)
+        total_cost = float(totals[2] or 0)
+        total_profit = float(totals[3] or 0)
+        total_collected = float(totals[4] or 0)
+        total_petrol = float(totals[5] or 0)
+        total_other_exp = float(totals[6] or 0)
+        avg_margin = float(totals[7] or 0)
+
+        # Best day
+        best = dq.order_by(desc(DriverRouteAccount.total_sales)).first()
+        # Latest running due
+        latest = dq.order_by(desc(DriverRouteAccount.date), desc(DriverRouteAccount.id)).first()
+
+        avg_daily = round(total_sales / sheet_count, 3) if sheet_count > 0 else 0
+        collection_rate = round(total_collected / total_sales * 100, 1) if total_sales > 0 else 0
+
+        drivers.append({
+            "driver_id": did,
+            "driver_name": driver.full_name or driver.username,
+            "route_area": getattr(driver, 'route_area', '') or '',
+            "sheet_count": sheet_count,
+            "total_sales": round(total_sales, 3),
+            "total_cost": round(total_cost, 3),
+            "total_profit": round(total_profit, 3),
+            "avg_margin_pct": round(avg_margin, 1),
+            "avg_daily_sales": avg_daily,
+            "total_collected": round(total_collected, 3),
+            "collection_rate_pct": collection_rate,
+            "total_expenses": round(total_petrol + total_other_exp, 3),
+            "running_due": round(float(latest.running_due or 0), 3) if latest else 0,
+            "best_day_sales": round(float(best.total_sales or 0), 3) if best else 0,
+            "best_day_date": best.date.isoformat() if best else None,
+        })
+
+    drivers.sort(key=lambda d: d["total_sales"], reverse=True)
+
+    return {
+        "period": {"from": from_date, "to": to_date},
+        "drivers": drivers,
+        "top_seller": drivers[0]["driver_name"] if drivers else None,
+        "highest_margin": max(drivers, key=lambda d: d["avg_margin_pct"])["driver_name"] if drivers else None,
+        "best_collector": max(drivers, key=lambda d: d["collection_rate_pct"])["driver_name"] if drivers else None,
+    }
+
+
 def _serialize_account(acc, include_items=False):
     d = {
         "id": acc.id,

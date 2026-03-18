@@ -314,3 +314,52 @@ def global_search(q: str = ""):
         pass
 
     return {"results": results, "query": q, "total": len(results)}
+
+
+@router.get("/notification-count")
+def notification_count():
+    """Count of active alerts for the notification bell."""
+    counts = {}
+
+    # Low stock items
+    try:
+        counts["low_stock"] = run_s("""
+            SELECT COUNT(*) FROM products p
+            WHERE p.is_active = true AND COALESCE(p.is_deleted, false) = false
+              AND COALESCE(p.stock_quantity, 0) <= COALESCE(p.reorder_level, 0)
+              AND COALESCE(p.reorder_level, 0) > 0
+        """)
+    except Exception:
+        counts["low_stock"] = 0
+
+    # Overdue sales invoices
+    try:
+        today = date.today().isoformat()
+        counts["overdue_invoices"] = run_s("""
+            SELECT COUNT(*) FROM sales_invoices
+            WHERE status != 'paid' AND due_date < :today
+        """, {"today": today})
+    except Exception:
+        counts["overdue_invoices"] = 0
+
+    # Expiring stock (next 30 days)
+    try:
+        d30 = (date.today() + timedelta(days=30)).isoformat()
+        counts["expiring_stock"] = run_s("""
+            SELECT COUNT(DISTINCT product_id) FROM inventory_transactions
+            WHERE expiry_date IS NOT NULL AND expiry_date <= :d30
+              AND transaction_type = 'RECEIPT'
+        """, {"d30": d30})
+    except Exception:
+        counts["expiring_stock"] = 0
+
+    # Pending approvals
+    try:
+        counts["pending_approvals"] = run_s("""
+            SELECT COUNT(*) FROM purchase_orders WHERE approval_status = 'pending'
+        """)
+    except Exception:
+        counts["pending_approvals"] = 0
+
+    counts["total"] = sum(counts.values())
+    return counts

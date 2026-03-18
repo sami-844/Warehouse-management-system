@@ -33,6 +33,10 @@ export const productAPI = {
   restore: async (id) => (await api.post(`/api/products/${id}/restore`)).data,
   getAvgCosts: async () => (await api.get('/api/products/avg-costs')).data,
   getStock: async (id) => (await api.get(`/api/products/${id}/stock`)).data,
+  bulkDelete: async (productIds, reason) => (await api.post('/api/products/bulk-delete', { product_ids: productIds, reason })).data,
+  bulkCategory: async (productIds, categoryId) => (await api.post('/api/products/bulk-category', { product_ids: productIds, category_id: categoryId })).data,
+  bulkExport: async (productIds) => (await api.post('/api/products/bulk-export', { product_ids: productIds })).data,
+  uploadImage: async (productId, imageUrl) => (await api.post(`/api/products/${productId}/image`, { image_url: imageUrl })).data,
 };
 
 export const categoryAPI = {
@@ -77,6 +81,8 @@ export const inventoryAPI = {
   recordStockTake: async (data) => (await api.post('/api/inventory/stock-take', data)).data,
   getProductHistory: async (productId) => (await api.get(`/api/inventory/product/${productId}/history`)).data,
   getProductsForStocktake: async (warehouseId) => (await api.get('/api/inventory/products-for-stocktake', { params: { warehouse_id: warehouseId } })).data,
+  batchTransfer: async (data) => (await api.post('/api/inventory/batch-transfer', data)).data,
+  warehouseComparison: async () => (await api.get('/api/inventory/warehouse-comparison')).data,
 };
 
 export const warehouseAPI = {
@@ -189,6 +195,7 @@ export const analyticsAPI = {
 export const dashboardAPI = {
   summary: async () => (await api.get('/api/dashboard/summary')).data,
   search: async (query) => (await api.get('/api/dashboard/search', { params: { q: query } })).data,
+  notificationCount: async () => (await api.get('/api/dashboard/notification-count')).data,
 };
 
 export const financialAPI = {
@@ -435,6 +442,7 @@ export const vanSalesAPI = {
   recordSettlement: async (data) => (await api.post('/api/van-sales/settle', data)).data,
   settlements: async (params = {}) => (await api.get('/api/van-sales/settlements', { params })).data,
   overdue: async (threshold) => (await api.get('/api/van-sales/overdue', { params: { threshold } })).data,
+  performance: async (params = {}) => (await api.get('/api/van-sales/performance', { params })).data,
 };
 
 // ━━ UI Labels (Admin Rename) ━━

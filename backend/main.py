@@ -117,6 +117,9 @@ def seed_ui_labels():
         ('nav.driver-dashboard', 'Driver Dashboard', 'navigation'),
         ('nav.driver-app', 'Driver App', 'navigation'),
         ('nav.route-optimizer', 'Route Optimizer', 'navigation'),
+        ('nav.driver-performance', 'Driver Performance', 'navigation'),
+        # Inventory (Phase 52)
+        ('nav.warehouse-transfer', 'Warehouse Transfer', 'navigation'),
         # Finance
         ('nav.financial', 'Financial Dashboard', 'navigation'),
         ('nav.chart-of-accounts', 'Chart of Accounts', 'navigation'),
@@ -267,6 +270,10 @@ async def startup_event():
         ("purchase_orders", "approved_by", "INTEGER"),
         ("purchase_orders", "approved_at", "TIMESTAMP"),
         ("purchase_orders", "approval_notes", "TEXT"),
+        # Phase 51: Product images
+        ("products", "image_url", "TEXT"),
+        # Phase 52: Route territory
+        ("users", "route_area", "TEXT"),
     ]
     with engine.connect() as conn:
         for table, col, col_type in _migrations:

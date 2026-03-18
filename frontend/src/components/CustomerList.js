@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { customerAPI, salesAPI, csvImportAPI } from '../services/api';
 import CsvImportModal from './CsvImportModal';
 import './Sales.css';
-import { Users } from 'lucide-react';
+import { Users, Download, Trash2 } from 'lucide-react';
 import { fmtOMR } from '../utils/format';
 
 function CustomerList({ onNavigate }) {
@@ -18,6 +18,7 @@ function CustomerList({ onNavigate }) {
   const [message, setMessage] = useState({ text: '', type: '' });
   const [saving, setSaving] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [form, setForm] = useState({
     code: '', name: '', business_type: 'Grocery', contact_person: '', email: '', phone: '', mobile: '',
     address_line1: '', city: '', area: '', latitude: '', longitude: '',
@@ -112,6 +113,45 @@ function CustomerList({ onNavigate }) {
     const phone = (c.mobile || c.phone || '').replace(/[^0-9+]/g, '').replace(/^\+/, '');
     const msg = `Dear ${c.name}, this is a reminder that you have an outstanding balance of ${outstanding} OMR with AK Al Mumayza Trading. Please contact us to arrange payment. Thank you.`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  // Phase 51: Bulk operations
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    const allSelected = filtered.every(c => selectedIds.has(c.id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      filtered.forEach(c => allSelected ? next.delete(c.id) : next.add(c.id));
+      return next;
+    });
+  };
+  const handleBulkExportCustomers = () => {
+    const selected = customers.filter(c => selectedIds.has(c.id));
+    const headers = ['code', 'name', 'business_type', 'area', 'phone', 'mobile', 'city', 'payment_terms_days', 'credit_limit', 'outstanding_balance'];
+    const csv = [headers.join(','), ...selected.map(r => headers.map(h => `"${r[h] ?? ''}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'customers_export.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+  const handleBulkDeactivate = async () => {
+    if (!window.confirm(`Deactivate ${selectedIds.size} selected customers?`)) return;
+    try {
+      for (const id of selectedIds) {
+        await customerAPI.update(id, { is_active: false });
+      }
+      setMessage({ text: `${selectedIds.size} customers deactivated`, type: 'success' });
+      setSelectedIds(new Set());
+      load();
+    } catch (err) {
+      setMessage({ text: 'Deactivation failed: ' + (err.response?.data?.detail || err.message), type: 'error' });
+    }
   };
 
   return (
@@ -245,6 +285,25 @@ function CustomerList({ onNavigate }) {
         </div>
       )}
 
+      {/* Phase 51: Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div style={{ background: '#1A3A5C', color: 'white', borderRadius: 8, padding: '12px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>{selectedIds.size} customer{selectedIds.size > 1 ? 's' : ''} selected</span>
+          <button onClick={handleBulkExportCustomers}
+            style={{ background: '#17A2B8', color: 'white', border: 'none', borderRadius: 6, padding: '7px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Download size={14} /> Export Selected
+          </button>
+          <button onClick={handleBulkDeactivate}
+            style={{ background: '#DC3545', color: 'white', border: 'none', borderRadius: 6, padding: '7px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Trash2 size={14} /> Deactivate Selected
+          </button>
+          <button onClick={() => setSelectedIds(new Set())}
+            style={{ background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 6, padding: '7px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600, marginLeft: 'auto' }}>
+            Clear Selection
+          </button>
+        </div>
+      )}
+
       <div className="filter-bar">
         <input type="text" placeholder="Search name, code, area..." value={search} onChange={e => setSearch(e.target.value)} className="search-input" />
         <select value={filterArea} onChange={e => setFilterArea(e.target.value)} className="filter-select">
@@ -255,16 +314,17 @@ function CustomerList({ onNavigate }) {
 
       {loading ? <LoadingSpinner /> : (
         <div className="table-container"><table className="data-table">
-          <thead><tr><th>Code</th><th>Shop Name</th><th>Type</th><th>Area</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>Balance</th><th>Orders</th><th>Outstanding</th><th>Actions</th></tr></thead>
+          <thead><tr><th style={{ width: 36, textAlign: 'center' }}><input type="checkbox" onChange={toggleSelectAll} checked={filtered.length > 0 && filtered.every(c => selectedIds.has(c.id))} /></th><th>Code</th><th>Shop Name</th><th>Type</th><th>Area</th><th>Phone</th><th>Terms</th><th>Credit Limit</th><th>Balance</th><th>Orders</th><th>Outstanding</th><th>Actions</th></tr></thead>
           <tbody>
-            {filtered.length === 0 ? <EmptyState colSpan={11} title="No customers found" hint="Click '+ New Customer' to add your first customer" /> :
+            {filtered.length === 0 ? <EmptyState colSpan={12} title="No customers found" hint="Click '+ New Customer' to add your first customer" /> :
               filtered.map(c => {
                 const bal = Number(c.current_balance) || 0;
                 const limit = Number(c.credit_limit) || 0;
                 const overLimit = limit > 0 && bal > limit;
                 const outstanding = Number(c.outstanding_balance) || 0;
                 return (
-                <tr key={c.id} className={!c.is_active ? 'inactive' : ''}>
+                <tr key={c.id} className={!c.is_active ? 'inactive' : ''} style={selectedIds.has(c.id) ? { background: '#EBF5FF' } : undefined}>
+                  <td style={{ textAlign: 'center' }}><input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleSelect(c.id)} /></td>
                   <td className="code">{c.code}</td><td className="name">{c.name}</td>
                   <td><span className="type-badge">{c.business_type || 'Grocery'}</span></td>
                   <td><span className="area-badge">{c.area || '-'}</span></td>

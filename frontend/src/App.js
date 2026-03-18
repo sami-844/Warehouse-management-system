@@ -81,6 +81,8 @@ import VanLoadSheet from './components/VanLoadSheet';
 import VanSales from './components/VanSales';
 import DriverDueSummary from './components/DriverDueSummary';
 import DriverSettlement from './components/DriverSettlement';
+import WarehouseTransfer from './components/WarehouseTransfer';
+import DriverPerformance from './components/DriverPerformance';
 import ApprovalQueue from './components/ApprovalQueue';
 import SupplierPriceList from './components/SupplierPriceList';
 import DriverDashboard from './components/DriverDashboard';
@@ -340,6 +342,8 @@ function App() {
       case 'van-load-sheet':       return <VanLoadSheet />;
       case 'driver-due-summary':   return <DriverDueSummary />;
       case 'driver-settlement':    return <DriverSettlement />;
+      case 'driver-performance':   return <DriverPerformance />;
+      case 'warehouse-transfer':   return <WarehouseTransfer />;
       case 'driver-dashboard':     return <DriverDashboard />;
       case 'driver-app':           return <DriverApp user={user} onClose={() => navigate('dashboard')} />;
       case 'route-optimizer':      return <RouteOptimizer />;

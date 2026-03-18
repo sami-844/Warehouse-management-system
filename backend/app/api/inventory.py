@@ -301,3 +301,150 @@ async def get_products_for_stocktake(warehouse_id: int, db: Session = Depends(ge
     return [{"product_id": p.id, "product_name": p.name, "sku": p.sku, "barcode": p.barcode, "unit_of_measure": p.unit_of_measure,
              "system_quantity": float((db.query(StockLevel).filter(StockLevel.product_id == p.id, StockLevel.warehouse_id == warehouse_id).first() or StockLevel(quantity_on_hand=0)).quantity_on_hand)
     } for p in products]
+
+
+# ── Phase 52: Batch Inter-Warehouse Transfer ──
+
+class TransferItem(BaseModel):
+    product_id: int
+    quantity: float
+
+class BatchTransferRequest(BaseModel):
+    from_warehouse_id: int
+    to_warehouse_id: int
+    reference_number: Optional[str] = None
+    notes: Optional[str] = None
+    items: List[TransferItem]
+
+
+@router.post("/batch-transfer")
+async def batch_transfer(
+    request: BatchTransferRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Transfer multiple products between warehouses in one operation."""
+    from_wh = db.query(Warehouse).filter(Warehouse.id == request.from_warehouse_id).first()
+    to_wh = db.query(Warehouse).filter(Warehouse.id == request.to_warehouse_id).first()
+    if not from_wh:
+        raise HTTPException(404, "Source warehouse not found")
+    if not to_wh:
+        raise HTTPException(404, "Destination warehouse not found")
+    if request.from_warehouse_id == request.to_warehouse_id:
+        raise HTTPException(400, "Source and destination must be different")
+
+    ref = request.reference_number or f"TRANSFER-{from_wh.code}-{to_wh.code}-{datetime.now().strftime('%Y%m%d%H%M')}"
+    results = []
+    transferred = 0
+
+    for item in request.items:
+        if item.quantity <= 0:
+            continue
+
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        if not product:
+            results.append({"product_id": item.product_id, "status": "error", "message": "Product not found"})
+            continue
+
+        from_stock = db.query(StockLevel).filter(
+            StockLevel.product_id == item.product_id,
+            StockLevel.warehouse_id == request.from_warehouse_id
+        ).first()
+        available = float(from_stock.quantity_on_hand) if from_stock else 0
+
+        if available < item.quantity:
+            results.append({
+                "product_id": item.product_id, "product_name": product.name,
+                "status": "error",
+                "message": f"Insufficient: available {available:.3f}, requested {item.quantity:.3f}"
+            })
+            continue
+
+        # TRANSFER_OUT
+        db.add(InventoryTransaction(
+            product_id=item.product_id, warehouse_id=request.from_warehouse_id,
+            transaction_type=TransactionType.TRANSFER_OUT, quantity=item.quantity,
+            from_warehouse_id=request.from_warehouse_id, to_warehouse_id=request.to_warehouse_id,
+            reference_number=ref, notes=request.notes or f"Transfer to {to_wh.name}",
+            created_by=current_user.id
+        ))
+        from_stock.quantity_on_hand -= item.quantity
+
+        # TRANSFER_IN
+        db.add(InventoryTransaction(
+            product_id=item.product_id, warehouse_id=request.to_warehouse_id,
+            transaction_type=TransactionType.TRANSFER_IN, quantity=item.quantity,
+            from_warehouse_id=request.from_warehouse_id, to_warehouse_id=request.to_warehouse_id,
+            reference_number=ref, notes=request.notes or f"Transfer from {from_wh.name}",
+            created_by=current_user.id
+        ))
+        to_stock = db.query(StockLevel).filter(
+            StockLevel.product_id == item.product_id,
+            StockLevel.warehouse_id == request.to_warehouse_id
+        ).first()
+        if to_stock:
+            to_stock.quantity_on_hand += item.quantity
+        else:
+            db.add(StockLevel(
+                product_id=item.product_id, warehouse_id=request.to_warehouse_id,
+                quantity_on_hand=item.quantity
+            ))
+
+        transferred += 1
+        results.append({
+            "product_id": item.product_id, "product_name": product.name,
+            "quantity": item.quantity, "status": "transferred"
+        })
+
+    db.commit()
+    return {
+        "message": f"Transferred {transferred} products from {from_wh.name} to {to_wh.name}",
+        "reference": ref,
+        "transferred": transferred,
+        "items": results,
+    }
+
+
+# ── Per-Warehouse Stock Comparison ──
+@router.get("/warehouse-comparison")
+async def warehouse_stock_comparison(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Compare stock levels across all warehouses for every product."""
+    warehouses = db.query(Warehouse).filter(Warehouse.is_active == True).order_by(Warehouse.code).all()
+    products = db.query(Product).filter(
+        Product.is_active == True, Product.is_deleted != True
+    ).order_by(Product.name).all()
+
+    comparison = []
+    for p in products:
+        row = {
+            "product_id": p.id,
+            "product_name": p.name,
+            "sku": p.sku,
+            "warehouses": {},
+            "total_stock": 0,
+        }
+        for wh in warehouses:
+            sl = db.query(StockLevel).filter(
+                StockLevel.product_id == p.id,
+                StockLevel.warehouse_id == wh.id
+            ).first()
+            qty = float(sl.quantity_on_hand) if sl else 0
+            row["warehouses"][wh.code] = {
+                "warehouse_id": wh.id,
+                "warehouse_name": wh.name,
+                "quantity": qty,
+            }
+            row["total_stock"] += qty
+
+        if row["total_stock"] > 0:
+            row["total_stock"] = round(row["total_stock"], 3)
+            comparison.append(row)
+
+    return {
+        "warehouses": [{"id": w.id, "code": w.code, "name": w.name, "type": getattr(w, 'location_type', '')} for w in warehouses],
+        "products": comparison,
+        "total_products": len(comparison),
+    }
