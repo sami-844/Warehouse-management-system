@@ -6,7 +6,6 @@ Create Date: 2026-03-18
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'b7d4e2f89c01'
@@ -16,17 +15,7 @@ depends_on = None
 
 
 def upgrade():
-    from sqlalchemy import text
-    from app.core.database import engine
-    with engine.connect() as conn:
-        try:
-            conn.execute(text("SELECT must_change_password FROM users LIMIT 1"))
-        except Exception:
-            try:
-                conn.execute(text("ALTER TABLE users ADD COLUMN must_change_password BOOLEAN DEFAULT false"))
-                conn.commit()
-            except Exception:
-                conn.rollback()
+    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false")
 
 
 def downgrade():

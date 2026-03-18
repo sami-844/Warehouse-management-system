@@ -5,7 +5,6 @@ Revises: d5a2b7c93e10
 Create Date: 2026-03-18
 """
 from alembic import op
-import sqlalchemy as sa
 
 revision = 'e6f3a8b14c27'
 down_revision = 'd5a2b7c93e10'
@@ -14,10 +13,7 @@ depends_on = None
 
 
 def upgrade():
-    try:
-        op.add_column('products', sa.Column('image_url', sa.Text(), nullable=True))
-    except Exception:
-        pass
+    op.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url TEXT")
 
 
 def downgrade():
