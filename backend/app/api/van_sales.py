@@ -6,7 +6,7 @@ from typing import Optional, List
 from datetime import date, datetime
 
 from app.core.database import get_db
-from app.models.van_sales import DriverRouteAccount, DriverRouteAccountItem
+from app.models.van_sales import DriverRouteAccount, DriverRouteAccountItem, DriverSettlement
 from app.models.user import User
 from app.models.product import Product
 from app.models.inventory import InventoryTransaction, StockLevel, TransactionType, Warehouse
@@ -231,19 +231,151 @@ def update_route_account(
     return _serialize_account(acc, include_items=True)
 
 
-# ── Settle a driver's balance ──
-@router.post("/accounts/{account_id}/settle")
-def settle_account(
-    account_id: int,
+# ── Record a settlement payment from a driver ──
+@router.post("/settle")
+def record_settlement(
+    data: dict,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    acc = db.query(DriverRouteAccount).filter(DriverRouteAccount.id == account_id).first()
-    if not acc:
-        raise HTTPException(status_code=404, detail="Route account not found")
-    acc.status = 'settled'
+    """
+    Record a cash/bank settlement from a driver.
+    data: { driver_id, amount, payment_method, bank_reference, notes, settlement_date }
+    This reduces the driver's running_due.
+    """
+    driver_id = data.get("driver_id")
+    amount = float(data.get("amount", 0) or 0)
+    if amount <= 0:
+        raise HTTPException(400, "Settlement amount must be positive")
+
+    driver = db.query(User).filter(User.id == driver_id).first()
+    if not driver:
+        raise HTTPException(404, "Driver not found")
+
+    # Get current running due from latest route account
+    latest = db.query(DriverRouteAccount).filter(
+        DriverRouteAccount.driver_id == driver_id
+    ).order_by(desc(DriverRouteAccount.date), desc(DriverRouteAccount.id)).first()
+    current_due = float(latest.running_due or 0) if latest else 0
+
+    if amount > current_due + 0.001:
+        raise HTTPException(400, f"Settlement amount ({amount:.3f}) exceeds running due ({current_due:.3f})")
+
+    new_due = round(current_due - amount, 3)
+
+    # Create settlement record
+    settlement = DriverSettlement(
+        driver_id=driver_id,
+        settlement_date=data.get("settlement_date", date.today().isoformat()),
+        amount=amount,
+        payment_method=data.get("payment_method", "cash"),
+        bank_reference=data.get("bank_reference"),
+        running_due_before=current_due,
+        running_due_after=new_due,
+        notes=data.get("notes", ""),
+        settled_by=current_user.id,
+    )
+    db.add(settlement)
+
+    # Update the latest route account's running_due
+    if latest:
+        latest.running_due = new_due
+        if new_due <= 0:
+            latest.status = 'settled'
+
     db.commit()
-    return {"message": "Account settled"}
+    db.refresh(settlement)
+
+    return {
+        "message": f"Settlement recorded: OMR {amount:.3f}",
+        "settlement_id": settlement.id,
+        "running_due_before": current_due,
+        "running_due_after": new_due,
+        "driver_name": driver.full_name or driver.username,
+    }
+
+
+# ── Settlement history for a driver ──
+@router.get("/settlements")
+def list_settlements(
+    driver_id: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List all settlement records, optionally filtered by driver."""
+    q = db.query(DriverSettlement).options(
+        joinedload(DriverSettlement.driver)
+    )
+    if driver_id:
+        q = q.filter(DriverSettlement.driver_id == driver_id)
+    if from_date:
+        q = q.filter(DriverSettlement.settlement_date >= from_date)
+    if to_date:
+        q = q.filter(DriverSettlement.settlement_date <= to_date)
+
+    settlements = q.order_by(desc(DriverSettlement.settlement_date), desc(DriverSettlement.id)).all()
+
+    return [{
+        "id": s.id,
+        "driver_id": s.driver_id,
+        "driver_name": (s.driver.full_name or s.driver.username) if s.driver else "",
+        "settlement_date": s.settlement_date.isoformat() if s.settlement_date else None,
+        "amount": float(s.amount or 0),
+        "payment_method": s.payment_method,
+        "bank_reference": s.bank_reference,
+        "running_due_before": float(s.running_due_before or 0),
+        "running_due_after": float(s.running_due_after or 0),
+        "notes": s.notes or "",
+        "settled_by": s.settled_by,
+        "created_at": s.created_at.isoformat() if s.created_at else None,
+    } for s in settlements]
+
+
+# ── Overdue check — which drivers owe too much? ──
+@router.get("/overdue")
+def check_overdue(
+    threshold: float = 50.0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Check which drivers have running_due above the threshold (default: 50 OMR)."""
+    driver_ids_q = db.query(DriverRouteAccount.driver_id).distinct().all()
+    overdue_drivers = []
+
+    for (did,) in driver_ids_q:
+        driver = db.query(User).filter(User.id == did).first()
+        if not driver:
+            continue
+        latest = db.query(DriverRouteAccount).filter(
+            DriverRouteAccount.driver_id == did
+        ).order_by(desc(DriverRouteAccount.date), desc(DriverRouteAccount.id)).first()
+
+        if latest and float(latest.running_due or 0) > threshold:
+            # Days since last settlement
+            last_settlement = db.query(DriverSettlement).filter(
+                DriverSettlement.driver_id == did
+            ).order_by(desc(DriverSettlement.settlement_date)).first()
+            days_since = None
+            if last_settlement:
+                from datetime import date as date_type
+                days_since = (date_type.today() - last_settlement.settlement_date).days
+
+            overdue_drivers.append({
+                "driver_id": did,
+                "driver_name": driver.full_name or driver.username,
+                "running_due": float(latest.running_due or 0),
+                "last_sheet_date": latest.date.isoformat() if latest.date else None,
+                "days_since_last_settlement": days_since,
+                "last_settlement_amount": float(last_settlement.amount or 0) if last_settlement else None,
+            })
+
+    return {
+        "threshold": threshold,
+        "overdue_count": len(overdue_drivers),
+        "drivers": sorted(overdue_drivers, key=lambda d: d["running_due"], reverse=True),
+    }
 
 
 # ── Driver due summary ──

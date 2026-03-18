@@ -423,6 +423,9 @@ export const vanSalesAPI = {
   vanStock: async (driverId) => (await api.get(`/api/van-sales/van-stock/${driverId}`)).data,
   loadVan: async (data) => (await api.post('/api/van-sales/load-van', data)).data,
   returnUnsold: async (accountId, data) => (await api.post(`/api/van-sales/return-unsold/${accountId}`, data || {})).data,
+  recordSettlement: async (data) => (await api.post('/api/van-sales/settle', data)).data,
+  settlements: async (params = {}) => (await api.get('/api/van-sales/settlements', { params })).data,
+  overdue: async (threshold) => (await api.get('/api/van-sales/overdue', { params: { threshold } })).data,
 };
 
 // ━━ UI Labels (Admin Rename) ━━

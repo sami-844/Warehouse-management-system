@@ -111,6 +111,7 @@ def seed_ui_labels():
         ('nav.van-sales', 'Van Sales', 'navigation'),
         ('nav.van-sales-entry', 'Van Sales Entry', 'navigation'),
         ('nav.driver-due-summary', 'Driver Due Summary', 'navigation'),
+        ('nav.driver-settlement', 'Driver Settlement', 'navigation'),
         ('nav.driver-dashboard', 'Driver Dashboard', 'navigation'),
         ('nav.driver-app', 'Driver App', 'navigation'),
         ('nav.route-optimizer', 'Route Optimizer', 'navigation'),
@@ -342,6 +343,33 @@ async def startup_event():
                     conn.rollback()
     except Exception:
         pass
+
+    # ── Phase 48: Create driver_settlements table if not exists ──
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1 FROM driver_settlements LIMIT 1"))
+    except Exception:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS driver_settlements (
+                        id SERIAL PRIMARY KEY,
+                        driver_id INTEGER NOT NULL REFERENCES users(id),
+                        settlement_date DATE NOT NULL,
+                        amount NUMERIC(12,3) NOT NULL,
+                        payment_method VARCHAR(30) DEFAULT 'cash',
+                        bank_reference VARCHAR(100),
+                        running_due_before NUMERIC(12,3) DEFAULT 0,
+                        running_due_after NUMERIC(12,3) DEFAULT 0,
+                        notes TEXT,
+                        settled_by INTEGER NOT NULL REFERENCES users(id),
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                    )
+                """))
+                conn.commit()
+                print("  driver_settlements table created")
+        except Exception as e:
+            print(f"  driver_settlements table: {e}")
 
     # Fix any lowercase enum values in inventory_transactions
     with engine.connect() as conn:

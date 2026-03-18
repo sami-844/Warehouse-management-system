@@ -35,6 +35,7 @@ export const PAGE_ROLE_MAP = {
   'van-sales-entry':      ['ADMIN','WAREHOUSE_MANAGER'],
   'van-load-sheet':       ['ADMIN','WAREHOUSE_MANAGER'],
   'driver-due-summary':   ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
+  'driver-settlement':    ['ADMIN','WAREHOUSE_MANAGER','ACCOUNTANT'],
   'driver-dashboard':     ['ADMIN','DELIVERY_DRIVER'],
   'driver-app':           ['ADMIN','DELIVERY_DRIVER'],
   'route-optimizer':      ['ADMIN','DELIVERY_DRIVER','WAREHOUSE_MANAGER'],

@@ -80,6 +80,7 @@ import VanSalesEntry from './components/VanSalesEntry';
 import VanLoadSheet from './components/VanLoadSheet';
 import VanSales from './components/VanSales';
 import DriverDueSummary from './components/DriverDueSummary';
+import DriverSettlement from './components/DriverSettlement';
 import DriverDashboard from './components/DriverDashboard';
 import NotificationSettings from './components/NotificationSettings';
 import MessagingSettings from './components/MessagingSettings';
@@ -334,6 +335,7 @@ function App() {
       case 'van-sales-entry':      return <VanSalesEntry />;
       case 'van-load-sheet':       return <VanLoadSheet />;
       case 'driver-due-summary':   return <DriverDueSummary />;
+      case 'driver-settlement':    return <DriverSettlement />;
       case 'driver-dashboard':     return <DriverDashboard />;
       case 'driver-app':           return <DriverApp user={user} onClose={() => navigate('dashboard')} />;
       case 'route-optimizer':      return <RouteOptimizer />;

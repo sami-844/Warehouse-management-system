@@ -72,3 +72,32 @@ class DriverRouteAccountItem(Base):
 
     def __repr__(self):
         return f"<RouteItem #{self.sl_no} {self.product_name}>"
+
+
+class DriverSettlement(Base):
+    """Record of a cash settlement from a driver"""
+    __tablename__ = "driver_settlements"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    driver_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    settlement_date = Column(Date, nullable=False)
+
+    amount = Column(Numeric(12, 3), nullable=False)           # amount collected
+    payment_method = Column(String(30), default='cash')        # cash / bank
+    bank_reference = Column(String(100), nullable=True)        # bank transfer ref if applicable
+
+    running_due_before = Column(Numeric(12, 3), default=0)     # balance before this settlement
+    running_due_after = Column(Numeric(12, 3), default=0)      # balance after
+
+    notes = Column(Text, nullable=True)
+    settled_by = Column(Integer, ForeignKey('users.id'), nullable=False)  # who processed it
+
+    # Audit
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    driver = relationship("User", foreign_keys=[driver_id])
+
+    def __repr__(self):
+        return f"<DriverSettlement driver={self.driver_id} amount={self.amount} date={self.settlement_date}>"
