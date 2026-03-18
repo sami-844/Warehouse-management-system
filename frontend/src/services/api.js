@@ -248,6 +248,8 @@ export const reportsAPI = {
   allPurchases: async (params = {}) => (await api.get('/api/reports/all-purchases', { params })).data,
   expenseBreakdown: async (params = {}) => (await api.get('/api/reports/expense-breakdown', { params })).data,
   salesTax: async (params = {}) => (await api.get('/api/reports/sales-tax', { params })).data,
+  trialBalance: async (params = {}) => (await api.get('/api/reports/trial-balance', { params })).data,
+  cashFlow: async (params = {}) => (await api.get('/api/reports/cash-flow', { params })).data,
 };
 
 export const csvImportAPI = {

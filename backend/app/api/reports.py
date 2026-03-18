@@ -111,6 +111,169 @@ async def balance_sheet(as_of_date: Optional[str] = None,
         raise HTTPException(500, f"Failed to generate balance sheet: {str(e)}")
 
 
+# ── Trial Balance ──
+@router.get("/trial-balance")
+async def trial_balance(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                        current_user: User = Depends(get_current_user)):
+    """Trial Balance — all accounts with debit/credit totals for a period."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+
+    try:
+        rows = run_q("""
+            SELECT a.code, a.name, a.account_type,
+                   COALESCE(SUM(jel.debit_amount), 0) as total_debit,
+                   COALESCE(SUM(jel.credit_amount), 0) as total_credit
+            FROM accounts a
+            LEFT JOIN journal_entry_lines jel ON jel.account_code = a.code
+            LEFT JOIN journal_entries je ON je.id = jel.journal_entry_id
+                AND je.entry_date BETWEEN :start AND :end
+            WHERE a.is_active = true
+            GROUP BY a.code, a.name, a.account_type
+            ORDER BY a.code
+        """, {"start": start, "end": end})
+
+        accounts = []
+        grand_debit = 0
+        grand_credit = 0
+        for r in rows:
+            debit = round(float(r["total_debit"] or 0), 3)
+            credit = round(float(r["total_credit"] or 0), 3)
+            net = round(debit - credit, 3)
+            if debit == 0 and credit == 0:
+                continue  # Skip accounts with no activity
+            accounts.append({
+                "code": r["code"],
+                "name": r["name"],
+                "account_type": r["account_type"],
+                "debit": debit,
+                "credit": credit,
+                "net_balance": net,
+            })
+            grand_debit += debit
+            grand_credit += credit
+
+        return {
+            "period": {"from": start, "to": end},
+            "accounts": accounts,
+            "total_debit": round(grand_debit, 3),
+            "total_credit": round(grand_credit, 3),
+            "difference": round(grand_debit - grand_credit, 3),
+            "is_balanced": abs(grand_debit - grand_credit) < 0.01,
+            "account_count": len(accounts),
+        }
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(500, f"Failed to generate trial balance: {str(e)}")
+
+
+# ── Cash Flow Statement ──
+@router.get("/cash-flow")
+async def cash_flow_statement(from_date: Optional[str] = None, to_date: Optional[str] = None,
+                              current_user: User = Depends(get_current_user)):
+    """Cash Flow Statement — cash inflows/outflows by activity type."""
+    today = date.today()
+    start = from_date or today.replace(month=1, day=1).isoformat()
+    end = to_date or today.isoformat()
+
+    try:
+        # All journal lines that hit cash or bank accounts
+        cash_lines = run_q("""
+            SELECT jel.account_code, jel.debit_amount, jel.credit_amount,
+                   jel.description, je.entry_date, je.reference_type, je.description as je_desc,
+                   a.name as account_name, a.account_type,
+                   counter.account_code as counter_code, counter.account_name as counter_name,
+                   counter_a.account_type as counter_type
+            FROM journal_entry_lines jel
+            JOIN journal_entries je ON je.id = jel.journal_entry_id
+            JOIN accounts a ON a.code = jel.account_code
+            LEFT JOIN LATERAL (
+                SELECT jel2.account_code, jel2.account_name
+                FROM journal_entry_lines jel2
+                WHERE jel2.journal_entry_id = jel.journal_entry_id
+                  AND jel2.account_code != jel.account_code
+                LIMIT 1
+            ) counter ON true
+            LEFT JOIN accounts counter_a ON counter_a.code = counter.counter_code
+            WHERE jel.account_code IN ('1110', '1120')
+              AND je.entry_date BETWEEN :start AND :end
+            ORDER BY je.entry_date
+        """, {"start": start, "end": end})
+
+        operating = []
+        investing = []
+        financing = []
+        total_operating = 0
+        total_investing = 0
+        total_financing = 0
+
+        for r in cash_lines:
+            debit = float(r["debit_amount"] or 0)
+            credit = float(r["credit_amount"] or 0)
+            net = round(debit - credit, 3)  # positive = cash in, negative = cash out
+            ref_type = (r["reference_type"] or "").upper()
+            counter_type = r.get("counter_type") or ""
+            desc = r["je_desc"] or r["description"] or ""
+
+            item = {
+                "date": str(r["entry_date"]),
+                "description": desc,
+                "amount": net,
+                "reference_type": ref_type,
+            }
+
+            # Classify by reference type or counter account type
+            if ref_type in ("SALES_INVOICE", "SALES_PAYMENT", "PURCHASE_INVOICE",
+                            "PURCHASE_PAYMENT", "EXPENSE", "VAT_PAYMENT", "SALES_RETURN",
+                            "PURCHASE_RETURN", "CASH_IN", "CASH_OUT"):
+                operating.append(item)
+                total_operating += net
+            elif counter_type in ("Asset",) and ref_type not in ("ADVANCE_PAYMENT", "ADVANCE_APPLIED"):
+                investing.append(item)
+                total_investing += net
+            elif ref_type in ("ADVANCE_PAYMENT", "ADVANCE_APPLIED") or counter_type in ("Equity", "Liability"):
+                financing.append(item)
+                total_financing += net
+            else:
+                operating.append(item)
+                total_operating += net
+
+        # Opening and closing cash
+        opening_cash = run_s("""
+            SELECT COALESCE(SUM(jel.debit_amount - jel.credit_amount), 0)
+            FROM journal_entry_lines jel
+            JOIN journal_entries je ON je.id = jel.journal_entry_id
+            WHERE jel.account_code IN ('1110', '1120')
+              AND je.entry_date < :start
+        """, {"start": start})
+
+        net_change = round(total_operating + total_investing + total_financing, 3)
+        closing_cash = round(float(opening_cash) + net_change, 3)
+
+        return {
+            "period": {"from": start, "to": end},
+            "operating": {
+                "items": operating,
+                "total": round(total_operating, 3),
+            },
+            "investing": {
+                "items": investing,
+                "total": round(total_investing, 3),
+            },
+            "financing": {
+                "items": financing,
+                "total": round(total_financing, 3),
+            },
+            "net_change_in_cash": net_change,
+            "opening_cash_balance": round(float(opening_cash), 3),
+            "closing_cash_balance": closing_cash,
+        }
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(500, f"Failed to generate cash flow statement: {str(e)}")
+
+
 # ── General Ledger ──
 @router.get("/general-ledger")
 async def general_ledger(account_code: str = Query(...),
