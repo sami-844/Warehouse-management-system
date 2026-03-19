@@ -6,7 +6,6 @@ Create Date: 2026-03-18
 
 """
 from alembic import op
-import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '64f059674bfe'
@@ -16,8 +15,8 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('users', sa.Column('van_warehouse_id', sa.Integer(), nullable=True))
+    op.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS van_warehouse_id INTEGER")
 
 
 def downgrade():
-    op.drop_column('users', 'van_warehouse_id')
+    pass
