@@ -182,20 +182,10 @@ async def cash_flow_statement(from_date: Optional[str] = None, to_date: Optional
         cash_lines = run_q("""
             SELECT jel.account_code, jel.debit_amount, jel.credit_amount,
                    jel.description, je.entry_date, je.reference_type, je.description as je_desc,
-                   a.name as account_name, a.account_type,
-                   counter.account_code as counter_code, counter.account_name as counter_name,
-                   counter_a.account_type as counter_type
+                   a.name as account_name, a.account_type
             FROM journal_entry_lines jel
             JOIN journal_entries je ON je.id = jel.journal_entry_id
             JOIN accounts a ON a.code = jel.account_code
-            LEFT JOIN LATERAL (
-                SELECT jel2.account_code, jel2.account_name
-                FROM journal_entry_lines jel2
-                WHERE jel2.journal_entry_id = jel.journal_entry_id
-                  AND jel2.account_code != jel.account_code
-                LIMIT 1
-            ) counter ON true
-            LEFT JOIN accounts counter_a ON counter_a.code = counter.counter_code
             WHERE jel.account_code IN ('1110', '1120')
               AND je.entry_date BETWEEN :start AND :end
             ORDER BY je.entry_date
@@ -213,7 +203,6 @@ async def cash_flow_statement(from_date: Optional[str] = None, to_date: Optional
             credit = float(r["credit_amount"] or 0)
             net = round(debit - credit, 3)  # positive = cash in, negative = cash out
             ref_type = (r["reference_type"] or "").upper()
-            counter_type = r.get("counter_type") or ""
             desc = r["je_desc"] or r["description"] or ""
 
             item = {
@@ -223,19 +212,15 @@ async def cash_flow_statement(from_date: Optional[str] = None, to_date: Optional
                 "reference_type": ref_type,
             }
 
-            # Classify by reference type or counter account type
-            if ref_type in ("SALES_INVOICE", "SALES_PAYMENT", "PURCHASE_INVOICE",
-                            "PURCHASE_PAYMENT", "EXPENSE", "VAT_PAYMENT", "SALES_RETURN",
-                            "PURCHASE_RETURN", "CASH_IN", "CASH_OUT"):
-                operating.append(item)
-                total_operating += net
-            elif counter_type in ("Asset",) and ref_type not in ("ADVANCE_PAYMENT", "ADVANCE_APPLIED"):
-                investing.append(item)
-                total_investing += net
-            elif ref_type in ("ADVANCE_PAYMENT", "ADVANCE_APPLIED") or counter_type in ("Equity", "Liability"):
+            # Classify by reference type
+            if ref_type in ("ADVANCE_PAYMENT", "ADVANCE_APPLIED", "LOAN", "EQUITY"):
                 financing.append(item)
                 total_financing += net
+            elif ref_type in ("ASSET_PURCHASE", "ASSET_SALE", "INVESTMENT"):
+                investing.append(item)
+                total_investing += net
             else:
+                # Default: operating (sales, purchases, expenses, etc.)
                 operating.append(item)
                 total_operating += net
 
