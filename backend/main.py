@@ -317,159 +317,35 @@ async def startup_event():
     except Exception as e:
         print(f"STARTUP: Role seeding error: {e}")
     print("STARTUP: Roles seeded")
-    # ── Phase 44: Seed van warehouses ──
-    print("STARTUP: Starting van warehouse seeding...")
-    _van_warehouses = [
-        ("VAN-MANIK", "Van — Manik", "van"),
-        ("VAN-ARIF", "Van — Arif", "van"),
-        ("VAN-ARAFAT", "Van — Arafat", "van"),
-    ]
+
+    # Seed van warehouses (INSERT only — tables created by Alembic/create_all)
     try:
         with engine.connect() as conn:
-            # Ensure main warehouse exists (id=1)
-            try:
-                result = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'"))
-                main_wh = result.fetchone()
-                if not main_wh:
-                    conn.execute(text(
-                        "INSERT INTO warehouses (code, name, location_type, is_active) "
-                        "VALUES ('WH-01', 'Main Warehouse', 'main', true)"
-                    ))
+            mw = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'")).fetchone()
+            if not mw:
+                conn.execute(text("INSERT INTO warehouses (code, name, location_type, is_active) VALUES ('WH-01', 'Main Warehouse', 'main', true)"))
+                conn.commit()
+            main_id = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'")).fetchone()
+            pid = main_id[0] if main_id else None
+            for code, name in [("VAN-MANIK", "Van — Manik"), ("VAN-ARIF", "Van — Arif"), ("VAN-ARAFAT", "Van — Arafat")]:
+                exists = conn.execute(text("SELECT id FROM warehouses WHERE code = :c"), {"c": code}).fetchone()
+                if not exists:
+                    conn.execute(text("INSERT INTO warehouses (code, name, location_type, parent_id, is_active) VALUES (:c, :n, 'van', :p, true)"), {"c": code, "n": name, "p": pid})
                     conn.commit()
-            except Exception:
-                conn.rollback()
-
-            for code, name, loc_type in _van_warehouses:
-                try:
-                    result = conn.execute(text("SELECT id FROM warehouses WHERE code = :code"), {"code": code})
-                    if not result.fetchone():
-                        main = conn.execute(text("SELECT id FROM warehouses WHERE code = 'WH-01'")).fetchone()
-                        parent_id = main[0] if main else None
-                        conn.execute(text(
-                            "INSERT INTO warehouses (code, name, location_type, parent_id, is_active) "
-                            "VALUES (:code, :name, :loc, :parent, true)"
-                        ), {"code": code, "name": name, "loc": loc_type, "parent": parent_id})
-                        conn.commit()
-                except Exception:
-                    conn.rollback()
+        print("Van warehouses: OK")
     except Exception as e:
-        print(f"STARTUP: Van warehouse seeding error: {e}")
-    print("STARTUP: Van warehouses done")
+        print(f"Van warehouses warning: {e}")
 
-    # ── Phase 47: Flag admin for password change if still default ──
-    print("STARTUP: Starting admin password flag...")
+    # Seed default approval rules
     try:
         with engine.connect() as conn:
-            admin_user = conn.execute(text(
-                "SELECT id, hashed_password FROM users WHERE username = 'admin' LIMIT 1"
-            )).fetchone()
-            if admin_user:
-                try:
-                    conn.execute(text(
-                        "UPDATE users SET must_change_password = true WHERE username = 'admin' AND (must_change_password IS NULL OR must_change_password = false)"
-                    ))
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
+            exists = conn.execute(text("SELECT id FROM approval_rules LIMIT 1")).fetchone()
+            if not exists:
+                conn.execute(text("INSERT INTO approval_rules (rule_name, entity_type, condition_field, condition_operator, condition_value, approver_role) VALUES ('PO above 500 OMR', 'purchase_order', 'total_amount', '>', 500, 'ADMIN')"))
+                conn.commit()
+        print("Approval rules: OK")
     except Exception as e:
-        print(f"STARTUP: Admin password flag error: {e}")
-    print("STARTUP: Admin password flag done")
-
-    # ── Phase 48: Create driver_settlements table if not exists ──
-    print("STARTUP: Starting driver_settlements table...")
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1 FROM driver_settlements LIMIT 1"))
-            print("STARTUP: driver_settlements table exists")
-    except Exception:
-        try:
-            with engine.connect() as conn:
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS driver_settlements (
-                        id SERIAL PRIMARY KEY,
-                        driver_id INTEGER NOT NULL REFERENCES users(id),
-                        settlement_date DATE NOT NULL,
-                        amount NUMERIC(12,3) NOT NULL,
-                        payment_method VARCHAR(30) DEFAULT 'cash',
-                        bank_reference VARCHAR(100),
-                        running_due_before NUMERIC(12,3) DEFAULT 0,
-                        running_due_after NUMERIC(12,3) DEFAULT 0,
-                        notes TEXT,
-                        settled_by INTEGER NOT NULL REFERENCES users(id),
-                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                    )
-                """))
-                conn.commit()
-                print("STARTUP: driver_settlements table created")
-        except Exception as e:
-            print(f"STARTUP: driver_settlements ERROR: {e}")
-    print("STARTUP: driver_settlements done")
-
-    # ── Phase 50: Create approval_rules table ──
-    print("STARTUP: Starting approval_rules table...")
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1 FROM approval_rules LIMIT 1"))
-            print("STARTUP: approval_rules table exists")
-    except Exception:
-        try:
-            with engine.connect() as conn:
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS approval_rules (
-                        id SERIAL PRIMARY KEY,
-                        rule_name VARCHAR(100) NOT NULL,
-                        entity_type VARCHAR(50) NOT NULL DEFAULT 'purchase_order',
-                        condition_field VARCHAR(50) NOT NULL,
-                        condition_operator VARCHAR(10) NOT NULL DEFAULT '>',
-                        condition_value NUMERIC(12,3) NOT NULL,
-                        approver_role VARCHAR(50) NOT NULL DEFAULT 'ADMIN',
-                        is_active BOOLEAN DEFAULT true,
-                        created_by INTEGER,
-                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                    )
-                """))
-                conn.execute(text("""
-                    INSERT INTO approval_rules (rule_name, entity_type, condition_field, condition_operator, condition_value, approver_role)
-                    VALUES
-                    ('PO above 500 OMR', 'purchase_order', 'total_amount', '>', 500, 'ADMIN'),
-                    ('Discount above 10%', 'sales_order', 'discount_percent', '>', 10, 'ADMIN')
-                """))
-                conn.commit()
-                print("STARTUP: approval_rules table created with defaults")
-        except Exception as e:
-            print(f"STARTUP: approval_rules ERROR: {e}")
-    print("STARTUP: approval_rules done")
-
-    # ── Phase 50: Create supplier_price_list table ──
-    print("STARTUP: Starting supplier_price_list table...")
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1 FROM supplier_price_list LIMIT 1"))
-            print("STARTUP: supplier_price_list table exists")
-    except Exception:
-        try:
-            with engine.connect() as conn:
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS supplier_price_list (
-                        id SERIAL PRIMARY KEY,
-                        supplier_id INTEGER NOT NULL REFERENCES suppliers(id),
-                        product_id INTEGER NOT NULL REFERENCES products(id),
-                        unit_price NUMERIC(10,3) NOT NULL,
-                        currency VARCHAR(3) DEFAULT 'OMR',
-                        min_order_qty NUMERIC(10,3) DEFAULT 1,
-                        lead_time_days INTEGER DEFAULT 7,
-                        notes TEXT,
-                        is_active BOOLEAN DEFAULT true,
-                        last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                        updated_by INTEGER,
-                        UNIQUE(supplier_id, product_id)
-                    )
-                """))
-                conn.commit()
-                print("STARTUP: supplier_price_list table created")
-        except Exception as e:
-            print(f"STARTUP: supplier_price_list ERROR: {e}")
-    print("STARTUP: supplier_price_list done")
+        print(f"Approval rules warning: {e}")
 
     # Fix any lowercase enum values in inventory_transactions
     print("STARTUP: Starting enum fix...")
