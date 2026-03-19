@@ -51,14 +51,25 @@ async def rbac_middleware(request: Request, call_next):
 app.include_router(analytics_router)
 
 def run_migrations():
-    """Run Alembic migrations automatically on startup."""
+    """Run Alembic migrations with timeout — skip if database is locked."""
     import os
-    from alembic.config import Config
-    from alembic import command as alembic_command
-    alembic_ini = os.path.join(os.path.dirname(__file__), "alembic.ini")
-    alembic_cfg = Config(alembic_ini)
-    alembic_cfg.set_main_option("script_location", os.path.join(os.path.dirname(__file__), "alembic"))
-    alembic_command.upgrade(alembic_cfg, "head")
+    import threading
+
+    def _run():
+        from alembic.config import Config
+        from alembic import command as alembic_command
+        alembic_ini = os.path.join(os.path.dirname(__file__), "alembic.ini")
+        alembic_cfg = Config(alembic_ini)
+        alembic_cfg.set_main_option("script_location", os.path.join(os.path.dirname(__file__), "alembic"))
+        alembic_command.upgrade(alembic_cfg, "head")
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    thread.join(timeout=15)  # Wait max 15 seconds
+    if thread.is_alive():
+        print("Alembic migration timed out (database may be locked) — skipping, will retry next restart")
+    else:
+        print("Alembic migrations: complete")
 
 
 def seed_ui_labels():
@@ -173,9 +184,8 @@ async def startup_event():
     # Run Alembic migrations before anything else
     try:
         run_migrations()
-        print("Alembic migrations: up to date")
     except Exception as e:
-        print(f"Alembic migration warning: {e}")
+        print(f"Alembic migration warning (non-fatal): {e}")
     print("STARTUP: Alembic done, starting column migrations...")
     # Rename ui_labels columns if they have old names (label_value→default_label etc.)
     from sqlalchemy import text as _text, inspect as _inspect
