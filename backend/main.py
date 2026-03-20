@@ -187,6 +187,25 @@ async def startup_event():
     except Exception as e:
         print(f"Alembic migration warning (non-fatal): {e}")
     print("STARTUP: Alembic done, starting column migrations...")
+    # Ensure ui_labels table exists with correct schema
+    print("STARTUP: Ensuring ui_labels table...")
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS ui_labels (
+                    id SERIAL PRIMARY KEY,
+                    label_key VARCHAR(100) UNIQUE NOT NULL,
+                    default_label VARCHAR(200),
+                    custom_label VARCHAR(200),
+                    section VARCHAR(50),
+                    updated_by INTEGER,
+                    updated_at TIMESTAMP
+                )
+            """))
+            conn.commit()
+            print("STARTUP: ui_labels table ensured")
+    except Exception as e:
+        print(f"STARTUP: ui_labels table warning: {e}")
     # Rename ui_labels columns if they have old names (label_value→default_label etc.)
     from sqlalchemy import text as _text, inspect as _inspect
     try:
