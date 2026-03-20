@@ -244,6 +244,67 @@ async def startup_event():
     print("STARTUP: Starting create_all...")
     Base.metadata.create_all(bind=engine, checkfirst=True)
     print("STARTUP: create_all done")
+    # ── Ensure all Phase 44-52 tables exist (Alembic may have timed out) ──
+    print("STARTUP: Ensuring Phase 44-52 tables...")
+    _table_creates = [
+        """CREATE TABLE IF NOT EXISTS ui_labels (
+            id SERIAL PRIMARY KEY,
+            label_key VARCHAR(100) UNIQUE NOT NULL,
+            default_label VARCHAR(200),
+            custom_label VARCHAR(200),
+            section VARCHAR(50),
+            updated_by INTEGER,
+            updated_at TIMESTAMP
+        )""",
+        """CREATE TABLE IF NOT EXISTS driver_settlements (
+            id SERIAL PRIMARY KEY,
+            driver_id INTEGER NOT NULL REFERENCES users(id),
+            settlement_date DATE NOT NULL,
+            amount NUMERIC(12,3) NOT NULL,
+            payment_method VARCHAR(30) DEFAULT 'cash',
+            bank_reference VARCHAR(100),
+            running_due_before NUMERIC(12,3) DEFAULT 0,
+            running_due_after NUMERIC(12,3) DEFAULT 0,
+            notes TEXT,
+            settled_by INTEGER NOT NULL REFERENCES users(id),
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS approval_rules (
+            id SERIAL PRIMARY KEY,
+            rule_name VARCHAR(100) NOT NULL,
+            entity_type VARCHAR(50) NOT NULL DEFAULT 'purchase_order',
+            condition_field VARCHAR(50) NOT NULL,
+            condition_operator VARCHAR(10) NOT NULL DEFAULT '>',
+            condition_value NUMERIC(12,3) NOT NULL,
+            approver_role VARCHAR(50) NOT NULL DEFAULT 'ADMIN',
+            is_active BOOLEAN DEFAULT true,
+            created_by INTEGER,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""",
+        """CREATE TABLE IF NOT EXISTS supplier_price_list (
+            id SERIAL PRIMARY KEY,
+            supplier_id INTEGER NOT NULL REFERENCES suppliers(id),
+            product_id INTEGER NOT NULL REFERENCES products(id),
+            unit_price NUMERIC(10,3) NOT NULL,
+            currency VARCHAR(3) DEFAULT 'OMR',
+            min_order_qty NUMERIC(10,3) DEFAULT 1,
+            lead_time_days INTEGER DEFAULT 7,
+            notes TEXT,
+            is_active BOOLEAN DEFAULT true,
+            last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_by INTEGER,
+            UNIQUE(supplier_id, product_id)
+        )""",
+    ]
+    with engine.connect() as conn:
+        for sql in _table_creates:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                print(f"  Table create note: {e}")
+    print("STARTUP: Phase 44-52 tables ensured")
     # ── Auto-migration: add missing columns to existing tables ──
     _migrations = [
         ("products", "is_deleted", "BOOLEAN DEFAULT FALSE"),
